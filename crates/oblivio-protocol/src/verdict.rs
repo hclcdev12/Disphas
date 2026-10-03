@@ -9,6 +9,7 @@ use crate::codes::{
 
 /// Decision for one drive, computed by the helper only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(
     tag = "state",
     rename_all = "SCREAMING_SNAKE_CASE",
@@ -45,6 +46,7 @@ pub enum Verdict {
 
 /// An allowed method and what executing it implies.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct MethodChoice {
     /// The method.
@@ -81,6 +83,7 @@ impl MethodChoice {
 
 /// Recommended future of the drive once its erasure is certified.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(tag = "kind", deny_unknown_fields)]
 pub enum Disposition {
     /// The drive can be reused.

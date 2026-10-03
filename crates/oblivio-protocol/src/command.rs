@@ -10,6 +10,7 @@ use crate::secret::AtaPassword;
 
 /// A command with its arguments. Serialized as `"cmd"` and `"args"`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(tag = "cmd", content = "args", deny_unknown_fields)]
 pub enum Command {
     /// Opens the session and checks versions.
@@ -58,6 +59,7 @@ impl Command {
 
 /// Arguments of `Hello`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct HelloArgs {
     /// Protocol version spoken by the app.
@@ -68,6 +70,7 @@ pub struct HelloArgs {
 
 /// Arguments naming a single drive.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceArgs {
     /// The drive.
@@ -76,16 +79,19 @@ pub struct DeviceArgs {
 
 /// Arguments of `Unlock`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct UnlockArgs {
     /// The drive.
     pub device: DeviceRef,
     /// ATA user or master password. Never logged, wiped after use.
+    #[cfg_attr(feature = "ts-rs", ts(as = "String"))]
     pub password: AtaPassword,
 }
 
 /// Arguments of `Sanitize` (§7).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct SanitizeArgs {
     /// Verdict this request relies on, as returned by `Inspect`.
@@ -108,6 +114,7 @@ pub struct SanitizeArgs {
 
 /// Request to force a SAY NO verdict.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct ForceArgs {
     /// Operator justification, certified as typed.
@@ -116,6 +123,7 @@ pub struct ForceArgs {
 
 /// Arguments naming a job.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobArgs {
     /// The job.
@@ -124,6 +132,7 @@ pub struct JobArgs {
 
 /// Arguments of `InstallLicense`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct InstallLicenseArgs {
     /// Content of the `.lic` file.
@@ -132,6 +141,7 @@ pub struct InstallLicenseArgs {
 
 /// A drive as named by the UI. The helper finds it by `identity`, never by path.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceRef {
     /// Path such as `/dev/nvme0n1`: a hint only, never used as is.
@@ -142,6 +152,7 @@ pub struct DeviceRef {
 
 /// Hardware identity of a drive (§5).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceIdentity {
     /// Model string.
@@ -158,10 +169,12 @@ pub struct DeviceIdentity {
 
 /// Identifier of a verdict issued by the helper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(transparent)]
 pub struct VerdictId(pub String);
 
 /// Identifier of a job.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(transparent)]
 pub struct JobId(pub String);

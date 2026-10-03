@@ -9,6 +9,7 @@ use crate::response::{DeviceChangedData, FinalStatus, JobPhase};
 
 /// An event. Serialized as `"event"` and `"data"`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(tag = "event", content = "data", deny_unknown_fields)]
 pub enum Event {
     /// A drive appeared.
@@ -29,6 +30,7 @@ pub enum Event {
 
 /// Payload of `DeviceAdded` and `DeviceRemoved`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceData {
     /// The drive.
@@ -37,6 +39,7 @@ pub struct DeviceData {
 
 /// Payload of `JobPhase`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobPhaseData {
     /// The job.
@@ -47,6 +50,7 @@ pub struct JobPhaseData {
 
 /// Who reports the progress.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(rename_all = "lowercase")]
 pub enum ProgressSource {
     /// The drive firmware.
@@ -57,6 +61,7 @@ pub enum ProgressSource {
 
 /// Payload of `JobProgress`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobProgressData {
     /// The job.
@@ -75,6 +80,7 @@ pub struct JobProgressData {
 
 /// Severity of a log line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
     /// Information.
@@ -87,6 +93,7 @@ pub enum LogLevel {
 
 /// Payload of `JobLog`. Never carries text: the app translates `code`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobLogData {
     /// The job.
@@ -101,6 +108,7 @@ pub struct JobLogData {
 
 /// Payload of `JobFinished`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobFinishedData {
     /// The job.

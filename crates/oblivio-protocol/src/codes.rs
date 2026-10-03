@@ -18,6 +18,7 @@ macro_rules! wire_codes {
         #[derive(
             Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
         )]
+        #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
         pub enum $name {
             $( $(#[$vmeta])* #[serde(rename = $code)] $variant, )+
         }
@@ -134,6 +135,7 @@ wire_codes! {
 
 /// NIST SP 800-88 category. Never translated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum Category {
     /// Clear.
     Clear,
@@ -143,6 +145,7 @@ pub enum Category {
 
 /// Sanitization method, named as in `oblivio-core`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum Method {
     /// NVMe Sanitize, Block Erase.
     NvmeSanitizeBlockErase,
@@ -168,6 +171,7 @@ pub enum Method {
 
 /// A warning the operator must acknowledge before `Sanitize`, e.g. `"D4"`, `"R4"`, `"NS_ALL"`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(untagged)]
 pub enum Acknowledgement {
     /// A disposition code.

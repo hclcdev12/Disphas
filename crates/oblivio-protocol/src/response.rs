@@ -8,6 +8,7 @@ use crate::verdict::Verdict;
 
 /// Error codes returned by the helper (§9).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
     /// Incompatible protocol versions.
@@ -46,6 +47,7 @@ pub enum ErrorCode {
 
 /// Error payload of a failed response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct ErrorBody {
     /// Error code, translated by the app.
@@ -56,11 +58,13 @@ pub struct ErrorBody {
 
 /// Result of commands that only acknowledge success.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct Empty {}
 
 /// Result of `Hello`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct HelloResult {
     /// Protocol version spoken by the helper.
@@ -77,6 +81,7 @@ pub struct HelloResult {
 
 /// Kind of drive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum DriveKind {
     /// NVMe.
     Nvme,
@@ -88,6 +93,7 @@ pub enum DriveKind {
 
 /// One entry of `ListDevices`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceSummary {
     /// The drive.
@@ -102,6 +108,7 @@ pub struct DeviceSummary {
 
 /// Result of `ListDevices`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct ListDevicesResult {
     /// Every drive found.
@@ -110,6 +117,7 @@ pub struct ListDevicesResult {
 
 /// Result of `Inspect`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct InspectResult {
     /// Identifier to quote in `Sanitize`.
@@ -130,6 +138,7 @@ pub struct InspectResult {
 
 /// Result of `Sanitize`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct SanitizeResult {
     /// The job started.
@@ -138,6 +147,7 @@ pub struct SanitizeResult {
 
 /// Phases of a job, in order (§8).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum JobPhase {
     /// Checks before execution.
     Preparing,
@@ -157,6 +167,7 @@ pub enum JobPhase {
 
 /// Final status of a job, as in the attestation (`docs/certificat.md` §3).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum FinalStatus {
     /// Erasure proven.
     #[serde(rename = "CONFORME")]
@@ -171,6 +182,7 @@ pub enum FinalStatus {
 
 /// One entry of `ListJobs`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobSummary {
     /// The job.
@@ -185,6 +197,7 @@ pub struct JobSummary {
 
 /// Result of `ListJobs`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct ListJobsResult {
     /// Running jobs and finished ones not yet collected.
@@ -193,6 +206,7 @@ pub struct ListJobsResult {
 
 /// Result of `GetJobResult`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct JobResult {
     /// The job.
@@ -207,6 +221,7 @@ pub struct JobResult {
 
 /// State of the installed license.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 pub enum LicenseState {
     /// No license installed.
     Missing,
@@ -220,6 +235,7 @@ pub enum LicenseState {
 
 /// Result of `LicenseStatus`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct LicenseStatusResult {
     /// State of the license.
@@ -234,6 +250,7 @@ pub struct LicenseStatusResult {
 
 /// Result of `CreateActivationRequest`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct ActivationRequestResult {
     /// Activation request carrying the workstation public key.
@@ -242,6 +259,7 @@ pub struct ActivationRequestResult {
 
 /// Payload of `DeviceChanged`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
 #[serde(deny_unknown_fields)]
 pub struct DeviceChangedData {
     /// Identity of the drive whose verdicts are now invalid.

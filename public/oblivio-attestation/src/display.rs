@@ -61,6 +61,38 @@ impl Text {
     }
 }
 
+/// Every code this version has a label for, in display order.
+pub const KNOWN_CODES: &[&str] = &[
+    "N1",
+    "N3",
+    "N8",
+    "N9",
+    "N10",
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "D5",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "NvmeSanitizeBlockErase",
+    "NvmeSanitizeCryptoErase",
+    "NvmeFormatCryptoErase",
+    "NvmeFormatUserDataErase",
+    "AtaSanitizeBlockErase",
+    "AtaSanitizeCryptoScramble",
+    "AtaSanitizeOverwrite",
+    "AtaSecurityEraseEnhanced",
+    "AtaSecurityEraseNormal",
+    "HostOverwrite",
+];
+
 /// Label of a code found in an attestation, if this version knows it.
 pub fn code(code: &str) -> Option<Text> {
     Some(match code {
@@ -280,6 +312,9 @@ mod tests {
             }
         }
         assert!(super::code("Z99").is_none());
+        for code in KNOWN_CODES {
+            assert!(super::code(code).is_some(), "{code}");
+        }
     }
 
     #[test]
