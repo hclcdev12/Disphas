@@ -182,3 +182,24 @@ UI                                   helper
  │◄──── ok (attestation, journal) ───│
  │  [app rend le PDF dans la langue choisie]
 ```
+
+## 13. Implémentation (`oblivio-protocol`, décidé le 2026-10-04)
+
+- **Indépendance du moteur** : `oblivio-protocol` ne dépend pas de `oblivio-core`. Il définit son propre format
+  (verdict, codes, méthodes) ; le helper convertit par `match` exhaustif, si bien qu'un code ajouté au moteur
+  sans équivalent dans le protocole casse la compilation. L'app n'embarque donc jamais le moteur de décision.
+- **Décodage en deux temps** : l'enveloppe (`type`, `id`, `cmd`, `args`) est lue strictement, puis `args` est
+  décodé pour la commande nommée. Une requête rejetée reçoit sa réponse avec son `id` quand il est lisible ;
+  `UNKNOWN_COMMAND` et `BAD_REQUEST` sont distingués. Message > 1 Mio : connexion fermée.
+- Les commandes sans argument (`ListDevices`, `ListJobs`, `LicenseStatus`, `CreateActivationRequest`, `Shutdown`)
+  s'envoient **sans** champ `args`.
+- **Verdict sur le fil** (`Inspect`) : `{"state": "PROTECTED" | "BLOCKED" | "SAY_NO" | "READY", …}`.
+  Chaque méthode autorisée est un `MethodChoice { method, category, reserves, all_namespaces }` ;
+  `required_acknowledgements()` donne la liste exacte à cocher (codes D, réserves, `NS_ALL`), partagée par l'app et le helper.
+  SAY NO porte `forcible` (méthode forçable ou `null`).
+- **Statuts finaux** sur le fil : `CONFORME`, `NON_CONFORME`, `REFUS` (mêmes codes que l'attestation).
+- **Mot de passe ATA** : 32 octets au plus, effacé de la mémoire (`zeroize`), jamais affiché par `Debug`.
+  Le helper doit aussi effacer la ligne brute qui le contenait.
+- **Limites connues** : `Inspect` ne transmet pas encore le profil S.M.A.R.T. complet ; les clés JSON dupliquées
+  à l'intérieur de `args` ne sont pas rejetées (la dernière l'emporte) ; bornes de longueur par champ à ajouter
+  côté helper lors de la validation métier.
