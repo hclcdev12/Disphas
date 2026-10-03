@@ -12,3 +12,4 @@ workspace = true
 
 [dependencies]
 semver = "1.0.28"
+thiserror = "2.0.21"

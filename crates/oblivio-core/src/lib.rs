@@ -7,10 +7,12 @@
 pub mod codes;
 pub mod decide;
 pub mod method;
+pub mod outcome;
 pub mod profile;
 pub mod rules;
 pub mod verdict;
 
 pub use decide::decide;
+pub use outcome::{Evaluation, evaluate_attempt};
 pub use rules::RuleSet;
 pub use verdict::Verdict;

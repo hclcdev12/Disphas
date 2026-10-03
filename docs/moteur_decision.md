@@ -70,6 +70,13 @@ et le certificat porte un devenir « Destruction recommandée » (§3.3).
 
 N8 et N10 sont des **Say NO post-opération** : le certificat devient un rapport de refus.
 
+**Évaluation post-opération** (décidé le 2026-10-04), après chaque tentative :
+1. **N8** si un échantillon est illisible, ou si les attributs ATA 197/198 sont > 0 après l'opération.
+   Refus immédiat, **sans** nouvelle tentative : relancer ne rendrait pas le résultat prouvable.
+2. Vérification firmware en échec ou échantillon non conforme → nouvelle tentative tant que
+   `max_retries` n'est pas atteint, puis **N10**.
+3. Sinon **CONFORME** ; **D5** s'ajoute au devenir si l'attribut ATA 5 a augmenté pendant l'opération.
+
 Codes **retirés** (non réattribués) : N2 → D1, N4 → D2, N5 → D3, N6 → D4, N7 → D5.
 
 ### 3.2 Réserves (vert avec avertissement)
@@ -180,7 +187,7 @@ pub enum Verdict {
 pub struct Ready {
     pub recommended: MethodOption,                // { method, category }
     pub alternatives: Vec<MethodOption>,          // méthodes autorisées, par préférence
-    pub reserves: Vec<ReserveCode>,
+    pub drive_reserves: Vec<ReserveCode>,         // réserves du disque ; reserves_for(méthode) ajoute R7
     pub disposition: Disposition,                 // Reuse | DestroyRecommended { reasons: Vec<DispositionCode> }
 }
 
@@ -199,8 +206,17 @@ pub struct RuleSet {
 pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict;
 ```
 
-`decide()` couvre les étapes 1 à 4. Les codes post-opération (N8, N10, D5) relèvent de l'évaluation
-après exécution, qui reste à implémenter.
+`decide()` couvre les étapes 1 à 4. R7 dépend de la méthode **réellement choisie** par l'opérateur,
+pas de la méthode recommandée : `Ready::reserves_for(method)` donne la liste à acquitter et à certifier.
+
+```rust
+pub fn evaluate_attempt(profile, ready, executed: Method, retries_used: u8,
+                        report: &AttemptReport, rules) -> Result<Evaluation, EvaluationError>;
+
+pub enum Evaluation { Retry, Compliant(Compliant), Refused { reasons: Vec<RefusalCode> } }
+```
+
+`evaluate_attempt()` applique l'évaluation post-opération (§3.1) et produit N8, N10 et D5.
 
 ## 7. Points ⚠️ à confirmer contre IEEE 2883-2022
 

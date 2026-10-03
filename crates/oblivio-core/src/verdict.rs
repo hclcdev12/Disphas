@@ -1,7 +1,7 @@
 //! The single verdict returned by the decision engine (§6).
 
 use crate::codes::{BlockCode, DispositionCode, ProtectCode, RefusalCode, ReserveCode};
-use crate::method::MethodOption;
+use crate::method::{Method, MethodOption};
 
 /// Decision for one drive. Exactly one state, never a combination.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,10 +32,35 @@ pub struct Ready {
     pub recommended: MethodOption,
     /// Other executable methods, in order of preference.
     pub alternatives: Vec<MethodOption>,
-    /// Warnings for the recommended method, displayed and certified.
-    pub reserves: Vec<ReserveCode>,
+    /// Warnings about the drive itself, whatever the method.
+    /// Use [`Ready::reserves_for`] for the full list of a chosen method.
+    pub drive_reserves: Vec<ReserveCode>,
     /// What should happen to the drive after a proven erasure.
     pub disposition: Disposition,
+}
+
+impl Ready {
+    /// Every allowed method, recommended first.
+    pub fn options(&self) -> impl Iterator<Item = MethodOption> + '_ {
+        core::iter::once(self.recommended).chain(self.alternatives.iter().copied())
+    }
+
+    /// The allowed option for `method`, if any.
+    pub fn option(&self, method: Method) -> Option<MethodOption> {
+        self.options().find(|option| option.method == method)
+    }
+
+    /// Every warning to display, acknowledge and certify if `method` is executed,
+    /// sorted by code. `None` when the verdict does not allow `method`.
+    pub fn reserves_for(&self, method: Method) -> Option<Vec<ReserveCode>> {
+        self.option(method)?;
+        let mut reserves = self.drive_reserves.clone();
+        if method.is_host_write() {
+            reserves.push(ReserveCode::HostWriteCoverage);
+            reserves.sort();
+        }
+        Some(reserves)
+    }
 }
 
 /// Recommended future of the drive once its erasure is certified.

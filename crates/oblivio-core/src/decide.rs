@@ -54,7 +54,7 @@ pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict {
     Verdict::Ready(Ready {
         recommended,
         alternatives: available.collect(),
-        reserves: reserves(profile, rules, recommended.method),
+        drive_reserves: drive_reserves(profile, rules),
         disposition: disposition(&profile.inspection, rules),
     })
 }
@@ -266,7 +266,8 @@ fn disposition(inspection: &Inspection, rules: &RuleSet) -> Disposition {
     }
 }
 
-fn reserves(profile: &DeviceProfile, rules: &RuleSet, recommended: Method) -> Vec<ReserveCode> {
+/// Reserves about the drive itself. R7 depends on the method: see `Ready::reserves_for`.
+fn drive_reserves(profile: &DeviceProfile, rules: &RuleSet) -> Vec<ReserveCode> {
     let above_zero = |value: Option<u64>| value.is_some_and(|count| count > 0);
     let mut reserves: Vec<(bool, ReserveCode)> = match &profile.inspection {
         Inspection::Failed => Vec::new(),
@@ -301,7 +302,6 @@ fn reserves(profile: &DeviceProfile, rules: &RuleSet, recommended: Method) -> Ve
             ),
         ],
     };
-    reserves.push((recommended.is_host_write(), ReserveCode::HostWriteCoverage));
     reserves.push((profile.quirks.known_issue, ReserveCode::KnownQuirk));
     reserves
         .into_iter()
@@ -419,6 +419,12 @@ mod tests {
         }
     }
 
+    fn recommended_reserves(ready: &Ready) -> Vec<ReserveCode> {
+        ready
+            .reserves_for(ready.recommended.method)
+            .expect("the recommended method is always allowed")
+    }
+
     fn option(method: Method, category: Category) -> MethodOption {
         MethodOption { method, category }
     }
@@ -458,7 +464,7 @@ mod tests {
         ] {
             let ready = ready(decide_baseline(&profile(drive)));
             assert_eq!(ready.recommended.category, Category::Purge);
-            assert_eq!(ready.reserves, []);
+            assert_eq!(recommended_reserves(&ready), []);
             assert_eq!(ready.disposition, Disposition::Reuse);
         }
     }
@@ -703,7 +709,10 @@ mod tests {
             option(Method::HostOverwrite, Category::Clear)
         );
         assert_eq!(ready.alternatives, []);
-        assert_eq!(ready.reserves, [ReserveCode::HostWriteCoverage]);
+        assert_eq!(
+            recommended_reserves(&ready),
+            [ReserveCode::HostWriteCoverage]
+        );
     }
 
     // --- 3. Refusals (N), pre-operation only.
@@ -813,7 +822,7 @@ mod tests {
             ready.disposition,
             destroy(&[DispositionCode::ReallocatedAboveThreshold])
         );
-        assert_eq!(ready.reserves, []);
+        assert_eq!(recommended_reserves(&ready), []);
     }
 
     #[test]
@@ -849,7 +858,10 @@ mod tests {
         let ready = ready(decide_baseline(&nvme_with_warning(
             CriticalWarning::SPARE_BELOW_THRESHOLD,
         )));
-        assert_eq!(ready.reserves, [ReserveCode::SpareBelowThreshold]);
+        assert_eq!(
+            recommended_reserves(&ready),
+            [ReserveCode::SpareBelowThreshold]
+        );
         assert_eq!(ready.disposition, Disposition::Reuse);
     }
 
@@ -858,7 +870,10 @@ mod tests {
         let mut drive = nvme();
         drive.health.percentage_used = 100;
         let ready = ready(decide_baseline(&profile(Inspection::Nvme(drive))));
-        assert_eq!(ready.reserves, [ReserveCode::EnduranceExhausted]);
+        assert_eq!(
+            recommended_reserves(&ready),
+            [ReserveCode::EnduranceExhausted]
+        );
         assert_eq!(ready.disposition, Disposition::Reuse);
     }
 
@@ -867,7 +882,7 @@ mod tests {
         let mut drive = nvme();
         drive.health.media_errors = 1;
         let ready = ready(decide_baseline(&profile(Inspection::Nvme(drive))));
-        assert_eq!(ready.reserves, [ReserveCode::MediaErrors]);
+        assert_eq!(recommended_reserves(&ready), [ReserveCode::MediaErrors]);
     }
 
     #[test]
@@ -877,7 +892,10 @@ mod tests {
                 reallocated_sectors: Some(count),
                 ..healthy_smart()
             })));
-            assert_eq!(ready.reserves, [ReserveCode::ReallocatedSectors]);
+            assert_eq!(
+                recommended_reserves(&ready),
+                [ReserveCode::ReallocatedSectors]
+            );
             assert_eq!(ready.disposition, Disposition::Reuse);
         }
     }
@@ -895,7 +913,10 @@ mod tests {
             },
         ] {
             let ready = ready(decide_baseline(&ssd_with_smart(smart)));
-            assert_eq!(ready.reserves, [ReserveCode::PendingOrUncorrectable]);
+            assert_eq!(
+                recommended_reserves(&ready),
+                [ReserveCode::PendingOrUncorrectable]
+            );
         }
     }
 
@@ -905,7 +926,10 @@ mod tests {
             reported_uncorrectable: Some(3),
             ..healthy_smart()
         })));
-        assert_eq!(ready.reserves, [ReserveCode::ReportedUncorrectable]);
+        assert_eq!(
+            recommended_reserves(&ready),
+            [ReserveCode::ReportedUncorrectable]
+        );
     }
 
     #[test]
@@ -916,7 +940,30 @@ mod tests {
             ready.recommended,
             option(Method::HostOverwrite, Category::Clear)
         );
-        assert_eq!(ready.reserves, [ReserveCode::HostWriteCoverage]);
+        assert_eq!(
+            recommended_reserves(&ready),
+            [ReserveCode::HostWriteCoverage]
+        );
+    }
+
+    #[test]
+    fn r7_follows_the_chosen_method_not_the_recommended_one() {
+        let ready = ready(decide_baseline(&ssd_with_smart(AtaSmart {
+            reallocated_sectors: Some(3),
+            ..healthy_smart()
+        })));
+        assert_eq!(
+            ready.reserves_for(Method::AtaSanitizeBlockErase),
+            Some(vec![ReserveCode::ReallocatedSectors])
+        );
+        assert_eq!(
+            ready.reserves_for(Method::HostOverwrite),
+            Some(vec![
+                ReserveCode::ReallocatedSectors,
+                ReserveCode::HostWriteCoverage
+            ])
+        );
+        assert_eq!(ready.reserves_for(Method::NvmeSanitizeBlockErase), None);
     }
 
     #[test]
@@ -929,7 +976,7 @@ mod tests {
             ..profile(Inspection::Nvme(nvme()))
         };
         assert_eq!(
-            ready(decide_baseline(&drive)).reserves,
+            recommended_reserves(&ready(decide_baseline(&drive))),
             [ReserveCode::KnownQuirk]
         );
     }
@@ -1025,7 +1072,11 @@ mod tests {
             ready.recommended,
             option(Method::AtaSecurityEraseEnhanced, Category::Purge)
         );
-        assert_eq!(ready.reserves, [], "a positive quirk is not a reserve");
+        assert_eq!(
+            recommended_reserves(&ready),
+            [],
+            "a positive quirk is not a reserve"
+        );
     }
 
     #[test]
