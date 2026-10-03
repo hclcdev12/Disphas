@@ -150,6 +150,17 @@ Les catégories marquées ⚠️ sont des **paramètres du `RuleSet`** (`categor
 celles des tableaux ci-dessous : leur confirmation contre IEEE 2883 ne changera que `rules_version`, pas le code.
 L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (règle invariante).
 
+**Décodage** (`oblivio-device::decode`, décidé le 2026-10-04) : fonctions pures, octets → profil.
+- Tampon trop court, somme de contrôle IDENTIFY ATA (mot 255, signature A5h) ou SMART fausse → **rejeté**, jamais interprété.
+- Bits Sanitize ATA (mot 59, bits 13 à 15) ignorés si le bit 12 (jeu Sanitize supporté) est absent.
+- Mot 217 non renseigné : indice `rotational` de sysfs, sinon disque traité comme **SSD**
+  (jamais d'Overwrite proposé, Security Erase certifié Clear seulement).
+- Attributs SMART lus en brut 48 bits, comme `smartctl` par défaut : un constructeur qui y range autre chose
+  gonfle la valeur, ce qui va dans le sens prudent (D4). La base de quirks corrigera les modèles connus.
+- ⚠️ Offsets et bits issus des normes (NVMe Base 2.0, ACS-3/4), pas encore confrontés à de vrais disques :
+  tests différentiels contre `smartctl --json -x` à faire sur le banc (cadre §9). À vérifier en priorité :
+  bits de SANITIZE STATUS EXT (14 = en cours, 13 = gelé), FNA et SANICAP.
+
 ### 4.1 NVMe (SSD)
 
 Ordre de préférence :

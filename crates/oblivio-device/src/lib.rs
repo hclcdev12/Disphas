@@ -5,9 +5,10 @@
 //! PROTECTED drive by construction, including in tests. Hardware tests live
 //! behind the `hw-tests` feature and the `OBLIVIO_TEST_DEVICE` variable.
 //!
-//! So far it only holds the read-only [`inventory`]: sysfs and procfs, no
-//! device node opened, no ioctl sent.
+//! So far it holds the read-only [`inventory`] (sysfs and procfs, no device
+//! node opened, no ioctl sent) and pure [`decode`]rs for firmware data.
 
+pub mod decode;
 pub mod inventory;
 pub mod procfs;
 pub mod sysfs;
