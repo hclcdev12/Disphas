@@ -39,6 +39,9 @@ dependencies = [
  "oblivio-device",
  "oblivio-license",
  "oblivio-protocol",
+ "serde",
+ "serde_json",
+ "zeroize",
 ]
 
 [[package]]

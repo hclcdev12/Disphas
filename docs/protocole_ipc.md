@@ -203,3 +203,20 @@ UI                                   helper
 - **Limites connues** : `Inspect` ne transmet pas encore le profil S.M.A.R.T. complet ; les clés JSON dupliquées
   à l'intérieur de `args` ne sont pas rejetées (la dernière l'emporte) ; bornes de longueur par champ à ajouter
   côté helper lors de la validation métier.
+
+### Helper (`oblivio-helper`, squelette du 2026-10-04)
+
+- Bibliothèque + binaire : session, boucle et conversion testables sans processus, sans root ni disque.
+  Le binaire tourne sur `NoDevices` (aucun disque visible) tant que `oblivio-device` n'est pas branché.
+- Toute commande avant un `Hello` réussi → `BAD_REQUEST`.
+- Ligne illisible **sans `id` exploitable** (JSON invalide, UTF-8 invalide) : la connexion est fermée,
+  faute de pouvoir répondre à une requête précise. Avec un `id` : réponse d'erreur, la session continue.
+- `Sanitize` : les 9 contrôles du §7 sont implémentés dans l'ordre. Précisions :
+  - contrôle 2 : l'identité de la requête doit égaler celle du verdict, **et** le disque est relu par identité ;
+  - contrôle 4 : comparaison **exacte** (casse comprise) des 4 derniers **caractères** du S/N ;
+  - contrôle 5 : `detail` liste les codes manquants (`"D4,R7"`) pour que l'app les signale ;
+  - contrôle 5 porte sur la méthode **choisie** (R7 exigé pour une écriture hôte en alternative) ;
+  - au-delà des contrôles, l'exécution n'est pas encore implémentée (`INTERNAL`).
+- `Unlock`, `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
+  `binary_sha256` est vide et la licence est `Missing` (donc tout `Sanitize` s'arrête au contrôle 8).
+- Non encore fait : vérification `PKEXEC_UID` et purge de l'environnement (§3), événements, persistance (§10).

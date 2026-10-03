@@ -570,8 +570,8 @@ mod tests {
             verdict_id: VerdictId("v1".to_owned()),
             valid_for_seconds: 600,
             device: device(),
-            kind: crate::response::DriveKind::Nvme,
-            capacity_bytes: 1_000_204_886_016,
+            kind: Some(crate::response::DriveKind::Nvme),
+            capacity_bytes: Some(1_000_204_886_016),
             firmware: "5B2QGXA7".to_owned(),
             verdict,
         };

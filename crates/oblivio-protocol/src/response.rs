@@ -118,10 +118,10 @@ pub struct InspectResult {
     pub valid_for_seconds: u32,
     /// The drive, as identified by the helper.
     pub device: DeviceRef,
-    /// Kind of drive.
-    pub kind: DriveKind,
-    /// Capacity in bytes.
-    pub capacity_bytes: u64,
+    /// Kind of drive; unknown when the inspection failed.
+    pub kind: Option<DriveKind>,
+    /// Capacity in bytes; unknown when the inspection failed.
+    pub capacity_bytes: Option<u64>,
     /// Firmware revision.
     pub firmware: String,
     /// The decision.

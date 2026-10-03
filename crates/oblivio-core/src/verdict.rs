@@ -70,12 +70,18 @@ impl Ready {
     /// sorted by code. `None` when the verdict does not allow `method`.
     pub fn reserves_for(&self, method: Method) -> Option<Vec<ReserveCode>> {
         self.option(method)?;
+        Some(self.method_reserves(method))
+    }
+
+    /// Drive reserves plus those of `method`, sorted by code, without
+    /// checking that the verdict allows `method`.
+    pub fn method_reserves(&self, method: Method) -> Vec<ReserveCode> {
         let mut reserves = self.drive_reserves.clone();
         if method.is_host_write() {
             reserves.push(ReserveCode::HostWriteCoverage);
             reserves.sort();
         }
-        Some(reserves)
+        reserves
     }
 }
 
