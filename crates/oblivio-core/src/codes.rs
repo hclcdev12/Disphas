@@ -129,6 +129,14 @@ codes! {
 }
 
 impl RefusalCode {
+    /// Whether the operator may force an erasure despite this refusal.
+    ///
+    /// Only N1: the drive could not be inspected but may still accept writes.
+    /// N3 accepts no write, N9 has nothing to run, N8 and N10 come too late.
+    pub const fn is_forcible(self) -> bool {
+        matches!(self, Self::InspectionFailed)
+    }
+
     /// Whether only the evaluation after the operation can produce this code.
     /// `decide()` never emits it.
     pub const fn is_post_operation(self) -> bool {

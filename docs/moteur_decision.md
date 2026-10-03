@@ -112,6 +112,23 @@ Sans code D, le devenir est `Reuse`. L'opérateur prend acte des codes D avant l
 
 Un SAY NO l'emporte toujours : un disque N3 et D1 est un refus, pas un PRÊT.
 
+### 3.4 Forçage d'un SAY NO (décidé le 2026-10-04)
+
+Applique le [cadre](cadre_projet.md) §5.3. Depuis l'introduction des codes D, les disques en fin de vie
+mais effaçables sont PRÊT : le forçage ne concerne plus que l'inspection impossible.
+
+| Refus | Forçable | Méthode | Raison |
+|---|---|---|---|
+| N1 | **Oui** | Écriture hôte, Clear + R7, validation par motif | Le disque peut encore accepter les écritures |
+| N3 | Non | — | Aucune écriture, donc aucune validation possible |
+| N9 | Non | — | Aucune méthode à exécuter |
+| N8, N10 | Non | — | Post-opération : trop tard |
+
+- Le verdict SAY NO indique s'il est forçable (`forcible`) : l'UI n'affiche le bouton que dans ce cas.
+- Justification d'au moins `min_force_justification_chars` caractères (défaut **20**, espaces de bord exclus), conservée telle quelle.
+- Une tentative forcée subit les mêmes contrôles post-opération (§3.1) :
+  succès → **NON CONFORME** (jamais CONFORME) ; échec → **REFUS** avec les raisons d'origine plus N8 ou N10.
+
 ## 4. Choix de la méthode
 
 Le type de média est détecté via IDENTIFY : ATA mot 217 (= 1 → non rotatif), NVMe → flash.
@@ -217,6 +234,8 @@ pub enum Evaluation { Retry, Compliant(Compliant), Refused { reasons: Vec<Refusa
 ```
 
 `evaluate_attempt()` applique l'évaluation post-opération (§3.1) et produit N8, N10 et D5.
+`force(verdict, justification, rules)` accepte ou rejette un forçage (§3.4) ; `evaluate_forced_attempt()`
+évalue une tentative forcée et rend `NonCompliant` ou `Refused`, jamais `Compliant`.
 
 ## 7. Points ⚠️ à confirmer contre IEEE 2883-2022
 

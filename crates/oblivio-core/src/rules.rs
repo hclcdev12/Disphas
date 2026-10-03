@@ -22,6 +22,8 @@ pub struct RuleSet {
     pub validation_samples: u32,
     /// Lowest accepted value for `validation_samples`.
     pub min_validation_samples: u32,
+    /// Shortest accepted justification for forcing a SAY NO, in characters.
+    pub min_force_justification_chars: usize,
     /// Categories of the methods still awaiting confirmation against IEEE 2883.
     pub categories: CategoryRules,
 }
@@ -49,6 +51,7 @@ impl RuleSet {
             max_retries: 1,
             validation_samples: 1000,
             min_validation_samples: 100,
+            min_force_justification_chars: 20,
             categories: CategoryRules {
                 nvme_format_crypto_erase: Category::Purge,
                 nvme_format_user_data_erase: Category::Clear,

@@ -3,10 +3,12 @@
 //!
 //! Produces the post-operation codes N8, N10 and D5 of
 //! `docs/moteur_decision.md` §3. Like `decide()`, it is pure and deterministic.
+//! A forced attempt is held to the same checks but can never be compliant.
 
 use thiserror::Error;
 
 use crate::codes::{DispositionCode, RefusalCode, ReserveCode};
+use crate::force::Forced;
 use crate::method::{Method, MethodOption};
 use crate::profile::{AtaSmart, DeviceProfile, Inspection};
 use crate::rules::RuleSet;
@@ -42,6 +44,9 @@ pub enum Evaluation {
     Retry,
     /// Erasure proven: certificate status CONFORME.
     Compliant(Compliant),
+    /// Forced erasure completed and checked: certificate status NON CONFORME,
+    /// physical destruction required.
+    NonCompliant(NonCompliant),
     /// Erasure not provable: refusal report.
     Refused {
         /// Every refusal reason found, sorted by code.
@@ -58,6 +63,19 @@ pub struct Compliant {
     pub reserves: Vec<ReserveCode>,
     /// Recommended future of the drive, including post-operation codes.
     pub disposition: Disposition,
+}
+
+/// Content of a forced erasure that passed its checks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NonCompliant {
+    /// Method executed, certified Clear at most.
+    pub executed: MethodOption,
+    /// Refusal reasons of the forced verdict.
+    pub refusals: Vec<RefusalCode>,
+    /// Every warning certified with the erasure.
+    pub reserves: Vec<ReserveCode>,
+    /// Operator justification, kept exactly as typed.
+    pub justification: String,
 }
 
 /// Why an attempt cannot be evaluated.
@@ -87,27 +105,8 @@ pub fn evaluate_attempt(
         Inspection::Nvme(_) | Inspection::Failed => None,
     };
 
-    // N8: unreadable samples, or sectors still pending or uncorrectable after
-    // the operation. A retry would not make the result provable.
-    let above_zero = |value: Option<u64>| value.is_some_and(|count| count > 0);
-    let unreadable = report.validation == Validation::ReadErrors
-        || report.smart_after.is_some_and(|smart| {
-            above_zero(smart.pending_sectors) || above_zero(smart.offline_uncorrectable)
-        });
-    if unreadable {
-        return Ok(Evaluation::Refused {
-            reasons: vec![RefusalCode::ValidationReadErrors],
-        });
-    }
-
-    // N10: verification or validation failed once retries are exhausted.
-    if !report.verification_passed || report.validation == Validation::Mismatch {
-        if retries_used < rules.max_retries {
-            return Ok(Evaluation::Retry);
-        }
-        return Ok(Evaluation::Refused {
-            reasons: vec![RefusalCode::VerificationFailed],
-        });
+    if let Some(failure) = failure(report, retries_used, rules) {
+        return Ok(failure.into_evaluation(Vec::new()));
     }
 
     // D5: the drive kept reallocating sectors while being erased.
@@ -136,6 +135,71 @@ pub fn evaluate_attempt(
             .ok_or(EvaluationError::MethodNotAllowed(executed.method))?,
         disposition,
     }))
+}
+
+/// Evaluates one attempt of a forced erasure. Success is NON CONFORME at best;
+/// a failed check still yields a refusal (REFUS) carrying the original reasons.
+pub fn evaluate_forced_attempt(
+    forced: &Forced,
+    retries_used: u8,
+    report: &AttemptReport,
+    rules: &RuleSet,
+) -> Evaluation {
+    if let Some(failure) = failure(report, retries_used, rules) {
+        return failure.into_evaluation(forced.refusals.clone());
+    }
+    let mut reserves = Vec::new();
+    if forced.option.method.is_host_write() {
+        reserves.push(ReserveCode::HostWriteCoverage);
+    }
+    Evaluation::NonCompliant(NonCompliant {
+        executed: forced.option,
+        refusals: forced.refusals.clone(),
+        reserves,
+        justification: forced.justification.clone(),
+    })
+}
+
+/// A failed attempt: run again, or refuse with a post-operation code.
+enum Failure {
+    Retry,
+    Refused(RefusalCode),
+}
+
+impl Failure {
+    fn into_evaluation(self, mut reasons: Vec<RefusalCode>) -> Evaluation {
+        match self {
+            Self::Retry => Evaluation::Retry,
+            Self::Refused(code) => {
+                reasons.push(code);
+                reasons.sort();
+                Evaluation::Refused { reasons }
+            }
+        }
+    }
+}
+
+/// Checks shared by every attempt, forced or not.
+fn failure(report: &AttemptReport, retries_used: u8, rules: &RuleSet) -> Option<Failure> {
+    // N8: unreadable samples, or sectors still pending or uncorrectable after
+    // the operation. A retry would not make the result provable.
+    let above_zero = |value: Option<u64>| value.is_some_and(|count| count > 0);
+    let unreadable = report.validation == Validation::ReadErrors
+        || report.smart_after.is_some_and(|smart| {
+            above_zero(smart.pending_sectors) || above_zero(smart.offline_uncorrectable)
+        });
+    if unreadable {
+        return Some(Failure::Refused(RefusalCode::ValidationReadErrors));
+    }
+
+    // N10: verification or validation failed once retries are exhausted.
+    if !report.verification_passed || report.validation == Validation::Mismatch {
+        if retries_used < rules.max_retries {
+            return Some(Failure::Retry);
+        }
+        return Some(Failure::Refused(RefusalCode::VerificationFailed));
+    }
+    None
 }
 
 #[cfg(test)]
@@ -422,6 +486,71 @@ mod tests {
                     DispositionCode::SmartFailing,
                     DispositionCode::ReallocatedAboveThreshold,
                     DispositionCode::ReallocationGrowing,
+                ]
+            }
+        );
+    }
+
+    fn forced() -> Forced {
+        crate::force::force(
+            &Verdict::say_no(vec![RefusalCode::InspectionFailed]),
+            "Inspection impossible, écriture forcée",
+            &RuleSet::baseline(),
+        )
+        .expect("N1 is forcible")
+    }
+
+    #[test]
+    fn forced_erasure_that_passes_is_non_compliant_never_compliant() {
+        let evaluation = evaluate_forced_attempt(&forced(), 0, &passed(None), &RuleSet::baseline());
+        assert_eq!(
+            evaluation,
+            Evaluation::NonCompliant(NonCompliant {
+                executed: MethodOption {
+                    method: Method::HostOverwrite,
+                    category: Category::Clear
+                },
+                refusals: vec![RefusalCode::InspectionFailed],
+                reserves: vec![ReserveCode::HostWriteCoverage],
+                justification: "Inspection impossible, écriture forcée".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn forced_erasure_follows_the_same_retry_rules() {
+        let report = AttemptReport {
+            validation: Validation::Mismatch,
+            ..passed(None)
+        };
+        let rules = RuleSet::baseline();
+        assert_eq!(
+            evaluate_forced_attempt(&forced(), 0, &report, &rules),
+            Evaluation::Retry
+        );
+        assert_eq!(
+            evaluate_forced_attempt(&forced(), 1, &report, &rules),
+            Evaluation::Refused {
+                reasons: vec![
+                    RefusalCode::InspectionFailed,
+                    RefusalCode::VerificationFailed
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn forced_erasure_with_read_errors_is_refused() {
+        let report = AttemptReport {
+            validation: Validation::ReadErrors,
+            ..passed(None)
+        };
+        assert_eq!(
+            evaluate_forced_attempt(&forced(), 0, &report, &RuleSet::baseline()),
+            Evaluation::Refused {
+                reasons: vec![
+                    RefusalCode::InspectionFailed,
+                    RefusalCode::ValidationReadErrors
                 ]
             }
         );

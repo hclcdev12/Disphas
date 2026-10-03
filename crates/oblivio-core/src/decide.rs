@@ -21,9 +21,7 @@ pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict {
         };
     }
     if profile.inspection == Inspection::Failed {
-        return Verdict::SayNo {
-            reasons: vec![RefusalCode::InspectionFailed],
-        };
+        return Verdict::say_no(vec![RefusalCode::InspectionFailed]);
     }
 
     // 2. Blocking conditions. A condition only blocks when it stands between
@@ -39,7 +37,7 @@ pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict {
     // 3. Health: refusals only. Dispositions and reserves never stop a READY drive.
     let refusals = refusals(&profile.inspection);
     if !refusals.is_empty() {
-        return Verdict::SayNo { reasons: refusals };
+        return Verdict::say_no(refusals);
     }
 
     // 4. Method.
@@ -47,9 +45,7 @@ pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict {
         .into_iter()
         .filter(|option| restrictions.allows(option.method));
     let Some(recommended) = available.next() else {
-        return Verdict::SayNo {
-            reasons: vec![RefusalCode::NoMethodAvailable],
-        };
+        return Verdict::say_no(vec![RefusalCode::NoMethodAvailable]);
     };
     Verdict::Ready(Ready {
         recommended,
@@ -442,9 +438,7 @@ mod tests {
     }
 
     fn say_no(reasons: &[RefusalCode]) -> Verdict {
-        Verdict::SayNo {
-            reasons: reasons.to_vec(),
-        }
+        Verdict::say_no(reasons.to_vec())
     }
 
     fn destroy(reasons: &[DispositionCode]) -> Disposition {

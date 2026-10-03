@@ -1,7 +1,7 @@
 //! The single verdict returned by the decision engine (§6).
 
 use crate::codes::{BlockCode, DispositionCode, ProtectCode, RefusalCode, ReserveCode};
-use crate::method::{Method, MethodOption};
+use crate::method::{Category, Method, MethodOption};
 
 /// Decision for one drive. Exactly one state, never a combination.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,9 +20,25 @@ pub enum Verdict {
     SayNo {
         /// Every refusal reason found.
         reasons: Vec<RefusalCode>,
+        /// Method the operator may force, capped at Clear, if any.
+        /// Built by [`Verdict::say_no`]; see `crate::force`.
+        forcible: Option<MethodOption>,
     },
     /// READY (green): a compliant method is available.
     Ready(Ready),
+}
+
+impl Verdict {
+    /// Builds a SAY NO verdict. It is forcible, with a host write certified
+    /// Clear at most, only when every reason is forcible (N1 alone in V1).
+    pub fn say_no(reasons: Vec<RefusalCode>) -> Self {
+        let forcible = (!reasons.is_empty() && reasons.iter().all(|code| code.is_forcible()))
+            .then_some(MethodOption {
+                method: Method::HostOverwrite,
+                category: Category::Clear,
+            });
+        Self::SayNo { reasons, forcible }
+    }
 }
 
 /// Content of a READY verdict.
