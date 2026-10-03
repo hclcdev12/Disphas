@@ -1,0 +1,118 @@
+{
+  "header": {
+    "offline": "OFFLINE",
+    "helper": {
+      "connected": "HELPER CONNECTED",
+      "preview": "BROWSER PREVIEW",
+      "disconnected": "HELPER UNAVAILABLE"
+    },
+    "license": {
+      "Missing": "No license",
+      "Valid": "Licensed",
+      "Expired": "License expired",
+      "Revoked": "License revoked"
+    },
+    "rules": "rules {{version}}"
+  },
+  "drives": {
+    "title": "Storage devices",
+    "empty": "No drive detected.",
+    "refresh": "Refresh",
+    "inspecting": "Inspecting…",
+    "unknownSize": "unknown size"
+  },
+  "kind": {
+    "Nvme": "NVMe",
+    "SataSsd": "SATA SSD",
+    "SataHdd": "SATA HDD",
+    "unknown": "Unknown"
+  },
+  "state": {
+    "READY": "READY",
+    "PROTECTED": "PROTECTED",
+    "BLOCKED": "BLOCKED",
+    "SAY_NO": "SAY NO"
+  },
+  "verdict": {
+    "recommendation": "Oblivio decision",
+    "recommended": "Recommended method",
+    "alternatives": "Other allowed methods",
+    "category": "Category",
+    "allNamespaces": "Erases every namespace of the NVMe controller",
+    "future": "Recommended future",
+    "reuse": "Reuse",
+    "destroyRecommended": "Erasure will be certified, but physical destruction is recommended",
+    "reserves": "Reserves",
+    "reasons": "Reasons",
+    "none": "none",
+    "protectedHint": "Oblivio will not touch this drive.",
+    "blockedHint": "The drive is healthy, but an operator action is needed first.",
+    "sayNoHint": "The erasure of this drive cannot be proven. Physical destruction is required.",
+    "forcible": "Forcing is possible: a host overwrite capped at Clear, certified NON-COMPLIANT.",
+    "reservesLine": "Reserves: {{list}}"
+  },
+  "protect": {
+    "P1": "System drive (/, /boot or EFI)",
+    "P2": "A partition is mounted",
+    "P3": "A partition is active swap",
+    "P4": "Member of a volume (LVM, RAID, encryption)",
+    "P5": "Another namespace of the same controller is protected"
+  },
+  "block": {
+    "B1": "ATA security frozen",
+    "B2": "Drive locked by an ATA password",
+    "B3": "Sanitize freeze lock active",
+    "B4": "A sanitize operation is in progress",
+    "B5": "The previous sanitize operation failed",
+    "B6": "Password attempts exhausted"
+  },
+  "guidance": {
+    "B1": "Suspend the computer and wake it up, then inspect again.",
+    "B2": "Enter the user or master password.",
+    "B3": "Power-cycle the drive.",
+    "B4": "Wait: the operation resumes automatically.",
+    "B5": "Send Exit Failure Mode, then retry.",
+    "B6": "Power-cycle the drive."
+  },
+  "actions": {
+    "erase": "Erase — {{category}}",
+    "force": "Force erasure",
+    "cancel": "Cancel"
+  },
+  "confirm": {
+    "title": "Confirm the erasure",
+    "forceTitle": "Force the erasure",
+    "irreversible": "This operation is irreversible. All data on this drive will be destroyed.",
+    "method": "Method:",
+    "acknowledge": "I have read and acknowledge:",
+    "serial": "Type the last 4 characters of the serial number",
+    "justification": "Justification (required, at least 20 characters)",
+    "justificationCount": "{{count}} characters",
+    "submit": "Erase permanently",
+    "submitForce": "Force and certify non-compliant",
+    "sent": "Request sent to the helper.",
+    "refused": "The helper refused the request:"
+  },
+  "scope": {
+    "NS_ALL": "Every namespace of the NVMe controller will be erased"
+  },
+  "errors": {
+    "PROTOCOL_MISMATCH": "Incompatible helper version",
+    "BAD_REQUEST": "Malformed request",
+    "UNKNOWN_COMMAND": "Unknown command",
+    "DEVICE_NOT_FOUND": "Drive not found",
+    "DEVICE_CHANGED": "The drive changed since its inspection: inspect it again",
+    "PROTECTED": "The drive is now protected",
+    "VERDICT_EXPIRED": "The decision expired: inspect the drive again",
+    "VERDICT_MISMATCH": "The request does not match the decision",
+    "CONFIRMATION_MISMATCH": "The serial number confirmation is wrong",
+    "ACK_MISSING": "A warning was not acknowledged",
+    "FORCE_NOT_ALLOWED": "Forcing is not allowed",
+    "LICENSE_REQUIRED": "A valid license is required to erase",
+    "BUSY": "Another erasure is running",
+    "NOT_CANCELLABLE": "This phase cannot be cancelled",
+    "UNLOCK_FAILED": "The drive could not be unlocked",
+    "INTERNAL": "Internal helper error",
+    "UNAVAILABLE": "The helper is not available"
+  }
+}

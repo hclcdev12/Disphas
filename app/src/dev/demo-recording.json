@@ -1,0 +1,324 @@
+{
+  "_comment": "Recorded from `oblivio-helper --features demo` (fictional drives). Browser preview only.",
+  "hello": {
+    "binary_sha256": "",
+    "helper_version": "0.1.0",
+    "license": {
+      "license_id": null,
+      "offer": null,
+      "state": "Missing",
+      "valid_until": null
+    },
+    "protocol_version": 1,
+    "rules_version": "1.0.0"
+  },
+  "devices": [
+    {
+      "capacity_bytes": 1024209543168,
+      "device": {
+        "identity": {
+          "eui64": "00a07501deadbeef",
+          "model": "DEMO NVMe System 1TB",
+          "nguid": null,
+          "serial": "DEMO-SYS-0001",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme0n1"
+      },
+      "kind": "Nvme",
+      "protection": [
+        "P1",
+        "P2"
+      ]
+    },
+    {
+      "capacity_bytes": 2000398934016,
+      "device": {
+        "identity": {
+          "eui64": "0011223344556677",
+          "model": "DEMO NVMe Data 2TB",
+          "nguid": null,
+          "serial": "DEMO-NVME-4567",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme1n1"
+      },
+      "kind": "Nvme",
+      "protection": []
+    },
+    {
+      "capacity_bytes": 4000787030016,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO HDD 4TB",
+          "nguid": null,
+          "serial": "DEMO-HDD-8C21",
+          "wwn": "5000c500deadbeef"
+        },
+        "node_hint": "/dev/sda"
+      },
+      "kind": "SataHdd",
+      "protection": []
+    },
+    {
+      "capacity_bytes": 500107862016,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO SATA SSD 500GB",
+          "nguid": null,
+          "serial": "DEMO-SSD-F0Z3",
+          "wwn": "5002538e00000001"
+        },
+        "node_hint": "/dev/sdb"
+      },
+      "kind": "SataSsd",
+      "protection": []
+    },
+    {
+      "capacity_bytes": 256060514304,
+      "device": {
+        "identity": {
+          "eui64": "00a07501feedface",
+          "model": "DEMO NVMe Worn 256GB",
+          "nguid": null,
+          "serial": "DEMO-RO-0BAD",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme2n1"
+      },
+      "kind": "Nvme",
+      "protection": []
+    },
+    {
+      "capacity_bytes": null,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO Unresponsive 1TB",
+          "nguid": null,
+          "serial": "DEMO-MUTE-0N1X",
+          "wwn": null
+        },
+        "node_hint": "/dev/sdc"
+      },
+      "kind": null,
+      "protection": []
+    }
+  ],
+  "inspections": {
+    "DEMO-SYS-0001": {
+      "capacity_bytes": 1024209543168,
+      "device": {
+        "identity": {
+          "eui64": "00a07501deadbeef",
+          "model": "DEMO NVMe System 1TB",
+          "nguid": null,
+          "serial": "DEMO-SYS-0001",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme0n1"
+      },
+      "firmware": "DEMO01",
+      "kind": "Nvme",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "reasons": [
+          "P1",
+          "P2"
+        ],
+        "state": "PROTECTED"
+      },
+      "verdict_id": "v1"
+    },
+    "DEMO-NVME-4567": {
+      "capacity_bytes": 2000398934016,
+      "device": {
+        "identity": {
+          "eui64": "0011223344556677",
+          "model": "DEMO NVMe Data 2TB",
+          "nguid": null,
+          "serial": "DEMO-NVME-4567",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme1n1"
+      },
+      "firmware": "DEMO01",
+      "kind": "Nvme",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "alternatives": [
+          {
+            "all_namespaces": true,
+            "category": "Purge",
+            "method": "NvmeSanitizeCryptoErase",
+            "reserves": []
+          },
+          {
+            "all_namespaces": false,
+            "category": "Purge",
+            "method": "NvmeFormatCryptoErase",
+            "reserves": []
+          },
+          {
+            "all_namespaces": false,
+            "category": "Clear",
+            "method": "NvmeFormatUserDataErase",
+            "reserves": []
+          },
+          {
+            "all_namespaces": false,
+            "category": "Clear",
+            "method": "HostOverwrite",
+            "reserves": [
+              "R7"
+            ]
+          }
+        ],
+        "disposition": {
+          "kind": "Reuse"
+        },
+        "recommended": {
+          "all_namespaces": true,
+          "category": "Purge",
+          "method": "NvmeSanitizeBlockErase",
+          "reserves": []
+        },
+        "state": "READY"
+      },
+      "verdict_id": "v2"
+    },
+    "DEMO-HDD-8C21": {
+      "capacity_bytes": 4000787030016,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO HDD 4TB",
+          "nguid": null,
+          "serial": "DEMO-HDD-8C21",
+          "wwn": "5000c500deadbeef"
+        },
+        "node_hint": "/dev/sda"
+      },
+      "firmware": "DEMO01",
+      "kind": "SataHdd",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "alternatives": [
+          {
+            "all_namespaces": false,
+            "category": "Purge",
+            "method": "AtaSecurityEraseEnhanced",
+            "reserves": [
+              "R6"
+            ]
+          },
+          {
+            "all_namespaces": false,
+            "category": "Clear",
+            "method": "HostOverwrite",
+            "reserves": [
+              "R6",
+              "R7"
+            ]
+          }
+        ],
+        "disposition": {
+          "kind": "DestroyRecommended",
+          "reasons": [
+            "D4"
+          ]
+        },
+        "recommended": {
+          "all_namespaces": false,
+          "category": "Purge",
+          "method": "AtaSanitizeOverwrite",
+          "reserves": [
+            "R6"
+          ]
+        },
+        "state": "READY"
+      },
+      "verdict_id": "v3"
+    },
+    "DEMO-SSD-F0Z3": {
+      "capacity_bytes": 500107862016,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO SATA SSD 500GB",
+          "nguid": null,
+          "serial": "DEMO-SSD-F0Z3",
+          "wwn": "5002538e00000001"
+        },
+        "node_hint": "/dev/sdb"
+      },
+      "firmware": "DEMO01",
+      "kind": "SataSsd",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "reasons": [
+          "B1"
+        ],
+        "state": "BLOCKED"
+      },
+      "verdict_id": "v4"
+    },
+    "DEMO-RO-0BAD": {
+      "capacity_bytes": 256060514304,
+      "device": {
+        "identity": {
+          "eui64": "00a07501feedface",
+          "model": "DEMO NVMe Worn 256GB",
+          "nguid": null,
+          "serial": "DEMO-RO-0BAD",
+          "wwn": null
+        },
+        "node_hint": "/dev/nvme2n1"
+      },
+      "firmware": "DEMO01",
+      "kind": "Nvme",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "forcible": null,
+        "reasons": [
+          "N3"
+        ],
+        "state": "SAY_NO"
+      },
+      "verdict_id": "v5"
+    },
+    "DEMO-MUTE-0N1X": {
+      "capacity_bytes": null,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO Unresponsive 1TB",
+          "nguid": null,
+          "serial": "DEMO-MUTE-0N1X",
+          "wwn": null
+        },
+        "node_hint": "/dev/sdc"
+      },
+      "firmware": "DEMO01",
+      "kind": null,
+      "valid_for_seconds": 600,
+      "verdict": {
+        "forcible": {
+          "all_namespaces": false,
+          "category": "Clear",
+          "method": "HostOverwrite",
+          "reserves": [
+            "R7"
+          ]
+        },
+        "reasons": [
+          "N1"
+        ],
+        "state": "SAY_NO"
+      },
+      "verdict_id": "v6"
+    }
+  }
+}

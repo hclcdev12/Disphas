@@ -1,0 +1,118 @@
+{
+  "header": {
+    "offline": "HORS LIGNE",
+    "helper": {
+      "connected": "HELPER CONNECTÉ",
+      "preview": "APERÇU NAVIGATEUR",
+      "disconnected": "HELPER INDISPONIBLE"
+    },
+    "license": {
+      "Missing": "Sans licence",
+      "Valid": "Sous licence",
+      "Expired": "Licence expirée",
+      "Revoked": "Licence révoquée"
+    },
+    "rules": "règles {{version}}"
+  },
+  "drives": {
+    "title": "Supports de stockage",
+    "empty": "Aucun disque détecté.",
+    "refresh": "Actualiser",
+    "inspecting": "Inspection…",
+    "unknownSize": "taille inconnue"
+  },
+  "kind": {
+    "Nvme": "NVMe",
+    "SataSsd": "SSD SATA",
+    "SataHdd": "HDD SATA",
+    "unknown": "Inconnu"
+  },
+  "state": {
+    "READY": "PRÊT",
+    "PROTECTED": "PROTÉGÉ",
+    "BLOCKED": "BLOQUÉ",
+    "SAY_NO": "SAY NO"
+  },
+  "verdict": {
+    "recommendation": "Décision Oblivio",
+    "recommended": "Méthode recommandée",
+    "alternatives": "Autres méthodes autorisées",
+    "category": "Catégorie",
+    "allNamespaces": "Efface tous les namespaces du contrôleur NVMe",
+    "future": "Devenir recommandé",
+    "reuse": "Réemploi",
+    "destroyRecommended": "L'effacement sera certifié, mais la destruction physique est recommandée",
+    "reserves": "Réserves",
+    "reasons": "Raisons",
+    "none": "aucune",
+    "protectedHint": "Oblivio ne touchera pas à ce disque.",
+    "blockedHint": "Le disque est sain, mais une action de l'opérateur est nécessaire d'abord.",
+    "sayNoHint": "L'effacement de ce disque n'est pas prouvable. La destruction physique est requise.",
+    "forcible": "Le forçage est possible : réécriture hôte plafonnée à Clear, certifiée NON CONFORME.",
+    "reservesLine": "Réserves : {{list}}"
+  },
+  "protect": {
+    "P1": "Disque système (/, /boot ou EFI)",
+    "P2": "Une partition est montée",
+    "P3": "Une partition est en swap actif",
+    "P4": "Membre d'un volume (LVM, RAID, chiffrement)",
+    "P5": "Un autre namespace du même contrôleur est protégé"
+  },
+  "block": {
+    "B1": "Sécurité ATA gelée (Frozen)",
+    "B2": "Disque verrouillé par un mot de passe ATA",
+    "B3": "Verrou de gel Sanitize actif",
+    "B4": "Une opération Sanitize est en cours",
+    "B5": "L'opération Sanitize précédente a échoué",
+    "B6": "Tentatives de mot de passe épuisées"
+  },
+  "guidance": {
+    "B1": "Mettez l'ordinateur en veille puis réveillez-le, et relancez l'inspection.",
+    "B2": "Saisissez le mot de passe utilisateur ou maître.",
+    "B3": "Effectuez un cycle d'alimentation du disque.",
+    "B4": "Patientez : l'opération reprend automatiquement.",
+    "B5": "Envoyez Exit Failure Mode, puis réessayez.",
+    "B6": "Effectuez un cycle d'alimentation du disque."
+  },
+  "actions": {
+    "erase": "Effacer — {{category}}",
+    "force": "Forcer l'effacement",
+    "cancel": "Annuler"
+  },
+  "confirm": {
+    "title": "Confirmer l'effacement",
+    "forceTitle": "Forcer l'effacement",
+    "irreversible": "Cette opération est irréversible. Toutes les données de ce disque seront détruites.",
+    "method": "Méthode :",
+    "acknowledge": "J'ai pris connaissance de :",
+    "serial": "Tapez les 4 derniers caractères du numéro de série",
+    "justification": "Justification (obligatoire, 20 caractères minimum)",
+    "justificationCount": "{{count}} caractères",
+    "submit": "Effacer définitivement",
+    "submitForce": "Forcer et certifier non conforme",
+    "sent": "Demande transmise au helper.",
+    "refused": "Le helper a refusé la demande :"
+  },
+  "scope": {
+    "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
+  },
+  "errors": {
+    "PROTOCOL_MISMATCH": "Version du helper incompatible",
+    "BAD_REQUEST": "Requête mal formée",
+    "UNKNOWN_COMMAND": "Commande inconnue",
+    "DEVICE_NOT_FOUND": "Disque introuvable",
+    "DEVICE_CHANGED": "Le disque a changé depuis son inspection : inspectez-le à nouveau",
+    "PROTECTED": "Le disque est désormais protégé",
+    "VERDICT_EXPIRED": "La décision a expiré : inspectez à nouveau le disque",
+    "VERDICT_MISMATCH": "La demande ne correspond pas à la décision",
+    "CONFIRMATION_MISMATCH": "La confirmation du numéro de série est erronée",
+    "ACK_MISSING": "Un avertissement n'a pas été acquitté",
+    "FORCE_NOT_ALLOWED": "Le forçage n'est pas autorisé",
+    "LICENSE_REQUIRED": "Une licence valide est nécessaire pour effacer",
+    "BUSY": "Un autre effacement est en cours",
+    "NOT_CANCELLABLE": "Cette phase ne peut pas être annulée",
+    "UNLOCK_FAILED": "Le disque n'a pas pu être déverrouillé",
+    "INTERNAL": "Erreur interne du helper",
+    "UNAVAILABLE": "Le helper n'est pas disponible"
+  }
+}

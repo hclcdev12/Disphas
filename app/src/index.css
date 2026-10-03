@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* Charter fonts, embedded: the application never loads anything from the network. */
+@font-face {
+  font-family: "Inter";
+  font-weight: 400;
+  src: url("../../assets/fonts/Inter-Regular-latin.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 400;
+  src: url("../../assets/fonts/Inter-Regular-latin-ext.ttf") format("truetype");
+  unicode-range: U+0100-024F, U+1E00-1EFF;
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 700;
+  src: url("../../assets/fonts/Inter-Bold-latin.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 700;
+  src: url("../../assets/fonts/Inter-Bold-latin-ext.ttf") format("truetype");
+  unicode-range: U+0100-024F, U+1E00-1EFF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  src: url("../../assets/fonts/JetBrainsMono-Regular-latin.ttf") format("truetype");
+}
+
+/* Charter palette (docs/oblivio_charte_graphique.md). */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-night: #090d16;
+  --color-card: #111827;
+  --color-edge: #1f2937;
+  --color-soft: #f9fafb;
+  --color-ash: #9ca3af;
+  --color-ready: #10b981;
+  --color-sayno: #ef4444;
+  --color-brand: #6366f1;
+  /* BLOCKED: orange, to be added to the charter (cadre_projet.md §4). */
+  --color-blocked: #f59e0b;
+  --color-protected: #6b7280;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-night font-sans text-soft antialiased;
+}

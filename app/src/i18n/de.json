@@ -1,0 +1,118 @@
+{
+  "header": {
+    "offline": "OFFLINE",
+    "helper": {
+      "connected": "HELPER VERBUNDEN",
+      "preview": "BROWSER-VORSCHAU",
+      "disconnected": "HELPER NICHT VERFÜGBAR"
+    },
+    "license": {
+      "Missing": "Keine Lizenz",
+      "Valid": "Lizenziert",
+      "Expired": "Lizenz abgelaufen",
+      "Revoked": "Lizenz widerrufen"
+    },
+    "rules": "Regeln {{version}}"
+  },
+  "drives": {
+    "title": "Datenträger",
+    "empty": "Kein Laufwerk erkannt.",
+    "refresh": "Aktualisieren",
+    "inspecting": "Prüfung…",
+    "unknownSize": "Größe unbekannt"
+  },
+  "kind": {
+    "Nvme": "NVMe",
+    "SataSsd": "SATA-SSD",
+    "SataHdd": "SATA-HDD",
+    "unknown": "Unbekannt"
+  },
+  "state": {
+    "READY": "BEREIT",
+    "PROTECTED": "GESCHÜTZT",
+    "BLOCKED": "BLOCKIERT",
+    "SAY_NO": "SAY NO"
+  },
+  "verdict": {
+    "recommendation": "Oblivio-Entscheidung",
+    "recommended": "Empfohlene Methode",
+    "alternatives": "Weitere zulässige Methoden",
+    "category": "Kategorie",
+    "allNamespaces": "Löscht alle Namespaces des NVMe-Controllers",
+    "future": "Empfohlene Verwendung",
+    "reuse": "Wiederverwendung",
+    "destroyRecommended": "Die Löschung wird zertifiziert, aber die physische Vernichtung wird empfohlen",
+    "reserves": "Vorbehalte",
+    "reasons": "Gründe",
+    "none": "keine",
+    "protectedHint": "Oblivio wird dieses Laufwerk nicht anrühren.",
+    "blockedHint": "Das Laufwerk ist intakt, erfordert aber zuerst eine Aktion des Bedieners.",
+    "sayNoHint": "Die Löschung dieses Laufwerks ist nicht nachweisbar. Die physische Vernichtung ist erforderlich.",
+    "forcible": "Erzwingen ist möglich: Überschreiben durch den Host, höchstens Clear, als NICHT KONFORM zertifiziert.",
+    "reservesLine": "Vorbehalte: {{list}}"
+  },
+  "protect": {
+    "P1": "Systemlaufwerk (/, /boot oder EFI)",
+    "P2": "Eine Partition ist eingehängt",
+    "P3": "Eine Partition ist aktiver Auslagerungsspeicher",
+    "P4": "Teil eines Volumes (LVM, RAID, Verschlüsselung)",
+    "P5": "Ein anderer Namespace desselben Controllers ist geschützt"
+  },
+  "block": {
+    "B1": "ATA-Sicherheit eingefroren (Frozen)",
+    "B2": "Laufwerk durch ATA-Passwort gesperrt",
+    "B3": "Sanitize-Freeze-Lock aktiv",
+    "B4": "Ein Sanitize-Vorgang läuft",
+    "B5": "Der vorherige Sanitize-Vorgang ist fehlgeschlagen",
+    "B6": "Passwortversuche erschöpft"
+  },
+  "guidance": {
+    "B1": "Computer in den Ruhezustand versetzen und aufwecken, dann erneut prüfen.",
+    "B2": "Benutzer- oder Master-Passwort eingeben.",
+    "B3": "Laufwerk aus- und wieder einschalten.",
+    "B4": "Warten: Der Vorgang wird automatisch fortgesetzt.",
+    "B5": "Exit Failure Mode senden und erneut versuchen.",
+    "B6": "Laufwerk aus- und wieder einschalten."
+  },
+  "actions": {
+    "erase": "Löschen — {{category}}",
+    "force": "Löschung erzwingen",
+    "cancel": "Abbrechen"
+  },
+  "confirm": {
+    "title": "Löschung bestätigen",
+    "forceTitle": "Löschung erzwingen",
+    "irreversible": "Dieser Vorgang ist unumkehrbar. Alle Daten auf diesem Laufwerk werden vernichtet.",
+    "method": "Methode:",
+    "acknowledge": "Ich habe zur Kenntnis genommen:",
+    "serial": "Geben Sie die letzten 4 Zeichen der Seriennummer ein",
+    "justification": "Begründung (erforderlich, mindestens 20 Zeichen)",
+    "justificationCount": "{{count}} Zeichen",
+    "submit": "Endgültig löschen",
+    "submitForce": "Erzwingen und als nicht konform zertifizieren",
+    "sent": "Anfrage an den Helper übermittelt.",
+    "refused": "Der Helper hat die Anfrage abgelehnt:"
+  },
+  "scope": {
+    "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
+  },
+  "errors": {
+    "PROTOCOL_MISMATCH": "Inkompatible Helper-Version",
+    "BAD_REQUEST": "Fehlerhafte Anfrage",
+    "UNKNOWN_COMMAND": "Unbekannter Befehl",
+    "DEVICE_NOT_FOUND": "Laufwerk nicht gefunden",
+    "DEVICE_CHANGED": "Das Laufwerk hat sich seit der Prüfung geändert: erneut prüfen",
+    "PROTECTED": "Das Laufwerk ist jetzt geschützt",
+    "VERDICT_EXPIRED": "Die Entscheidung ist abgelaufen: Laufwerk erneut prüfen",
+    "VERDICT_MISMATCH": "Die Anfrage entspricht nicht der Entscheidung",
+    "CONFIRMATION_MISMATCH": "Die Bestätigung der Seriennummer ist falsch",
+    "ACK_MISSING": "Eine Warnung wurde nicht bestätigt",
+    "FORCE_NOT_ALLOWED": "Erzwingen ist nicht zulässig",
+    "LICENSE_REQUIRED": "Zum Löschen ist eine gültige Lizenz erforderlich",
+    "BUSY": "Eine andere Löschung läuft",
+    "NOT_CANCELLABLE": "Diese Phase kann nicht abgebrochen werden",
+    "UNLOCK_FAILED": "Das Laufwerk konnte nicht entsperrt werden",
+    "INTERNAL": "Interner Helper-Fehler",
+    "UNAVAILABLE": "Der Helper ist nicht verfügbar"
+  }
+}
