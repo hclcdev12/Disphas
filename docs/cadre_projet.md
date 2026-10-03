@@ -97,7 +97,7 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
 
 - Seuils et règles du moteur → validés, reste 3 points IEEE 2883, voir [moteur_decision.md](moteur_decision.md).
 - Format du certificat → proposé (CBOR + COSE_Sign1 + QR Base45, PDF/A-3), voir [certificat.md](certificat.md).
-- Bibliothèque PDF Rust (spike `krilla` vs `typst`).
+- ~~Bibliothèque PDF Rust~~ → `typst` (2026-10-04, voir [certificat.md](certificat.md) §6).
 - Modèle de licence compatible Live USB (licence liée à l'opérateur ou au support, pas au poste).
 - Distribution Debian pour l'ISO.
 

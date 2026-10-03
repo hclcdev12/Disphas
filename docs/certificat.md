@@ -175,9 +175,27 @@ sans nouvelle signature. Les termes normatifs (*Clear*, *Purge*…) restent en a
 
 **Pages suivantes — Annexe technique** : profil S.M.A.R.T., chronologie horodatée, paramètres d'échantillonnage, mentions légales.
 
-**Bibliothèque PDF** : à trancher par un spike court entre `krilla` (bas niveau, PDF/A et fichiers joints) et `typst` en bibliothèque (gabarits élégants, personnalisation du logo facilitée). Critères : conformité PDF/A-3, fichiers joints, polices embarquées, taille du binaire.
+**Bibliothèque PDF : `typst`** (décidé le 2026-10-04, après spike). Les deux candidats produisent un
+PDF/A-3b vérifié à l'export, avec fichiers joints et polices embarquées (typst écrit d'ailleurs ses PDF
+avec krilla). typst l'emporte par son moteur de mise en page (retour à la ligne, tableaux, pagination,
+gabarit `.typ` lisible, logo personnalisable) ; krilla obligeait à tout positionner à la main.
+Coût accepté : ~40 Mo de binaire contre ~4 Mo, côté application utilisateur (jamais dans le helper root).
+
+**Implémentation (`oblivio-report`)** :
+- Rendu **depuis l'attestation signée, après vérification** : une attestation qui ne se vérifie pas, ou un
+  journal qui ne correspond pas à `jh`, ne produit aucun PDF.
+- PDF/A-3b, **déterministe** (identifiant et date dérivés de l'attestation : mêmes entrées, mêmes octets).
+- Fichiers joints : `attestation.cose` (relation *Source*) et `journal.json` (relation *Supplement*).
+- Polices embarquées : Inter et JetBrains Mono (OFL), sous-ensembles latin et latin-ext (`assets/fonts/`).
+- Le gabarit ne reçoit que des **données** déjà traduites : un texte libre (organisation, justification)
+  n'est jamais interprété comme du code typst. Téléchargement de paquets typst désactivé (aucun réseau).
+- Annexe : graine de validation, version des règles, empreintes SHA-256 (binaire, journal, attestation).
+- ⚠️ Conformité PDF/A affirmée par typst mais **pas encore validée par veraPDF** (validateur de référence,
+  non installé) ; poppler émet un avertissement bénin sur `/Suspects`. À valider avant la première version.
+- Non encore rendu : profil S.M.A.R.T. de l'annexe (le schéma du journal reste à définir).
 
 ## 7. Points ouverts
 
-- Spike `krilla` vs `typst`.
+- ~~Spike `krilla` vs `typst`~~ → typst (§6).
+- Validation veraPDF des certificats produits.
 - Contre-signature horodatée (option Grands Comptes).
