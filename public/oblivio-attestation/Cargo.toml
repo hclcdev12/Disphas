@@ -1,0 +1,17 @@
+[package]
+name = "oblivio-attestation"
+description = "Oblivio attestation schema, CBOR/COSE decoding and offline signature verification."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+
+# No workspace inheritance on purpose: this crate is extracted as-is into the
+# public repository and must not depend on anything under crates/ or app/.
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

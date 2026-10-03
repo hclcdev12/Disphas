@@ -1,0 +1,18 @@
+[package]
+name = "oblivio-helper"
+description = "Root helper: runs the decision engine, device operations and signing."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+oblivio-attestation.workspace = true
+oblivio-protocol.workspace = true
+oblivio-core.workspace = true
+oblivio-device.workspace = true
+oblivio-license.workspace = true
+
+[lints]
+workspace = true

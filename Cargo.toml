@@ -1,0 +1,38 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/oblivio-protocol",
+    "crates/oblivio-core",
+    "crates/oblivio-device",
+    "crates/oblivio-license",
+    "crates/oblivio-helper",
+    "crates/oblivio-report",
+    "public/oblivio-attestation",
+    "public/oblivio-verify",
+]
+
+# Shared metadata for the PRIVATE crates only.
+# Crates under public/ deliberately do not inherit anything from this file:
+# they must be extractable as-is into the public repository.
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "LicenseRef-Proprietary"
+publish = false
+
+[workspace.dependencies]
+oblivio-attestation = { path = "public/oblivio-attestation" }
+oblivio-protocol = { path = "crates/oblivio-protocol" }
+oblivio-core = { path = "crates/oblivio-core" }
+oblivio-device = { path = "crates/oblivio-device" }
+oblivio-license = { path = "crates/oblivio-license" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+undocumented_unsafe_blocks = "deny"

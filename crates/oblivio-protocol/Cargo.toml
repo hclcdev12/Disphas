@@ -1,0 +1,11 @@
+[package]
+name = "oblivio-protocol"
+description = "Message types and protocol version for the UI <-> helper boundary."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
