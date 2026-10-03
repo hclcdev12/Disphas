@@ -22,7 +22,10 @@ React (WebView)  ──tauri::command──►  oblivio-app (Rust, utilisateur) 
 ```
 
 React ne parle **jamais** directement au helper. `oblivio-app` relaie, traduit, rend le PDF.
-Les types TypeScript sont générés depuis les types Rust (`specta` / `tauri-specta`) : une seule source de vérité.
+Les types TypeScript sont générés depuis les types Rust : une seule source de vérité.
+Outil retenu le 2026-10-04 : **`ts-rs`** (stable, comprend les attributs serde) plutôt que `specta` / `tauri-specta`
+(encore en version candidate). Génération : `npm run bindings` dans `app/`, vers `app/src/bindings/`.
+Les entiers 64 bits sont exportés en `number` (toutes les valeurs du protocole restent sous 2⁵³).
 
 ## 3. Cycle de vie
 
