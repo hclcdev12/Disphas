@@ -99,7 +99,7 @@ Racine Oblivio (Ed25519, hors ligne, éditeur)
    ▼
 Licence .lic = { id, client, offre, validité, clé publique du poste }
    │  la clé privée correspondante est générée sur le poste à l'activation,
-   │  stockée chiffrée (accès root uniquement), jamais exportée
+   │  stockée dans un fichier root 0600 (accès root uniquement), jamais exportée
    ▼
 Attestation signée par la clé du poste, licence incluse
 ```
@@ -107,6 +107,21 @@ Attestation signée par la clé du poste, licence incluse
 **Licence** (CBOR déterministe, COSE_Sign1 par la racine) : `v`, `id`, `cli` (client), `off` (offre),
 `nbf` (début de validité), `exp`? (fin, absente si perpétuelle), `wpk` (clé publique Ed25519 du poste, 32 octets).
 La vérification exige `nbf ≤ iat ≤ exp`, et l'absence de révocation datée **au plus tard** à `iat`.
+
+**Stockage de la clé du poste** (`oblivio-license`, décidé le 2026-10-04) : fichier `keys/workstation.key`
+(en-tête `OBK1` + 32 octets), mode 0600, dans un dossier 0700 sous `/var/lib/oblivio`. Généré par le
+générateur aléatoire de l'OS, **jamais écrasé**, refusé au chargement si le fichier ou son dossier est
+ouvert à d'autres, ou si son propriétaire n'est pas celui du dossier. Aucune fonction ne restitue les octets secrets ;
+effacé de la mémoire après usage. Pas de chiffrement en V1 : sans TPM ni mot de passe, une clé de
+chiffrement stockée sur le même disque n'ajouterait rien aux permissions.
+⚠️ Limite assumée : le vol du disque ou un accès root donnent la clé. Scellement TPM 2.0 à étudier (V2+).
+
+**Formats texte** (copier-coller, courriel ou QR) :
+- demande d'activation `OBA1:` + Base45 d'un COSE_Sign1 **signé par la clé du poste elle-même**
+  (preuve de possession) : `{v, wpk, iat}` ;
+- licence `OBL1:` + Base45 du COSE_Sign1 signé par la racine ; c'est le contenu du fichier `.lic`.
+L'installation exige la signature de la racine, `wpk` = clé du poste, et une licence non expirée.
+L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé de poste perdue, rend la licence invalide.
 
 **Activation offline** : le poste génère sa paire de clés → produit une demande d'activation
 (fichier ou QR contenant la clé publique) → l'éditeur renvoie le `.lic` signé.

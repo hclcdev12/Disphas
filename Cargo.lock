@@ -288,6 +288,13 @@ dependencies = [
 [[package]]
 name = "oblivio-license"
 version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "oblivio-attestation",
+ "tempfile",
+ "thiserror",
+ "zeroize",
+]
 
 [[package]]
 name = "oblivio-protocol"

@@ -11,6 +11,8 @@ use crate::cbor::{self, CborError, Fields, MapBuilder};
 pub const ATTESTATION_VERSION: u64 = 1;
 /// Version of the license schema (`v`).
 pub const LICENSE_VERSION: u64 = 1;
+/// Version of the activation request schema (`v`).
+pub const ACTIVATION_REQUEST_VERSION: u64 = 1;
 
 /// A short machine identifier: a decision code (`R4`) or a method name.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -283,6 +285,47 @@ impl License {
         };
         fields.finish()?;
         Ok(license)
+    }
+}
+
+/// Request sent by a workstation to obtain its license, signed by the
+/// workstation key itself to prove possession.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActivationRequest {
+    /// Workstation public key, Ed25519 (`wpk`).
+    pub workstation_key: [u8; 32],
+    /// Creation time, UTC epoch seconds (`iat`).
+    pub issued_at: u64,
+}
+
+impl ActivationRequest {
+    /// Deterministic CBOR encoding.
+    pub fn to_cbor(&self) -> Vec<u8> {
+        cbor::encode(
+            MapBuilder::default()
+                .field("v", uint(ACTIVATION_REQUEST_VERSION))
+                .field("wpk", Value::Bytes(self.workstation_key.to_vec()))
+                .field("iat", uint(self.issued_at))
+                .build(),
+        )
+    }
+
+    /// Strict decoding: deterministic encoding, known fields only.
+    pub fn from_cbor(bytes: &[u8]) -> Result<Self, CborError> {
+        cbor::decode_canonical(bytes, Self::from_value, Self::to_cbor)
+    }
+
+    fn from_value(value: Value) -> Result<Self, CborError> {
+        let mut fields = Fields::of(value, "activation request")?;
+        if cbor::uint(fields.required("v")?, "v")? != ACTIVATION_REQUEST_VERSION {
+            return Err(CborError::Invalid("v"));
+        }
+        let request = Self {
+            workstation_key: cbor::fixed_bytes(fields.required("wpk")?, "wpk")?,
+            issued_at: cbor::uint(fields.required("iat")?, "iat")?,
+        };
+        fields.finish()?;
+        Ok(request)
     }
 }
 

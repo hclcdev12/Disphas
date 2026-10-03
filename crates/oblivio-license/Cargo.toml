@@ -9,3 +9,12 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+getrandom = "0.4.3"
+oblivio-attestation.workspace = true
+thiserror = "2.0.21"
+zeroize = "1.9.0"
+
+[dev-dependencies]
+tempfile = "3.27.0"

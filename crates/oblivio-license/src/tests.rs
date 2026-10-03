@@ -1,0 +1,228 @@
+//! Activation and installation round trips on fictional keys.
+
+use oblivio_attestation::ed25519_dalek::SigningKey;
+use tempfile::TempDir;
+
+use super::*;
+
+const NOW: u64 = 1_791_158_400; // 2026-10-05T00:00:00Z
+const DAY: u64 = 86_400;
+
+/// Signs a license with the root key, as the issuer does. Issuing licenses
+/// is not part of the product.
+fn issue(license: &License, root: &SigningKey) -> String {
+    license_text(&oblivio_attestation::cose::sign(license.to_cbor(), root).expect("signed"))
+}
+
+fn root() -> SigningKey {
+    SigningKey::from_bytes(&[1; 32])
+}
+
+fn store() -> (TempDir, LicenseStore) {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let store = LicenseStore::new(dir.path());
+    (dir, store)
+}
+
+/// What the issuer does with a request: a license for the requesting key.
+fn license_for(request: &str, expires: Option<u64>) -> License {
+    let request = read_activation_request(request).expect("valid request");
+    License {
+        id: "LIC-0001".to_owned(),
+        customer: "Atelier XYZ".to_owned(),
+        offer: "Pro".to_owned(),
+        not_before: NOW - DAY,
+        expires,
+        workstation_key: request.workstation_key,
+    }
+}
+
+fn activated(expires: Option<u64>) -> (TempDir, LicenseStore, String) {
+    let (dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let text = issue(&license_for(&request, expires), &root());
+    (dir, store, text)
+}
+
+#[test]
+fn full_activation_round_trip() {
+    let (_dir, store, text) = activated(Some(NOW + 365 * DAY));
+    assert_eq!(
+        store.status(&root().verifying_key(), NOW).expect("status"),
+        LicenseStatus::Missing
+    );
+    let installed = store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    assert_eq!(installed.license.customer, "Atelier XYZ");
+    match store.status(&root().verifying_key(), NOW).expect("status") {
+        LicenseStatus::Valid(valid) => assert_eq!(valid, installed),
+        other => panic!("expected Valid, got {other:?}"),
+    }
+}
+
+#[test]
+fn activation_request_reuses_the_existing_key() {
+    let (_dir, store) = store();
+    let first = read_activation_request(&store.create_activation_request(NOW).expect("request"))
+        .expect("valid");
+    let second =
+        read_activation_request(&store.create_activation_request(NOW + 1).expect("request"))
+            .expect("valid");
+    assert_eq!(first.workstation_key, second.workstation_key);
+}
+
+#[test]
+fn activation_request_must_be_signed_by_its_own_key() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let mut signed = base45::decode(&request[REQUEST_PREFIX.len()..]).expect("base45");
+    let last = signed.len() - 1;
+    signed[last] ^= 0x01; // flip a signature bit
+    let forged = format!("{REQUEST_PREFIX}{}", base45::encode(&signed));
+    assert!(matches!(
+        read_activation_request(&forged),
+        Err(LicenseError::Signature)
+    ));
+}
+
+#[test]
+fn key_and_license_files_are_private() {
+    let (dir, store, text) = activated(None);
+    store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    for (path, expected) in [
+        ("keys", 0o700),
+        ("keys/workstation.key", 0o600),
+        ("license", 0o700),
+        ("license/oblivio.lic", 0o600),
+    ] {
+        let mode = fs::metadata(dir.path().join(path))
+            .expect("exists")
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, expected, "{path}");
+    }
+}
+
+#[test]
+fn license_signed_by_another_root_is_refused() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let forged = issue(
+        &license_for(&request, None),
+        &SigningKey::from_bytes(&[9; 32]),
+    );
+    assert!(matches!(
+        store.install(&forged, &root().verifying_key(), NOW),
+        Err(LicenseError::Signature)
+    ));
+}
+
+#[test]
+fn license_for_another_workstation_is_refused() {
+    let (_dir, store) = store();
+    store.create_activation_request(NOW).expect("request");
+    let other = SigningKey::from_bytes(&[5; 32]);
+    let license = License {
+        workstation_key: other.verifying_key().to_bytes(),
+        ..license_for(
+            &store.create_activation_request(NOW).expect("request"),
+            None,
+        )
+    };
+    assert!(matches!(
+        store.install(&issue(&license, &root()), &root().verifying_key(), NOW),
+        Err(LicenseError::WrongWorkstation)
+    ));
+}
+
+#[test]
+fn license_before_activation_is_refused() {
+    let (_dir, store) = store();
+    let other = SigningKey::from_bytes(&[5; 32]);
+    let license = License {
+        id: "LIC-0002".to_owned(),
+        customer: "x".to_owned(),
+        offer: "Pro".to_owned(),
+        not_before: NOW,
+        expires: None,
+        workstation_key: other.verifying_key().to_bytes(),
+    };
+    assert!(matches!(
+        store.install(&issue(&license, &root()), &root().verifying_key(), NOW),
+        Err(LicenseError::NoWorkstationKey)
+    ));
+}
+
+#[test]
+fn expired_license_is_refused_at_install() {
+    let (_dir, store, text) = activated(Some(NOW - 1));
+    assert!(matches!(
+        store.install(&text, &root().verifying_key(), NOW),
+        Err(LicenseError::Expired)
+    ));
+}
+
+#[test]
+fn status_follows_time() {
+    let (_dir, store, text) = activated(Some(NOW + DAY));
+    store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    let root = root().verifying_key();
+    assert!(matches!(
+        store.status(&root, NOW - 2 * DAY).expect("status"),
+        LicenseStatus::NotYetValid(_)
+    ));
+    assert!(matches!(
+        store.status(&root, NOW + 2 * DAY).expect("status"),
+        LicenseStatus::Expired(_)
+    ));
+}
+
+#[test]
+fn tampered_license_file_is_invalid() {
+    let (dir, store, text) = activated(None);
+    store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    let path = dir.path().join("license/oblivio.lic");
+    let mut content = fs::read_to_string(&path).expect("readable");
+    let replaced = if content.ends_with('A') { 'B' } else { 'A' };
+    content.pop();
+    content.push(replaced);
+    fs::write(&path, content).expect("tampered");
+    assert!(matches!(
+        store.status(&root().verifying_key(), NOW).expect("status"),
+        LicenseStatus::Invalid(_)
+    ));
+}
+
+#[test]
+fn license_from_a_lost_key_is_invalid() {
+    let (dir, store, text) = activated(None);
+    store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    fs::remove_file(dir.path().join("keys/workstation.key")).expect("key removed");
+    assert!(matches!(
+        store.status(&root().verifying_key(), NOW).expect("status"),
+        LicenseStatus::Invalid(_)
+    ));
+}
+
+#[test]
+fn foreign_or_oversized_text_is_refused() {
+    let root = root().verifying_key();
+    assert!(matches!(
+        decode_license("HC1:ABC", &root),
+        Err(LicenseError::Format(_))
+    ));
+    let huge = format!("{LICENSE_PREFIX}{}", "0".repeat(MAX_TEXT_BYTES));
+    assert!(matches!(
+        decode_license(&huge, &root),
+        Err(LicenseError::Format(_))
+    ));
+}
