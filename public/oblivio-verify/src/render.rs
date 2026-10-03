@@ -5,6 +5,8 @@ use std::fmt::Write;
 use oblivio_attestation::model::{Category, Code, DispositionKind, Status, ValidationMethod};
 use oblivio_attestation::{Verified, VerifyError};
 
+use oblivio_attestation::display::{utc, uuid};
+
 use crate::labels::{self, Lang, Msg};
 
 /// Report of an authentic attestation. `journal` is the result of the
@@ -222,62 +224,9 @@ fn line_item(out: &mut String, code: &Code, lang: Lang) {
     let _ = writeln!(out, "    - {}", labelled(code, lang));
 }
 
-/// UUID in its canonical 8-4-4-4-12 form.
-pub fn uuid(id: &[u8; 16]) -> String {
-    let hex: String = id.iter().map(|byte| format!("{byte:02x}")).collect();
-    format!(
-        "{}-{}-{}-{}-{}",
-        &hex[0..8],
-        &hex[8..12],
-        &hex[12..16],
-        &hex[16..20],
-        &hex[20..32]
-    )
-}
-
-/// UTC date and time of an epoch timestamp, `YYYY-MM-DD HH:MM:SS UTC`.
-pub fn utc(epoch: u64) -> String {
-    let days = epoch / 86_400;
-    let seconds = epoch % 86_400;
-    // Civil date from days since 1970-01-01 (H. Hinnant, "chrono-compatible
-    // low-level date algorithms"), for non-negative days.
-    let z = days + 719_468;
-    let era = z / 146_097;
-    let day_of_era = z - era * 146_097;
-    let year_of_era =
-        (day_of_era - day_of_era / 1460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
-    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
-    let mp = (5 * day_of_year + 2) / 153;
-    let day = day_of_year - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = year_of_era + era * 400 + u64::from(month <= 2);
-    format!(
-        "{year:04}-{month:02}-{day:02} {:02}:{:02}:{:02} UTC",
-        seconds / 3600,
-        seconds % 3600 / 60,
-        seconds % 60
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn formats_utc_dates() {
-        assert_eq!(utc(0), "1970-01-01 00:00:00 UTC");
-        assert_eq!(utc(951_782_400), "2000-02-29 00:00:00 UTC");
-        assert_eq!(utc(1_791_158_400), "2026-10-05 00:00:00 UTC");
-        assert_eq!(utc(4_107_542_399), "2100-02-28 23:59:59 UTC");
-    }
-
-    #[test]
-    fn formats_uuids() {
-        let id = [
-            0x01, 0x92, 0x8c, 0x3e, 0x00, 0x00, 0x70, 0x00, 0x80, 0x00, 0, 0, 0, 0, 0, 1,
-        ];
-        assert_eq!(uuid(&id), "01928c3e-0000-7000-8000-000000000001");
-    }
 
     #[test]
     fn unknown_codes_are_shown_as_is() {

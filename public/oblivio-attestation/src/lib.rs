@@ -10,6 +10,7 @@
 pub mod base45;
 pub mod cbor;
 pub mod cose;
+pub mod display;
 pub mod model;
 pub mod verify;
 
