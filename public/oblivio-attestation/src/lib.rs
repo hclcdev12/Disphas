@@ -3,3 +3,20 @@
 //!
 //! The attestation contains codes only, never translated text.
 //! See `docs/certificat.md`.
+//!
+//! Depends on nothing from the private Oblivio code base: this crate is
+//! published as is, together with `oblivio-verify`.
+
+pub mod base45;
+pub mod cbor;
+pub mod cose;
+pub mod model;
+pub mod verify;
+
+pub use model::{Attestation, License};
+pub use verify::{
+    Revocation, Verified, VerifyError, from_qr_text, sign_attestation, to_qr_text, verify,
+};
+
+#[cfg(test)]
+mod tests;

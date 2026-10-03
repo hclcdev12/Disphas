@@ -45,6 +45,7 @@ Taille visée : < 1 000 caractères (QR version ~20, lisible imprimé en 4 × 4 
 | `val` | Validation : méthode (`canaris` / `motif`), nombre d'échantillons, graine, résultat | `canaris`, `1000`, `OK` |
 | `dis` | **Devenir** : `Reuse` ou `DestroyRecommended` + codes (D1…D5) | — |
 | `res` | Codes de réserves (R1…R8) | `["R4"]` |
+| `rsn` | Codes de refus (N1…N10) pour REFUS et NON CONFORME *(ajouté le 2026-10-04 : le statut REFUS doit porter ses raisons)* | `["N1"]` |
 | `frc` | Si forcé : justification saisie par l'opérateur | — |
 | `org` / `op` | Organisation, opérateur | — |
 | `tool` | Version d'Oblivio, `rules_version`, SHA-256 du binaire | — |
@@ -56,6 +57,29 @@ Le numéro de série figure **en entier** dans l'attestation signée et dans le 
 uniques au monde, renforcent ce lien quand le disque les expose.
 
 L'attestation ne contient **aucun texte traduit**, uniquement des codes : la langue relève du rendu (§6).
+
+### Encodage détaillé (`oblivio-attestation`, décidé le 2026-10-04)
+
+| Clé | Sous-clés | Notes |
+|---|---|---|
+| `id` | — | UUID v7 en 16 octets bruts (pas en texte : économise ~20 octets dans le QR) |
+| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD`), `wwn`?, `eui`?, `ngu`? | |
+| `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `ref` (liste de référentiels) | |
+| `ver` | — | booléen, absent si rien n'a été exécuté |
+| `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |
+| `dis` | `k` (`Reuse` / `DestroyRecommended`), `c` (codes D) | absent sur un refus |
+| `tool` | `ver`, `rules`, `bin` (SHA-256, 32 octets) | |
+| `jh` | — | SHA-256 du journal, 32 octets |
+| `lic` | — | la licence entière (COSE_Sign1 signé par la racine) |
+
+- `?` = champ **omis** quand il n'a pas de valeur (jamais `null`) ; `res` et `rsn` toujours présents, éventuellement vides.
+- **Décodage strict** : l'attestation décodée doit se réencoder à l'octet près. Champ inconnu, `null`, clés
+  non triées, entier non minimal ou octets en trop → rejet.
+- Codes et noms de méthode : 1 à 64 caractères `[A-Za-z0-9_]`. Les codes ne sont pas figés dans le format
+  public, pour qu'un vérificateur ancien lise un code nouveau (il l'affichera sans libellé).
+- COSE : en-tête protégé `{alg: EdDSA}` **seul**, en-tête non protégé vide, message étiqueté (tag 18).
+  Toute autre forme est rejetée (pas de confusion d'algorithme). Ed25519 en vérification stricte.
+- QR : décompression bornée à 64 Kio (bombe zlib). Une attestation type tient sous 1 000 caractères (test).
 
 ## 3. Les trois statuts
 
@@ -79,6 +103,10 @@ Licence .lic = { id, client, offre, validité, clé publique du poste }
    ▼
 Attestation signée par la clé du poste, licence incluse
 ```
+
+**Licence** (CBOR déterministe, COSE_Sign1 par la racine) : `v`, `id`, `cli` (client), `off` (offre),
+`nbf` (début de validité), `exp`? (fin, absente si perpétuelle), `wpk` (clé publique Ed25519 du poste, 32 octets).
+La vérification exige `nbf ≤ iat ≤ exp`, et l'absence de révocation datée **au plus tard** à `iat`.
 
 **Activation offline** : le poste génère sa paire de clés → produit une demande d'activation
 (fichier ou QR contenant la clé publique) → l'éditeur renvoie le `.lic` signé.
