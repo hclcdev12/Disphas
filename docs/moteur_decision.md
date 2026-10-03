@@ -6,13 +6,13 @@
 ## 0. Principe
 
 Le moteur reçoit un **profil matériel** (lu par `oblivio-device`) et rend **un verdict unique** :
-un état (§1), une méthode (§4), des réserves éventuelles, et la liste des raisons.
+un état (§1), une méthode (§4), des réserves éventuelles, un devenir (§3.3), et la liste des raisons.
 Il est déterministe : même profil + même version de règles = même verdict.
 La version des règles (`rules_version`) est inscrite dans chaque certificat.
 
 ```
 Profil ──► [1. Protections] ──► [2. Blocages] ──► [3. Santé / Say NO] ──► [4. Choix méthode] ──► Verdict
-              PROTÉGÉ             BLOQUÉ            SAY NO / réserves        PURGE / CLEAR
+              PROTÉGÉ             BLOQUÉ        SAY NO / devenir / réserves   PURGE / CLEAR
 ```
 
 Chaque étape court-circuite : le premier état non-vert l'emporte.
@@ -42,26 +42,35 @@ Disque sain mais action impossible en l'état. Oblivio guide l'opérateur, ne pr
 | B5 | Sanitize précédent **en échec** (mode Failure) | Commande d'Exit Failure Mode puis nouvelle tentative |
 | B6 | Compteur de tentatives de mot de passe expiré (mot 128 bit 4) | Cycle d'alimentation |
 
-Seule exception : si la résolution de B1 à B6 échoue de façon répétée **et** qu'aucune méthode Clear n'est possible, le disque bascule en SAY NO (raison `N9`).
+**Portée d'un blocage** (décidé le 2026-10-03) :
+- B2, B4, B5, B6 rendent **toutes** les méthodes indisponibles : ils bloquent toujours.
+- B1 (*Frozen*) n'interdit que Security Erase, B3 (*Freeze Lock*) que l'ATA Sanitize.
+  Ils ne bloquent que s'ils empêchent la **méthode préférée** ; sinon le disque est PRÊT
+  et la méthode concernée est simplement retirée des alternatives.
+
+**Échecs répétés** : après `max_unblock_attempts` résolutions échouées (paramètre du `RuleSet`, défaut **3**),
+le moteur se rabat sur la meilleure méthode encore exécutable (par exemple l'écriture hôte, Clear + R7).
+S'il n'en reste aucune, le disque bascule en SAY NO (raison `N9`).
 
 ## 3. Santé → SAY NO (rouge) ou réserves
+
+**Principe** (décidé le 2026-10-03, conforme au cadre §4) : SAY NO signifie « effacement **non prouvable** ».
+Un disque en mauvaise santé dont l'effacement reste prouvable est PRÊT : l'effacement est certifié
+et le certificat porte un devenir « Destruction recommandée » (§3.3).
 
 ### 3.1 Critères de refus (SAY NO)
 
 | Code | Condition | Pourquoi |
 |---|---|---|
 | N1 | Inspection impossible : IDENTIFY en échec, erreur I/O sur commandes d'admin | Non vérifiable |
-| N2 | NVMe Critical Warning bit 2 (fiabilité dégradée) | Le firmware déclare le média non fiable |
 | N3 | NVMe Critical Warning bit 3 (média en lecture seule) | Aucune écriture ni validation par canaris possible |
-| N4 | NVMe Critical Warning bit 4 (sauvegarde mémoire volatile en échec) | Contrôleur défaillant |
-| N5 | ATA SMART RETURN STATUS = seuil dépassé (FAILING) | Le firmware prédit la panne |
-| N6 | ATA attribut 5 (réalloués) ≥ **50** | Défaillance mécanique ou média avancée |
-| N7 | Le nombre de secteurs réalloués **augmente pendant l'opération** | Dégradation active |
 | N8 | Erreurs de lecture pendant la **validation** | Résultat non prouvable |
 | N9 | Aucune méthode exécutable (ni Purge ni Clear) | — |
-| N10 | Vérification ou validation en échec après **1** nouvelle tentative | Résultat non prouvable |
+| N10 | Vérification ou validation en échec après `max_retries` nouvelle(s) tentative(s) (défaut **1**) | Résultat non prouvable |
 
-N7, N8 et N10 sont des **Say NO post-opération** : le certificat devient un rapport de refus.
+N8 et N10 sont des **Say NO post-opération** : le certificat devient un rapport de refus.
+
+Codes **retirés** (non réattribués) : N2 → D1, N4 → D2, N5 → D3, N6 → D4, N7 → D5.
 
 ### 3.2 Réserves (vert avec avertissement)
 
@@ -80,9 +89,29 @@ Le disque reste PRÊT mais la réserve est **affichée dans l'UI et inscrite au 
 
 Tous les seuils (50, nombre de tentatives…) sont des **paramètres versionnés** de `rules_version`, pas des constantes dans le code.
 
+### 3.3 Devenir (PRÊT, destruction recommandée)
+
+L'effacement est exécuté, vérifié, validé et certifié **CONFORME**. Le certificat porte en plus
+`dis = DestroyRecommended` avec les codes ci-dessous (second bandeau rouge, voir [certificat.md](certificat.md) §3).
+Sans code D, le devenir est `Reuse`. L'opérateur prend acte des codes D avant l'effacement (`acknowledged`).
+
+| Code | Condition | Pourquoi |
+|---|---|---|
+| D1 | NVMe Critical Warning bit 2 (fiabilité dégradée) | Le firmware déclare le média non fiable |
+| D2 | NVMe Critical Warning bit 4 (sauvegarde mémoire volatile en échec) | Contrôleur défaillant |
+| D3 | ATA SMART RETURN STATUS = seuil dépassé (FAILING) | Le firmware prédit la panne |
+| D4 | ATA attribut 5 (réalloués) ≥ `max_reallocated_sectors` (défaut **50**) | Défaillance mécanique ou média avancée |
+| D5 | Le nombre de secteurs réalloués **augmente pendant l'opération** | Dégradation active (**post-opération**) |
+
+Un SAY NO l'emporte toujours : un disque N3 et D1 est un refus, pas un PRÊT.
+
 ## 4. Choix de la méthode
 
 Le type de média est détecté via IDENTIFY : ATA mot 217 (= 1 → non rotatif), NVMe → flash.
+
+Les catégories marquées ⚠️ sont des **paramètres du `RuleSet`** (`categories`), avec pour valeurs par défaut
+celles des tableaux ci-dessous : leur confirmation contre IEEE 2883 ne changera que `rules_version`, pas le code.
+L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (règle invariante).
 
 ### 4.1 NVMe (SSD)
 
@@ -138,26 +167,40 @@ Option « validation intégrale » (lecture complète) proposée pour les métho
 
 ## 6. Esquisse de types (`oblivio-core`)
 
+Implémenté dans `crates/oblivio-core` (rules_version **1.0.0**). Forme simplifiée :
+
 ```rust
 pub enum Verdict {
     Protected { reasons: Vec<ProtectCode> },
-    Blocked   { reasons: Vec<BlockCode>, guidance: Guidance },
+    Blocked   { reasons: Vec<BlockCode> },        // guidage : BlockCode::guidance()
     SayNo     { reasons: Vec<RefusalCode> },
-    Ready     { method: Method, category: Category, reserves: Vec<ReserveCode> },
+    Ready(Ready),
+}
+
+pub struct Ready {
+    pub recommended: MethodOption,                // { method, category }
+    pub alternatives: Vec<MethodOption>,          // méthodes autorisées, par préférence
+    pub reserves: Vec<ReserveCode>,
+    pub disposition: Disposition,                 // Reuse | DestroyRecommended { reasons: Vec<DispositionCode> }
 }
 
 pub enum Category { Clear, Purge }   // Destruct n'est jamais exécuté par Oblivio
 
 pub struct RuleSet {
     pub version: semver::Version,
-    pub max_reallocated: u64,        // N6 (défaut 50)
-    pub validation_samples: u32,     // défaut 1000, min 100
-    pub max_retries: u8,             // N10 (défaut 1)
-    // …
+    pub max_reallocated_sectors: u64, // D4 (défaut 50)
+    pub max_unblock_attempts: u32,    // N9 (défaut 3)
+    pub max_retries: u8,              // N10 (défaut 1)
+    pub validation_samples: u32,      // défaut 1000
+    pub min_validation_samples: u32,  // défaut 100
+    pub categories: CategoryRules,    // catégories ⚠️ (§4)
 }
 
 pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict;
 ```
+
+`decide()` couvre les étapes 1 à 4. Les codes post-opération (N8, N10, D5) relèvent de l'évaluation
+après exécution, qui reste à implémenter.
 
 ## 7. Points ⚠️ à confirmer contre IEEE 2883-2022
 
