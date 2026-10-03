@@ -29,6 +29,19 @@ Le disque est intouchable si l'un de ces cas est vrai (vérifié **dans le helpe
 | P4 | Membre d'un volume LVM / RAID md / dm-crypt / multipath | `/sys/block/*/holders` |
 | P5 | NVMe : un **autre namespace** du même contrôleur est concerné par P1–P4 (Sanitize agit sur tout le contrôleur) | Identify + sysfs |
 
+**Détection** (`oblivio-device::inventory`, décidé le 2026-10-04) : lecture seule de `/sys` et `/proc`,
+aucun nœud `/dev` ouvert, aucun ioctl.
+- Les montages sont rattachés aux disques par `major:minor`, puis en remontant les `slaves/` des
+  périphériques empilés (dm-crypt, LVM, md) : une racine sur LUKS + LVM désigne bien le disque physique.
+  Pour btrfs (numéro de périphérique anonyme), la source `/dev/…` du montage est utilisée.
+- P1 : points de montage `/`, `/boot`, `/boot/efi`, `/efi`.
+- P5 : namespaces d'un même contrôleur, d'après le nom (`nvme0n1`, `nvme0n2` → `nvme0`).
+- **Échec fermé** : `mountinfo` ou `swaps` illisible, swap ou montage `/dev/…` introuvable, ou racine `/`
+  rattachée à aucun disque (ZFS, overlay d'un système live…) → l'inventaire **échoue** entièrement.
+  Un dossier `holders/` illisible compte comme P4.
+- Périmètre V1 : seuls `nvme<N>n<M>` et `sd<lettres>` sont listés ; le transport (NVMe, ATA, USB) est signalé.
+  ⚠️ L'échec sur racine ZFS ou système live rendra l'application inutilisable sur ces systèmes : à revoir avec l'ISO (V2).
+
 ## 2. Blocages → BLOQUÉ (orange)
 
 Disque sain mais action impossible en l'état. Oblivio guide l'opérateur, ne prescrit **jamais** la destruction.
