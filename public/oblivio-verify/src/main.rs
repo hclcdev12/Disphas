@@ -1,8 +1,213 @@
 //! `oblivio-verify`: offline verification of Oblivio erasure certificates.
+//!
+//! ```text
+//! oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
+//! ```
+//!
+//! FILE holds either the QR text (`OBV1:…`) or the binary COSE attestation.
+//! Exit status: 0 authentic, 1 not authentic, 2 usage or input error.
+
+mod labels;
+mod render;
 
 use std::process::ExitCode;
 
+use oblivio_attestation::ed25519_dalek::VerifyingKey;
+use oblivio_attestation::{VerifyError, from_qr_text, verify};
+
+use crate::labels::Lang;
+
+/// The official Oblivio root public key. Not generated yet: until then a
+/// root key must be given with `--root-key`, and the report says so.
+const OFFICIAL_ROOT_KEY: Option<[u8; 32]> = None;
+
+/// Largest input file read.
+const MAX_INPUT_BYTES: u64 = 1 << 20;
+
+const USAGE: &str = "\
+usage: oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
+
+  FILE            QR text (OBV1:...) or binary COSE attestation
+  --qr TEXT       QR text given directly
+  --journal FILE  detailed journal to check against the attestation
+  --root-key HEX  root public key (64 hex digits) instead of the official one
+  --lang LANG     report language (default: system language, else English)
+
+exit status: 0 authentic, 1 not authentic, 2 usage or input error";
+
+/// Parsed command line.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Args {
+    lang: Option<Lang>,
+    journal: Option<String>,
+    root_key: Option<String>,
+    qr: Option<String>,
+    file: Option<String>,
+}
+
+fn parse_args(mut args: impl Iterator<Item = String>) -> Result<Args, String> {
+    let mut parsed = Args::default();
+    while let Some(arg) = args.next() {
+        let mut value = |name: &str| args.next().ok_or_else(|| format!("{name} needs a value"));
+        match arg.as_str() {
+            "--lang" => {
+                let tag = value("--lang")?;
+                parsed.lang =
+                    Some(Lang::from_tag(&tag).ok_or(format!("unknown language {tag:?}"))?);
+            }
+            "--journal" => parsed.journal = Some(value("--journal")?),
+            "--root-key" => parsed.root_key = Some(value("--root-key")?),
+            "--qr" => parsed.qr = Some(value("--qr")?),
+            "-h" | "--help" => return Err(String::new()),
+            flag if flag.starts_with('-') => return Err(format!("unknown option {flag}")),
+            file if parsed.file.is_none() => parsed.file = Some(file.to_owned()),
+            _ => return Err("only one FILE can be verified at a time".to_owned()),
+        }
+    }
+    if parsed.file.is_some() == parsed.qr.is_some() {
+        return Err("give either FILE or --qr".to_owned());
+    }
+    Ok(parsed)
+}
+
+fn parse_key(hex: &str) -> Result<VerifyingKey, String> {
+    let hex = hex.trim();
+    if hex.len() != 64 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("--root-key needs 64 hexadecimal digits".to_owned());
+    }
+    let mut key = [0u8; 32];
+    for (index, byte) in key.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&hex[2 * index..2 * index + 2], 16)
+            .map_err(|_| "--root-key needs 64 hexadecimal digits".to_owned())?;
+    }
+    VerifyingKey::from_bytes(&key).map_err(|_| "--root-key is not a valid Ed25519 key".to_owned())
+}
+
+fn read_bounded(path: &str) -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).map_err(|error| format!("{path}: {error}"))?;
+    let mut data = Vec::new();
+    file.take(MAX_INPUT_BYTES + 1)
+        .read_to_end(&mut data)
+        .map_err(|error| format!("{path}: {error}"))?;
+    if data.len() as u64 > MAX_INPUT_BYTES {
+        return Err(format!("{path}: larger than {MAX_INPUT_BYTES} bytes"));
+    }
+    Ok(data)
+}
+
+/// The signed attestation in `data`: QR text or binary COSE.
+fn attestation_bytes(data: Vec<u8>) -> Result<Vec<u8>, VerifyError> {
+    match std::str::from_utf8(&data) {
+        Ok(text) if text.trim_start().starts_with("OBV1:") => from_qr_text(text.trim()),
+        _ => Ok(data),
+    }
+}
+
+fn run(args: Args) -> Result<bool, String> {
+    let lang = args.lang.unwrap_or_else(Lang::from_env);
+    let (root, unofficial) = match (&args.root_key, OFFICIAL_ROOT_KEY) {
+        (Some(hex), _) => (parse_key(hex)?, true),
+        (None, Some(bytes)) => (
+            VerifyingKey::from_bytes(&bytes).map_err(|_| "invalid official root key".to_owned())?,
+            false,
+        ),
+        (None, None) => {
+            return Err("no official root key in this build: give --root-key".to_owned());
+        }
+    };
+    let input = match (&args.qr, &args.file) {
+        (Some(qr), _) => qr.clone().into_bytes(),
+        (None, Some(file)) => read_bounded(file)?,
+        (None, None) => return Err("give either FILE or --qr".to_owned()),
+    };
+    let journal = args.journal.as_deref().map(read_bounded).transpose()?;
+
+    let result = attestation_bytes(input).and_then(|signed| verify(&signed, &root, &[]));
+    match result {
+        Ok(verified) => {
+            let journal_ok = journal.map(|journal| verified.matches_journal(&journal));
+            print!(
+                "{}",
+                render::authentic(&verified, journal_ok, unofficial, lang)
+            );
+            Ok(journal_ok != Some(false))
+        }
+        Err(error) => {
+            print!("{}", render::rejected(&error, lang));
+            Ok(false)
+        }
+    }
+}
+
 fn main() -> ExitCode {
-    eprintln!("oblivio-verify: not implemented yet");
-    ExitCode::from(2)
+    let args = match parse_args(std::env::args().skip(1)) {
+        Ok(args) => args,
+        Err(message) => {
+            if !message.is_empty() {
+                eprintln!("oblivio-verify: {message}\n");
+            }
+            eprintln!("{USAGE}");
+            return ExitCode::from(2);
+        }
+    };
+    match run(args) {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::from(1),
+        Err(message) => {
+            eprintln!("oblivio-verify: {message}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(args: &[&str]) -> Result<Args, String> {
+        parse_args(args.iter().map(|arg| (*arg).to_owned()))
+    }
+
+    #[test]
+    fn parses_a_full_command_line() {
+        let args = parse(&[
+            "--lang",
+            "de",
+            "--journal",
+            "j.json",
+            "--root-key",
+            "ab",
+            "cert.txt",
+        ])
+        .expect("valid");
+        assert_eq!(args.lang, Some(Lang::De));
+        assert_eq!(args.journal.as_deref(), Some("j.json"));
+        assert_eq!(args.file.as_deref(), Some("cert.txt"));
+    }
+
+    #[test]
+    fn rejects_bad_command_lines() {
+        for args in [
+            &[][..],
+            &["a", "b"],
+            &["a", "--qr", "OBV1:"],
+            &["--lang", "it", "a"],
+            &["--sign", "a"],
+            &["--journal"],
+        ] {
+            assert!(parse(args).is_err(), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn parses_root_keys() {
+        let public = oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[1; 32])
+            .verifying_key()
+            .to_bytes();
+        let key: String = public.iter().map(|byte| format!("{byte:02x}")).collect();
+        assert_eq!(parse_key(&key).map(|key| key.to_bytes()), Ok(public));
+        assert!(parse_key(&key[..62]).is_err());
+        assert!(parse_key(&format!("g{}", &key[1..])).is_err());
+    }
 }

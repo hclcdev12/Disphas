@@ -13,7 +13,7 @@ use crate::model::{
 use crate::verify::MAX_ATTESTATION_BYTES;
 use crate::*;
 
-const ISSUED_AT: u64 = 1_791_158_400; // 2026-10-04T00:00:00Z
+const ISSUED_AT: u64 = 1_791_158_400; // 2026-10-05T00:00:00Z
 const JOURNAL: &[u8] = br#"{"timeline":[]}"#;
 
 fn root() -> SigningKey {

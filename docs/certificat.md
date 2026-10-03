@@ -133,6 +133,16 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
   que le format de l'attestation et la vérification (voir [cadre](cadre_projet.md) §8).
 - Le vérificateur affiche le résultat dans la langue de **son** utilisateur, quelle que soit la langue du PDF.
 
+**`oblivio-verify` (implémenté le 2026-10-04)** :
+`oblivio-verify [--lang en|fr|de] [--journal FICHIER] [--root-key HEX] (FICHIER | --qr TEXTE)`.
+- Entrées : texte du QR (`OBV1:…`) ou attestation COSE binaire ; journal optionnel comparé à `jh`.
+  Lecture du **PDF** à ajouter quand `oblivio-report` en produira.
+- Codes de sortie : **0** authentique (et journal conforme s'il est fourni), **1** non authentique, **2** erreur d'usage.
+- Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
+- ⚠️ La clé racine officielle n'existe pas encore (`OFFICIAL_ROOT_KEY` vide) : `--root-key` est obligatoire
+  et le rapport avertit qu'il s'agit d'une clé non officielle. La liste de révocation n'est pas encore lue
+  (format à définir).
+
 ## 6. Mise en page du PDF
 
 **Langue** : EN, FR ou DE, choisie à la génération (défaut : langue de l'application).

@@ -311,6 +311,8 @@ name = "oblivio-verify"
 version = "0.1.0"
 dependencies = [
  "oblivio-attestation",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]

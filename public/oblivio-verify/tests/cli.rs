@@ -1,0 +1,213 @@
+//! End-to-end tests of the `oblivio-verify` binary on fictional certificates.
+
+// Test-only file: helpers may panic on setup failures.
+#![allow(clippy::expect_used)]
+
+use std::path::Path;
+use std::process::{Command, Output};
+
+use oblivio_attestation::ed25519_dalek::SigningKey;
+use oblivio_attestation::model::{
+    Category, Code, Device, Disposition, DispositionKind, DriveType, Sanitization, Status, Tool,
+    Validation, ValidationMethod,
+};
+use oblivio_attestation::{Attestation, License, cose, sign_attestation, to_qr_text};
+use sha2::{Digest, Sha256};
+
+const ISSUED_AT: u64 = 1_791_158_400; // 2026-10-05T00:00:00Z
+const JOURNAL: &[u8] = br#"{"timeline":[]}"#;
+
+fn root() -> SigningKey {
+    SigningKey::from_bytes(&[1; 32])
+}
+
+fn root_hex(key: &SigningKey) -> String {
+    key.verifying_key()
+        .to_bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn signed_attestation() -> Vec<u8> {
+    let workstation = SigningKey::from_bytes(&[2; 32]);
+    let license = License {
+        id: "LIC-0001".to_owned(),
+        customer: "Atelier XYZ".to_owned(),
+        offer: "Pro".to_owned(),
+        not_before: ISSUED_AT - 86_400,
+        expires: None,
+        workstation_key: workstation.verifying_key().to_bytes(),
+    };
+    let code = |text: &str| Code::new(text).expect("valid code");
+    let attestation = Attestation {
+        id: [
+            0x01, 0x92, 0x8c, 0x3e, 0, 0, 0x70, 0, 0x80, 0, 0, 0, 0, 0, 0, 1,
+        ],
+        issued_at: ISSUED_AT,
+        status: Status::Compliant,
+        device: Device {
+            model: "Fictional NVMe 1TB".to_owned(),
+            serial: "SN-TEST-4567".to_owned(),
+            firmware: "1.0".to_owned(),
+            capacity_bytes: 1_000_204_886_016,
+            drive_type: DriveType::Nvme,
+            wwn: None,
+            eui64: Some("0011223344556677".to_owned()),
+            nguid: None,
+        },
+        sanitization: Sanitization {
+            category: Category::Purge,
+            method: Some(code("NvmeSanitizeBlockErase")),
+            references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
+        },
+        verified: Some(true),
+        validation: Some(Validation {
+            method: ValidationMethod::Canaries,
+            samples: 1000,
+            seed: [7; 32],
+            passed: true,
+        }),
+        disposition: Some(Disposition {
+            kind: DispositionKind::DestroyRecommended,
+            codes: vec![code("D4")],
+        }),
+        reserves: vec![code("R4"), code("Z99")],
+        refusals: vec![],
+        justification: None,
+        organization: Some("Atelier XYZ".to_owned()),
+        operator: Some("J. Martin".to_owned()),
+        tool: Tool {
+            version: "0.1.0".to_owned(),
+            rules_version: "1.0.0".to_owned(),
+            binary_sha256: [9; 32],
+        },
+        journal_sha256: Sha256::digest(JOURNAL).into(),
+        license: cose::sign(license.to_cbor(), &root()).expect("signed license"),
+    };
+    sign_attestation(&attestation, &workstation).expect("signed attestation")
+}
+
+fn verify_cli(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_oblivio-verify"))
+        .args(args)
+        .env_remove("LC_ALL")
+        .env_remove("LC_MESSAGES")
+        .env("LANG", "C")
+        .output()
+        .expect("binary runs")
+}
+
+fn stdout(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+fn write(dir: &Path, name: &str, data: &[u8]) -> String {
+    let path = dir.join(name);
+    std::fs::write(&path, data).expect("test file");
+    path.to_string_lossy().into_owned()
+}
+
+#[test]
+fn authentic_qr_text_in_french() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let qr = write(
+        dir.path(),
+        "cert.txt",
+        to_qr_text(&signed_attestation()).as_bytes(),
+    );
+    let journal = write(dir.path(), "journal.json", JOURNAL);
+    let output = verify_cli(&[
+        "--lang",
+        "fr",
+        "--root-key",
+        &root_hex(&root()),
+        "--journal",
+        &journal,
+        &qr,
+    ]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(text.contains("AUTHENTIQUE"));
+    assert!(text.contains("clé racine fournie en paramètre"));
+    assert!(text.contains("SN-TEST-4567"));
+    assert!(text.contains("Purge"));
+    assert!(text.contains("2026-10-05 00:00:00 UTC"));
+    assert!(text.contains("Destruction physique recommandée"));
+    assert!(text.contains("Nombre élevé de secteurs réalloués (D4)"));
+    assert!(text.contains("Z99 (pas de libellé dans cette version)"));
+    assert!(text.contains("correspond à l'attestation"));
+}
+
+#[test]
+fn authentic_binary_cose_in_german() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let cose = write(dir.path(), "cert.cose", &signed_attestation());
+    let output = verify_cli(&["--lang", "de", "--root-key", &root_hex(&root()), &cose]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(stdout(&output).contains("ECHT"));
+    assert!(stdout(&output).contains("KONFORM"));
+}
+
+#[test]
+fn qr_given_on_the_command_line_defaults_to_english() {
+    let qr = to_qr_text(&signed_attestation());
+    let output = verify_cli(&["--root-key", &root_hex(&root()), "--qr", &qr]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(stdout(&output).contains("AUTHENTIC"));
+}
+
+#[test]
+fn wrong_root_key_is_not_authentic() {
+    let other = SigningKey::from_bytes(&[3; 32]);
+    let qr = to_qr_text(&signed_attestation());
+    let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&other), "--qr", &qr]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stdout(&output).contains("NOT AUTHENTIC"));
+    assert!(stdout(&output).contains("not signed by Oblivio"));
+}
+
+#[test]
+fn altered_qr_is_not_authentic() {
+    let qr = to_qr_text(&signed_attestation());
+    let middle = qr.len() / 2;
+    let replacement = if &qr[middle..=middle] == "A" {
+        "B"
+    } else {
+        "A"
+    };
+    let altered = format!("{}{replacement}{}", &qr[..middle], &qr[middle + 1..]);
+    let output = verify_cli(&["--root-key", &root_hex(&root()), "--qr", &altered]);
+    assert_eq!(output.status.code(), Some(1));
+}
+
+#[test]
+fn mismatched_journal_fails() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let journal = write(dir.path(), "journal.json", b"{}");
+    let qr = to_qr_text(&signed_attestation());
+    let output = verify_cli(&[
+        "--lang",
+        "en",
+        "--root-key",
+        &root_hex(&root()),
+        "--journal",
+        &journal,
+        "--qr",
+        &qr,
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stdout(&output).contains("DOES NOT match"));
+}
+
+#[test]
+fn usage_errors_exit_with_2() {
+    assert_eq!(verify_cli(&[]).status.code(), Some(2));
+    assert_eq!(verify_cli(&["--qr", "OBV1:"]).status.code(), Some(2)); // no root key
+    assert_eq!(
+        verify_cli(&["--root-key", "zz", "--qr", "OBV1:"])
+            .status
+            .code(),
+        Some(2)
+    );
+}
