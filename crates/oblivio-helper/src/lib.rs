@@ -6,5 +6,7 @@
 
 pub mod backend;
 pub mod convert;
+#[cfg(feature = "demo")]
+pub mod demo;
 pub mod serve;
 pub mod session;

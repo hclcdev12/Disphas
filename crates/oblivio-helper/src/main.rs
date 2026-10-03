@@ -9,6 +9,7 @@ use std::io;
 use std::process::ExitCode;
 
 use oblivio_core::RuleSet;
+#[cfg(not(feature = "demo"))]
 use oblivio_helper::backend::NoDevices;
 use oblivio_helper::serve::serve;
 use oblivio_helper::session::{Session, SessionConfig};
@@ -27,7 +28,11 @@ fn main() -> ExitCode {
             valid_until: None,
         },
     };
-    let mut session = Session::new(NoDevices, config);
+    #[cfg(feature = "demo")]
+    let backend = oblivio_helper::demo::DemoDevices::default();
+    #[cfg(not(feature = "demo"))]
+    let backend = NoDevices;
+    let mut session = Session::new(backend, config);
     match serve(io::stdin().lock(), io::stdout().lock(), &mut session) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {

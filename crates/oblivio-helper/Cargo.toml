@@ -17,5 +17,10 @@ serde_json = "1.0.151"
 zeroize = "1.9.0"
 serde = { version = "1.0.229", features = ["derive"] }
 
+[features]
+# Fictional in-memory drives, one per verdict state, for UI development.
+# Refused at compile time in release builds.
+demo = []
+
 [lints]
 workspace = true
