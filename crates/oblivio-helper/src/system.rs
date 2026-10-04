@@ -260,19 +260,51 @@ struct DriveTarget {
     record: FileRecord,
 }
 
+/// Longest time a sanitize may report no progress at all before the drive
+/// is given up on. Progress is reported in 1/65536 steps: even a full
+/// overwrite of a very large hard disk moves it every few seconds.
+const STALL: Duration = Duration::from_secs(4 * 3600);
+
 /// Polls a background sanitize until it ends. After a successful start the
 /// controller reports the operation in progress until it completes, so a
 /// completed or idle state read afterwards is this operation's completion.
+/// A sanitize whose progress does not move for [`STALL`] is an error: the
+/// job ends without attestation instead of waiting forever.
 fn wait_for_sanitize(
-    mut status: impl FnMut() -> Result<(SanitizeState, u16), String>,
+    status: impl FnMut() -> Result<(SanitizeState, u16), String>,
     progress: &mut dyn FnMut(u8),
 ) -> Result<bool, String> {
+    wait_with(
+        status,
+        progress,
+        std::time::Instant::now,
+        std::thread::sleep,
+    )
+}
+
+fn wait_with(
+    mut status: impl FnMut() -> Result<(SanitizeState, u16), String>,
+    progress: &mut dyn FnMut(u8),
+    now: impl Fn() -> std::time::Instant,
+    sleep: impl Fn(Duration),
+) -> Result<bool, String> {
+    let mut last = None;
+    let mut since = now();
     loop {
         let (state, done) = status()?;
         match state {
             SanitizeState::InProgress => {
+                if last != Some(done) {
+                    last = Some(done);
+                    since = now();
+                } else if now().saturating_duration_since(since) >= STALL {
+                    return Err(format!(
+                        "sanitize made no progress for {} hours",
+                        STALL.as_secs() / 3600
+                    ));
+                }
                 progress((u32::from(done) * 100 / 65_536) as u8);
-                std::thread::sleep(POLL);
+                sleep(POLL);
             }
             SanitizeState::Idle => {
                 progress(100);
@@ -473,6 +505,42 @@ mod tests {
             unique(&blank, |_| true).map(|_| ()),
             Err("drive without a serial number")
         );
+    }
+
+    #[test]
+    fn a_stalled_sanitize_is_given_up() {
+        use std::cell::Cell;
+        use std::time::Instant;
+        let start = Instant::now();
+        let elapsed = Cell::new(Duration::ZERO);
+        let clock = || start + elapsed.get();
+        let sleep = |step: Duration| elapsed.set(elapsed.get() + step * 600);
+        // Progress moves: no error however long it takes.
+        let moving = Cell::new(0u16);
+        let outcome = wait_with(
+            || {
+                let done = moving.get();
+                if done == 60_000 {
+                    return Ok((SanitizeState::Idle, 0));
+                }
+                moving.set(done + 1_000);
+                Ok((SanitizeState::InProgress, done))
+            },
+            &mut |_| {},
+            clock,
+            sleep,
+        );
+        assert_eq!(outcome, Ok(true));
+        // Stuck at the same value: given up after STALL.
+        elapsed.set(Duration::ZERO);
+        let outcome = wait_with(
+            || Ok((SanitizeState::InProgress, 1_234)),
+            &mut |_| {},
+            clock,
+            sleep,
+        );
+        assert!(outcome.is_err());
+        assert!(elapsed.get() >= STALL && elapsed.get() < STALL + POLL * 1_200);
     }
 
     #[test]
