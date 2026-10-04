@@ -1,6 +1,8 @@
 //! Erasure primitives: targets, sample selection, canaries, host overwrite
 //! and validation (`docs/moteur_decision.md` §5).
 
+use chacha20::ChaCha20;
+use chacha20::cipher::{KeyIvInit, StreamCipher, StreamCipherSeek};
 use oblivio_core::method::Method;
 use oblivio_core::outcome::Validation;
 use oblivio_core::profile::AtaSmart;
@@ -92,19 +94,50 @@ pub struct HostProgress {
     pub bytes_total: u64,
 }
 
-/// Overwrites every block with zeros, then makes it durable.
+/// The pseudo-random stream written by a host overwrite: ChaCha20 (RFC 8439)
+/// keyed by SHA-256(seed ‖ "overwrite"), independent of canaries and samples.
+/// Byte `n` of the drive receives byte `n` of the stream, so the content
+/// expected in any block can be recomputed for validation. This is the
+/// "Datenstrom aus Zufallswerten (PRNG Stream)" of BSI IT-Grundschutz
+/// CON.6.A12 (`docs/conformite.md`).
+fn overwrite_stream(seed: &[u8; 32]) -> ChaCha20 {
+    let key: [u8; 32] = Sha256::new()
+        .chain_update(seed)
+        .chain_update(b"overwrite")
+        .finalize()
+        .into();
+    ChaCha20::new(&key.into(), &[0u8; 12].into())
+}
+
+/// Content that block `lba` holds after a host overwrite with `seed`.
+pub fn overwrite_block(seed: &[u8; 32], lba: u64, block_size: u64) -> Vec<u8> {
+    let mut block = vec![0u8; block_size as usize];
+    let mut stream = overwrite_stream(seed);
+    stream.seek(lba * block_size);
+    stream.apply_keystream(&mut block);
+    block
+}
+
+/// Overwrites every block with the pseudo-random stream of `seed`, then
+/// makes it durable.
 pub fn host_overwrite(
     io: &mut dyn BlockIo,
+    seed: &[u8; 32],
     progress: &mut dyn FnMut(HostProgress),
 ) -> std::io::Result<()> {
     let block_size = io.block_size();
     let total = io.block_count();
     let blocks_per_chunk = (CHUNK_BYTES / block_size).max(1);
-    let zeros = vec![0u8; (blocks_per_chunk * block_size) as usize];
+    let mut stream = overwrite_stream(seed);
+    let mut chunk = vec![0u8; (blocks_per_chunk * block_size) as usize];
     let mut lba = 0;
     while lba < total {
         let count = blocks_per_chunk.min(total - lba);
-        io.write_blocks(lba, &zeros[..(count * block_size) as usize])?;
+        let data = &mut chunk[..(count * block_size) as usize];
+        // The stream runs in disk order: chunk n follows chunk n-1.
+        data.fill(0);
+        stream.apply_keystream(data);
+        io.write_blocks(lba, data)?;
         lba += count;
         progress(HostProgress {
             bytes_done: lba * block_size,
@@ -117,8 +150,8 @@ pub fn host_overwrite(
 /// How the result is validated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Check {
-    /// Every sample reads back as zeros (host overwrite).
-    Zeros,
+    /// Every sample holds the overwrite stream expected there (host overwrite).
+    Pattern,
     /// No sample still holds its canary (firmware methods).
     NoCanary,
 }
@@ -133,7 +166,7 @@ pub fn validate(io: &mut dyn BlockIo, seed: &[u8; 32], lbas: &[u64], check: Chec
             return Validation::ReadErrors;
         }
         let failed = match check {
-            Check::Zeros => buffer.iter().any(|&byte| byte != 0),
+            Check::Pattern => buffer != overwrite_block(seed, lba, block_size),
             Check::NoCanary => buffer == canary(seed, lba, block_size),
         };
         mismatch |= failed;
@@ -182,20 +215,21 @@ mod tests {
     }
 
     #[test]
-    fn host_overwrite_then_zero_validation_passes() {
+    fn host_overwrite_then_pattern_validation_passes() {
         let (_dir, mut image) = image(20_000);
         let seed = [3; 32];
         let lbas = samples(&seed, image.block_count(), 100);
         write_canaries(&mut image, &seed, &lbas).expect("canaries");
         assert_eq!(
-            validate(&mut image, &seed, &lbas, Check::Zeros),
+            validate(&mut image, &seed, &lbas, Check::Pattern),
             Validation::Mismatch
         );
         let mut last = None;
-        host_overwrite(&mut image, &mut |progress| last = Some(progress)).expect("overwrite");
+        host_overwrite(&mut image, &seed, &mut |progress| last = Some(progress))
+            .expect("overwrite");
         assert_eq!(last.map(|p| p.bytes_done), Some(20_000 * 512));
         assert_eq!(
-            validate(&mut image, &seed, &lbas, Check::Zeros),
+            validate(&mut image, &seed, &lbas, Check::Pattern),
             Validation::Passed
         );
     }
@@ -211,13 +245,46 @@ mod tests {
             Validation::Mismatch
         );
         // Erase everything but one sample block.
-        host_overwrite(&mut image, &mut |_| {}).expect("overwrite");
+        host_overwrite(&mut image, &seed, &mut |_| {}).expect("overwrite");
         let kept = lbas[lbas.len() / 2];
         image
             .write_blocks(kept, &canary(&seed, kept, 512))
             .expect("restore one canary");
         assert_eq!(
             validate(&mut image, &seed, &lbas, Check::NoCanary),
+            Validation::Mismatch
+        );
+    }
+
+    #[test]
+    fn overwrite_stream_is_random_looking_and_position_bound() {
+        let (_dir, mut image) = image(64);
+        let seed = [5; 32];
+        host_overwrite(&mut image, &seed, &mut |_| {}).expect("overwrite");
+        let mut block = vec![0u8; 512];
+        image.read_blocks(10, &mut block).expect("read");
+        assert_eq!(
+            block,
+            overwrite_block(&seed, 10, 512),
+            "recomputable per block"
+        );
+        assert_ne!(
+            block,
+            overwrite_block(&seed, 11, 512),
+            "differs per position"
+        );
+        assert_ne!(
+            block,
+            overwrite_block(&[6; 32], 10, 512),
+            "differs per seed"
+        );
+        // Not a constant pattern: about half of the bits are set.
+        let ones: u32 = block.iter().map(|byte| byte.count_ones()).sum();
+        assert!((1800..2300).contains(&ones), "{ones} bits set out of 4096");
+        // A zeroed block, as a lazy or lying writer would leave, fails.
+        image.write_blocks(10, &[0; 512]).expect("write");
+        assert_eq!(
+            validate(&mut image, &seed, &[10], Check::Pattern),
             Validation::Mismatch
         );
     }
@@ -243,7 +310,7 @@ mod tests {
             }
         }
         assert_eq!(
-            validate(&mut Broken, &[0; 32], &[0, 5], Check::Zeros),
+            validate(&mut Broken, &[0; 32], &[0, 5], Check::Pattern),
             Validation::ReadErrors
         );
     }

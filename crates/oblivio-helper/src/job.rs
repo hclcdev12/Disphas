@@ -291,7 +291,11 @@ impl Runner {
         let option = spec.plan.option();
         let method = option.method;
         let host = method.is_host_write();
-        let check = if host { Check::Zeros } else { Check::NoCanary };
+        let check = if host {
+            Check::Pattern
+        } else {
+            Check::NoCanary
+        };
         let geometry = {
             let io = spec.target.io();
             (io.block_size(), io.block_count())
@@ -412,7 +416,7 @@ impl Runner {
         let started = Instant::now();
         let verification_passed = if host {
             let mut last_percent = None;
-            let result = erasure::host_overwrite(spec.target.io(), &mut |progress| {
+            let result = erasure::host_overwrite(spec.target.io(), seed, &mut |progress| {
                 let percent = (progress.bytes_done * 100 / progress.bytes_total.max(1)) as u8;
                 if last_percent != Some(percent) {
                     last_percent = Some(percent);

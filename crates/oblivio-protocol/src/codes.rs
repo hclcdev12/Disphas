@@ -167,7 +167,7 @@ pub enum Method {
     AtaSecurityEraseEnhanced,
     /// ATA Security Erase Unit, normal.
     AtaSecurityEraseNormal,
-    /// Host overwrite, one pass of zeros.
+    /// Host overwrite, one pass of a pseudo-random stream (ChaCha20).
     HostOverwrite,
 }
 

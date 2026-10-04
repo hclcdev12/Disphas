@@ -187,7 +187,7 @@ Ordre de préférence :
 | 2 | Sanitize **Crypto Erase** | Purge | `SANICAP.CES` |
 | 3 | Format NVM, SES = 2 (crypto) | Purge ⚠️ | `FNA` bit 2 |
 | 4 | Format NVM, SES = 1 (user data) | Clear ⚠️ | Format supporté |
-| 5 | Écriture hôte (zéros, 1 passe) | Clear + R7 | Toujours, si écriture possible |
+| 5 | Écriture hôte (flux pseudo-aléatoire, 1 passe) | Clear + R7 | Toujours, si écriture possible |
 
 - Block Erase passe avant Crypto Erase parce qu'il ne repose pas sur la confiance dans l'implémentation du chiffrement, invérifiable de l'extérieur. Option avancée : **CE puis BE** enchaînés.
 - Sanitize **Overwrite** est exclu sur flash (usure, pas de gain).
@@ -210,7 +210,7 @@ Les implémentations de Security Erase sur SSD ont historiquement été peu fiab
 |---|---|---|---|
 | 1 | ATA Sanitize **Overwrite** | Purge | Mot 59 bit 14 |
 | 2 | ATA Security Erase Unit (Enhanced, sinon Normal) | Purge ⚠️ | Mot 128 |
-| 3 | Écriture hôte (zéros, 1 passe) | Clear + R7 | — |
+| 3 | Écriture hôte (flux pseudo-aléatoire, 1 passe) | Clear + R7 | — |
 
 ### 4.4 Zones masquées
 
@@ -221,10 +221,19 @@ DCO (obsolète depuis ACS-3) → signalée, pas modifiée en V1 (risque de rendr
 
 | Méthode | Validation |
 |---|---|
-| Écriture hôte | Lecture des échantillons, contrôle du motif attendu (0x00) |
+| Écriture hôte | Lecture des échantillons, contrôle du motif attendu : le flux pseudo-aléatoire recalculé à la position de chaque bloc (voir ci-dessous) |
 | Firmware (Sanitize, Format, Security Erase) | **Canaris** : avant l'opération, écriture d'un motif aléatoire unique (nonce) dans les blocs échantillons ; après, vérification qu'**aucun** canari ne subsiste |
 
 Les canaris règlent le cas du Crypto Erase (lecture pseudo-aléatoire après coup) et celui des zones déjà vides.
+
+**Flux de la réécriture hôte** (décidé le 2026-10-04, alignement BSI IT-Grundschutz CON.6.A12, voir
+[conformité](conformite.md)) : une passe complète d'un flux **ChaCha20** (RFC 8439) dont la clé est
+SHA-256(graine ‖ « overwrite »), la graine étant celle de la validation, tirée du générateur de l'OS et
+signée dans l'attestation. L'octet *n* du disque reçoit l'octet *n* du flux : la validation recalcule le
+contenu attendu de chaque bloc échantillon et l'exige **à l'identique** (un bloc laissé à zéro ou intact
+échoue). Remplace la passe de zéros. Débit mesuré du générateur : ~2 Go/s sur un cœur (Ryzen AI 9 365),
+au-dessus d'un disque dur ou d'un SSD SATA ; sur un NVMe rapide il peut limiter la réécriture (méthode de
+repli) — parallélisation possible plus tard.
 
 **Échantillon** : LBA 0, LBA milieu, dernier LBA + **N** blocs aléatoires répartis (N = 1 000 par défaut, minimum 100). Graine aléatoire inscrite au certificat (rejouable).
 Option « validation intégrale » (lecture complète) proposée pour les méthodes hôte.

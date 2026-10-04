@@ -27,7 +27,7 @@
     "AtaSanitizeOverwrite": "ATA Sanitize, Overwrite",
     "AtaSecurityEraseEnhanced": "ATA Security Erase, enhanced",
     "AtaSecurityEraseNormal": "ATA Security Erase, normal",
-    "HostOverwrite": "Host overwrite, one pass of zeros"
+    "HostOverwrite": "Host overwrite, one pass of a pseudo-random stream"
   },
   "fr": {
     "N1": "Inspection du disque impossible",
@@ -57,7 +57,7 @@
     "AtaSanitizeOverwrite": "ATA Sanitize, Overwrite",
     "AtaSecurityEraseEnhanced": "ATA Security Erase, renforcé",
     "AtaSecurityEraseNormal": "ATA Security Erase, normal",
-    "HostOverwrite": "Réécriture hôte, une passe de zéros"
+    "HostOverwrite": "Réécriture hôte, une passe d'un flux pseudo-aléatoire"
   },
   "de": {
     "N1": "Laufwerk konnte nicht geprüft werden",
@@ -87,6 +87,6 @@
     "AtaSanitizeOverwrite": "ATA Sanitize, Overwrite",
     "AtaSecurityEraseEnhanced": "ATA Security Erase, erweitert",
     "AtaSecurityEraseNormal": "ATA Security Erase, normal",
-    "HostOverwrite": "Überschreiben durch den Host, ein Durchgang mit Nullen"
+    "HostOverwrite": "Überschreiben durch den Host, ein Durchgang mit Zufallsdatenstrom"
   }
 }

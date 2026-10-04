@@ -63,7 +63,8 @@ impl ErasureTarget for TestTarget {
     fn firmware(&mut self, _: CoreMethod, progress: &mut dyn FnMut(u8)) -> Result<bool, String> {
         match self.firmware {
             Firmware::Honest => {
-                erasure::host_overwrite(&mut self.image, &mut |_| {}).map_err(|e| e.to_string())?;
+                erasure::host_overwrite(&mut self.image, &[0x11; 32], &mut |_| {})
+                    .map_err(|e| e.to_string())?;
             }
             Firmware::Lying => {}
             Firmware::Crash => panic!("simulated helper crash"),
@@ -78,7 +79,8 @@ impl ErasureTarget for TestTarget {
         progress: &mut dyn FnMut(u8),
     ) -> Result<bool, String> {
         if self.firmware != Firmware::Lying {
-            erasure::host_overwrite(&mut self.image, &mut |_| {}).map_err(|e| e.to_string())?;
+            erasure::host_overwrite(&mut self.image, &[0x11; 32], &mut |_| {})
+                .map_err(|e| e.to_string())?;
         }
         progress(100);
         Ok(true)
@@ -348,11 +350,12 @@ fn sanitize(
     }
 }
 
-fn image_is_zero(path: &Path) -> bool {
+/// Whether none of the original data (blocks of 0x5a) is left in the image.
+fn image_is_erased(path: &Path) -> bool {
     std::fs::read(path)
         .expect("image")
-        .iter()
-        .all(|&byte| byte == 0)
+        .chunks(512)
+        .all(|block| block.iter().any(|&byte| byte != 0x5a))
 }
 
 #[test]
@@ -387,7 +390,7 @@ fn firmware_erasure_is_compliant_purge() {
     assert_eq!(attestation.device.serial, "SN-A001");
     assert_eq!(attestation.tool.binary_sha256, [0xb1; 32]);
     assert_eq!(attestation.organization.as_deref(), Some("Atelier XYZ"));
-    assert!(image_is_zero(&bench.dir.path().join("SN-A001.img")));
+    assert!(image_is_erased(&bench.dir.path().join("SN-A001.img")));
     assert_eq!(
         bench.phases(),
         [
@@ -422,7 +425,7 @@ fn host_overwrite_is_compliant_clear_with_r7() {
         .map(|code| code.as_str())
         .collect();
     assert_eq!(reserves, ["R7"]);
-    assert!(image_is_zero(&bench.dir.path().join("SN-B002.img")));
+    assert!(image_is_erased(&bench.dir.path().join("SN-B002.img")));
     assert!(
         !bench.phases().contains(&JobPhase::Canaries),
         "no canaries for a host write"
@@ -484,7 +487,7 @@ fn forced_n1_is_non_compliant_with_justification() {
         .map(|code| code.as_str())
         .collect();
     assert_eq!(refusals, ["N1"]);
-    assert!(image_is_zero(&bench.dir.path().join("SN-D004.img")));
+    assert!(image_is_erased(&bench.dir.path().join("SN-D004.img")));
 }
 
 #[test]
@@ -593,7 +596,7 @@ fn sanitize_interrupted_by_a_crash_is_finished_and_certified() {
     assert_eq!(verified.attestation.sanitization.category, Category::Purge);
     assert!(verified.attestation.validation.is_some_and(|v| v.passed));
     assert!(result.journal.contains("\"resumed\""));
-    assert!(image_is_zero(&bench.dir.path().join("SN-C001.img")));
+    assert!(image_is_erased(&bench.dir.path().join("SN-C001.img")));
     assert!(bench.job_files().is_empty(), "{:?}", bench.job_files());
 }
 

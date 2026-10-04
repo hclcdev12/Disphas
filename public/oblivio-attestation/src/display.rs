@@ -232,9 +232,9 @@ pub fn code(code: &str) -> Option<Text> {
             "ATA Security Erase, normal",
         ),
         "HostOverwrite" => Text::new(
-            "Host overwrite, one pass of zeros",
-            "Réécriture hôte, une passe de zéros",
-            "Überschreiben durch den Host, ein Durchgang mit Nullen",
+            "Host overwrite, one pass of a pseudo-random stream",
+            "Réécriture hôte, une passe d'un flux pseudo-aléatoire",
+            "Überschreiben durch den Host, ein Durchgang mit Zufallsdatenstrom",
         ),
         _ => return None,
     })

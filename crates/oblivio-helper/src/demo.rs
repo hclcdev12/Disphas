@@ -79,7 +79,8 @@ impl ErasureTarget for DemoTarget {
         // Simulation: the image is overwritten, as a firmware erase would
         // leave it. The journal records `simulated_firmware: true`.
         let _ = method;
-        erasure::host_overwrite(&mut self.image, &mut |host| {
+        let seed = erasure::random_seed()?;
+        erasure::host_overwrite(&mut self.image, &seed, &mut |host| {
             progress((host.bytes_done * 100 / host.bytes_total.max(1)) as u8);
         })
         .map(|()| true)
