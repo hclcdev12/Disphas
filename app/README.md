@@ -8,6 +8,8 @@ comes from the root helper (`docs/protocole_ipc.md`).
   `oblivio-helper --features demo` (fictional drives). Erasure is unavailable.
 - Demo helper: the locked drive `DEMO-LOCK-7A11` (B2) unlocks with the fictional
   user password `oblivio`; five wrong attempts expire its counter (B6).
+- `npm run demo` — builds the demo helper (fictional drives, image files) and
+  starts the app on it. `npm run tauri dev` alone uses whatever helper was built last.
 - `npm run bindings` — regenerates `src/bindings/` from the Rust protocol types (ts-rs).
 - `src/dev/code-labels.json` — code labels for the preview, exported by
   `cargo run -p oblivio-attestation --example labels_json`. The real app gets
