@@ -28,17 +28,29 @@ A release helper refuses to start unless it runs as root and was started by pkex
 Release builds contain neither the demo drives nor the development root key: until the
 official root key exists, no license can be valid and no drive can be erased.
 
-## Dependencies (checked 2026-10-04)
+## Supported distributions and dependencies (2026-10-04)
 
-`Depends` lists every shared library the two binaries load, as computed by
-`dpkg-shlibdeps` on the built binaries, plus the programs called at run time:
-`pkexec` (helper launch), `xdg-utils` (`xdg-open`, opening certificates) and `passwd`
-(`groupadd`/`groupdel` in the maintainer scripts). The app needs **glibc 2.39**:
-Ubuntu 24.04 / Pop!_OS 24.04, Debian 13 or newer; the package refuses to install on
-older systems instead of failing at launch. After a dependency or toolchain change:
+Release packages are built by the **Package** workflow (`.github/workflows/package.yml`,
+manual or on a `v*` tag) on **Ubuntu 22.04**, so the binaries need **glibc 2.35** at most:
 
-```
-dpkg-deb -x target/release/bundle/deb/*.deb /tmp/deb
-mkdir -p /tmp/shlib/debian && printf 'Source: oblivio\n\nPackage: oblivio\nArchitecture: amd64\n' > /tmp/shlib/debian/control
-cd /tmp/shlib && dpkg-shlibdeps -O /tmp/deb/usr/bin/oblivio-app /tmp/deb/usr/libexec/oblivio/oblivio-helper
-```
+| Package | Targets | Tested by installing on a clean container |
+|---|---|---|
+| `.deb` | Ubuntu 22.04+, Debian 12+, Linux Mint 21+, Pop!_OS 22.04+ | Ubuntu 22.04, 24.04, Debian 12, 13 |
+| `.rpm` | Fedora, openSUSE (and RHEL-like with glibc 2.35+ and WebKitGTK 4.1) | Fedora (latest), openSUSE Tumbleweed |
+
+Each run checks, per system: installation from a clean image, every library of both
+programs resolved (`ldd`), polkit policy and notices in place, `oblivio` group created,
+the release helper refusing to start outside pkexec, and removal (`.deb`: `remove` keeps
+`/var/lib/oblivio`, `purge` deletes it and the group; `.rpm`: removal keeps the data).
+
+- `.deb` `Depends`: every library found by `dpkg-shlibdeps` (old and `t64` names as
+  alternatives), plus `pkexec`, `xdg-utils` (opening certificates) and `passwd`
+  (`groupadd` in the scripts). `tools/check_package.py --max-glibc 2.35` fails the build if a
+  library is undeclared or a program needs a newer glibc. A `.deb` built on a newer system
+  (e.g. a developer's Pop!_OS 24.04) needs glibc 2.39 and must not be distributed.
+- `.rpm` `Requires`: shared-library capabilities (`libwebkit2gtk-4.1.so.0()(64bit)`…) and
+  file paths (`/usr/bin/pkexec`, `/usr/bin/xdg-open`…), so they resolve whatever each
+  distribution names its packages. RPM has no purge: to delete every data and setting,
+  `sudo rm -rf /var/lib/oblivio && sudo groupdel oblivio` (documented in `packaging/rpm/post`).
+- AppImage is not offered: its root helper would live in a user-writable file, so an
+  administrator could be led to run a tampered helper as root.

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Oblivio %post (RPM): the "oblivio" group may read erasure certificates
+# (/var/lib/oblivio/reports, 0750 root:oblivio, files 0640).
+# Operators are added by the administrator:
+#     sudo usermod -aG oblivio <user>    (then log out and in again)
+# RPM has no purge: removing the package keeps /var/lib/oblivio; to delete
+# every data and setting: sudo rm -rf /var/lib/oblivio && sudo groupdel oblivio
+if ! getent group oblivio >/dev/null; then
+    groupadd --system oblivio
+fi
+reports=/var/lib/oblivio/reports
+if [ -d "$reports" ]; then
+    chgrp oblivio "$reports"
+    chmod 0750 "$reports"
+    find "$reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
+        -exec chgrp oblivio {} + -exec chmod 0640 {} +
+fi
+exit 0
