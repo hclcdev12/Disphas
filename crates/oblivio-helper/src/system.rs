@@ -126,10 +126,10 @@ impl SystemBackend {
 /// The single drive among `drives` that `matches`. Refused when none does,
 /// when several do (two drives reporting the same identity cannot be told
 /// apart), or when the drive has no serial number (it cannot be confirmed).
-fn unique<'a>(
-    drives: &'a [(String, Device)],
+fn unique(
+    drives: &[(String, Device)],
     matches: impl Fn(&Device) -> bool,
-) -> Result<(&'a String, &'a Device), &'static str> {
+) -> Result<(&String, &Device), &'static str> {
     let mut found = drives.iter().filter(|(_, device)| matches(device));
     let (name, device) = found.next().ok_or("drive not found")?;
     if found.next().is_some() {
