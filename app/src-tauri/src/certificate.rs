@@ -77,7 +77,7 @@ pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<Option<Pa
         return Err("invalid batch identifier".to_owned());
     }
     let dir = crate::history::reports_dir();
-    let files: Vec<(Vec<u8>, Vec<u8>)> = crate::history::list(&dir, trust)
+    let files: Vec<(Vec<u8>, Vec<u8>)> = crate::history::list(&dir, trust)?
         .into_iter()
         .filter(|entry| {
             entry.check == crate::history::Check::Valid

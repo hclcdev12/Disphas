@@ -758,23 +758,83 @@ fn attestation(
 }
 
 /// Stores `<id>.cose` and `<id>.json` in the reports directory. Reports are
-/// the user's history and readable by them (§10): directory 0755, files
-/// 0644, never overwritten. Keys and licenses stay root-only.
+/// the operators' history (§10): directory 0750, files 0640, group
+/// `oblivio`, never overwritten. Keys and licenses stay root-only.
 fn store(dir: &std::path::Path, id: &str, signed: &[u8], journal: &[u8]) -> Result<(), String> {
     use std::io::Write;
     use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
     let fail = |error: std::io::Error| format!("reports: {error}");
+    let group = group_id(REPORTS_GROUP);
     std::fs::create_dir_all(dir).map_err(fail)?;
-    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o755)).map_err(fail)?;
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o750)).map_err(fail)?;
+    if let Some(gid) = group {
+        std::os::unix::fs::chown(dir, None, Some(gid)).map_err(fail)?;
+    }
     for (extension, content) in [("cose", signed), ("json", journal)] {
+        let path = dir.join(format!("{id}.{extension}"));
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .mode(0o644)
-            .open(dir.join(format!("{id}.{extension}")))
+            .mode(0o640)
+            .open(&path)
             .map_err(fail)?;
+        if let Some(gid) = group {
+            std::os::unix::fs::chown(&path, None, Some(gid)).map_err(fail)?;
+        }
         file.write_all(content).map_err(fail)?;
         file.sync_all().map_err(fail)?;
     }
     Ok(())
+}
+
+/// Group allowed to read the reports: the operators (`docs/conformite.md`,
+/// R1). Created by the package; members are added by the administrator.
+pub const REPORTS_GROUP: &str = "oblivio";
+
+/// Numeric id of group `name`, read from `/etc/group`. `None` when the
+/// group does not exist (development builds): reports stay readable by
+/// their owner only.
+pub fn group_id(name: &str) -> Option<u32> {
+    group_id_in(&std::fs::read_to_string("/etc/group").ok()?, name)
+}
+
+fn group_id_in(text: &str, name: &str) -> Option<u32> {
+    text.lines().find_map(|line| {
+        let mut fields = line.split(':');
+        (fields.next()? == name)
+            .then(|| fields.nth(1)?.parse().ok())
+            .flatten()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn group_ids_are_read_from_etc_group() {
+        let text = "root:x:0:\nsudo:x:27:laj\noblivio:x:998:alice,bob\nbroken\n";
+        assert_eq!(group_id_in(text, "oblivio"), Some(998));
+        assert_eq!(group_id_in(text, "root"), Some(0));
+        assert_eq!(group_id_in(text, "obliv"), None);
+        assert_eq!(group_id_in(text, "broken"), None);
+    }
+
+    #[test]
+    fn reports_are_private_to_owner_and_group() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().expect("temporary directory");
+        let reports = dir.path().join("reports");
+        store(&reports, "0001", b"cose", b"json").expect("stored");
+        let mode = |path: &std::path::Path| {
+            std::fs::metadata(path)
+                .expect("metadata")
+                .permissions()
+                .mode()
+                & 0o777
+        };
+        assert_eq!(mode(&reports), 0o750);
+        assert_eq!(mode(&reports.join("0001.cose")), 0o640);
+        assert_eq!(mode(&reports.join("0001.json")), 0o640);
+    }
 }

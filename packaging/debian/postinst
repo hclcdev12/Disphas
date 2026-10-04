@@ -1,0 +1,24 @@
+#!/bin/sh
+# Oblivio postinst: the "oblivio" group may read erasure certificates
+# (/var/lib/oblivio/reports, 0750 root:oblivio, files 0640).
+# Operators are added by the administrator:
+#     sudo usermod -aG oblivio <user>    (then log out and in again)
+set -e
+
+case "$1" in
+    configure)
+        if ! getent group oblivio >/dev/null; then
+            groupadd --system oblivio
+        fi
+        # Certificates stored by an earlier version (0755/0644): restrict them.
+        reports=/var/lib/oblivio/reports
+        if [ -d "$reports" ]; then
+            chgrp oblivio "$reports"
+            chmod 0750 "$reports"
+            find "$reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
+                -exec chgrp oblivio {} + -exec chmod 0640 {} +
+        fi
+        ;;
+esac
+
+exit 0

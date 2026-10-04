@@ -224,7 +224,9 @@
       "Revoked": "License revoked at the certificate date: this certificate is not shown"
     },
     "allBatches": "All batches",
-    "batchPdf": "Batch certificate (PDF)"
+    "batchPdf": "Batch certificate (PDF)",
+    "noAccessTitle": "Access to certificates denied",
+    "noAccessHint": "Certificates are reserved to members of the “oblivio” group. An administrator must add this account to it, then log out and back in:"
   },
   "verify": {
     "title": "Verify a certificate",

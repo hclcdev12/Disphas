@@ -224,7 +224,9 @@
       "Revoked": "Licence révoquée à la date du certificat : ce certificat n'est pas affiché"
     },
     "allBatches": "Tous les lots",
-    "batchPdf": "Certificat de lot (PDF)"
+    "batchPdf": "Certificat de lot (PDF)",
+    "noAccessTitle": "Accès aux certificats refusé",
+    "noAccessHint": "Les certificats sont réservés aux membres du groupe « oblivio ». Un administrateur doit y ajouter ce compte, puis il faut fermer et rouvrir la session :"
   },
   "verify": {
     "title": "Vérifier un certificat",

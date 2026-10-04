@@ -67,7 +67,7 @@ async fn list_reports() -> Result<Vec<history::Entry>, String> {
     // Verifying thousands of signatures: off the async runtime.
     tauri::async_runtime::spawn_blocking(|| {
         let trust = trust::Trust::shipped()?;
-        Ok(history::list(&history::reports_dir(), &trust))
+        history::list(&history::reports_dir(), &trust)
     })
     .await
     .map_err(|error| error.to_string())?

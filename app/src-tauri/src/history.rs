@@ -157,9 +157,15 @@ pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
 }
 
 /// Reports in `dir`, newest first (identifiers are UUID v7, ordered by time).
-pub fn list(dir: &Path, trust: &Trust) -> Vec<Entry> {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return Vec::new();
+/// `Err("PermissionDenied")` when this account may not read them: it is not
+/// in the `oblivio` group (docs/conformite.md, R1).
+pub fn list(dir: &Path, trust: &Trust) -> Result<Vec<Entry>, String> {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            return Err("PermissionDenied".to_owned());
+        }
+        Err(_) => return Ok(Vec::new()),
     };
     let mut ids: Vec<String> = entries
         .filter_map(Result::ok)
@@ -171,7 +177,8 @@ pub fn list(dir: &Path, trust: &Trust) -> Vec<Entry> {
         .collect();
     ids.sort_unstable_by(|a, b| b.cmp(a));
     ids.truncate(MAX_ENTRIES);
-    ids.into_iter()
+    Ok(ids
+        .into_iter()
         .map(|id| match read(dir, &id) {
             Some((signed, journal)) => check(&id, &signed, &journal, trust),
             None => Entry {
@@ -180,7 +187,7 @@ pub fn list(dir: &Path, trust: &Trust) -> Vec<Entry> {
                 summary: None,
             },
         })
-        .collect()
+        .collect())
 }
 
 #[cfg(test)]
@@ -215,7 +222,8 @@ mod tests {
         let listed = list(
             dir.path(),
             &trust_in(vec![root().verifying_key()], vec![revoked]),
-        );
+        )
+        .expect("listed");
         assert_eq!(listed[0].check, Check::Revoked);
         assert!(listed[0].summary.is_none());
     }
@@ -240,7 +248,7 @@ mod tests {
             &signed(Status::Compliant, "Atelier XYZ"),
             JOURNAL,
         );
-        let listed = list(dir.path(), &fixture_trust());
+        let listed = list(dir.path(), &fixture_trust()).expect("listed");
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].id, id);
         assert_eq!(listed[0].check, Check::Valid);
@@ -255,13 +263,13 @@ mod tests {
         store(dir.path(), &signed(Status::Compliant, "x"), JOURNAL);
         let stranger =
             oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]).verifying_key();
-        let listed = list(dir.path(), &trust_in(vec![stranger], vec![]));
+        let listed = list(dir.path(), &trust_in(vec![stranger], vec![])).expect("listed");
         assert_eq!(listed[0].check, Check::Invalid);
         assert!(listed[0].summary.is_none());
 
         let id = listed[0].id.clone();
         std::fs::write(dir.path().join(format!("{id}.json")), b"{}").expect("tamper");
-        let listed = list(dir.path(), &fixture_trust());
+        let listed = list(dir.path(), &fixture_trust()).expect("listed");
         assert_eq!(listed[0].check, Check::JournalMismatch);
         assert!(listed[0].summary.is_none());
     }
@@ -272,9 +280,30 @@ mod tests {
         let id = store(dir.path(), &signed(Status::Refused, "x"), JOURNAL);
         std::fs::remove_file(dir.path().join(format!("{id}.json"))).expect("removed");
         std::fs::write(dir.path().join("notes.cose"), b"x").expect("foreign");
-        let listed = list(dir.path(), &fixture_trust());
+        let listed = list(dir.path(), &fixture_trust()).expect("listed");
         assert_eq!(listed.len(), 1, "only report-shaped names");
         assert_eq!(listed[0].check, Check::Unreadable);
+    }
+
+    #[test]
+    fn unreadable_reports_folder_is_reported() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().expect("temporary directory");
+        let reports = dir.path().join("reports");
+        std::fs::create_dir(&reports).expect("folder");
+        std::fs::set_permissions(&reports, std::fs::Permissions::from_mode(0o000)).expect("chmod");
+        let result = list(&reports, &fixture_trust());
+        std::fs::set_permissions(&reports, std::fs::Permissions::from_mode(0o700)).expect("chmod");
+        // Root reads anything: the check only means something for a user.
+        if !std::fs::read_to_string("/proc/self/status")
+            .is_ok_and(|status| status.lines().any(|line| line.starts_with("Uid:\t0\t")))
+        {
+            assert_eq!(result, Err("PermissionDenied".to_owned()));
+        }
+        assert_eq!(
+            list(&dir.path().join("missing"), &fixture_trust()),
+            Ok(Vec::new())
+        );
     }
 
     #[test]

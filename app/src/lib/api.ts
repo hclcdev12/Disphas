@@ -115,7 +115,8 @@ export interface OblivioApi {
   /** Opens a saved certificate with the desktop's PDF viewer. */
   openCertificate(path: string): Promise<void>;
   /** Signed reports stored by the helper, newest first, each one verified. */
-  listReports(): Promise<HistoryEntry[]>;
+  /** `error` is "PermissionDenied" when this account is not in the oblivio group. */
+  listReports(): Promise<HistoryEntry[] | { error: string }>;
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
   /** Renders and saves the batch certificate of a batch from the history. */
@@ -162,7 +163,7 @@ const tauriApi: OblivioApi = {
     }
   },
   openCertificate: (path) => invoke<void>("open_certificate", { path }),
-  listReports: () => invoke<HistoryEntry[]>("list_reports").catch(() => []),
+  listReports: () => invoke<HistoryEntry[]>("list_reports").catch((error) => ({ error: String(error) })),
   renderReport: async (id, lang) => {
     try {
       return { ok: true, value: await invoke<string>("render_report", { id, lang }) };

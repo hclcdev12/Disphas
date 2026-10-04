@@ -14,6 +14,16 @@ import { Badge, Button, Mono } from "./ui";
 export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const receive = (result: HistoryEntry[] | { error: string }) => {
+    if (Array.isArray(result)) {
+      setListError(null);
+      setEntries(result);
+    } else {
+      setListError(result.error);
+      setEntries([]);
+    }
+  };
   const [query, setQuery] = useState("");
   const [saved, setSaved] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -45,12 +55,12 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   };
 
   useEffect(() => {
-    void api.listReports().then(setEntries);
+    void api.listReports().then(receive);
   }, []);
 
   const reload = async () => {
     setEntries(null);
-    setEntries(await api.listReports());
+    receive(await api.listReports());
   };
 
   const shown = useMemo(() => {
@@ -138,7 +148,17 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
         </div>
       )}
       {entries === null && <p className="text-ash">{t("history.loading")}</p>}
-      {entries?.length === 0 && <p className="text-ash">{t("history.empty")}</p>}
+      {listError === "PermissionDenied" && (
+        <div className="rounded-lg border border-blocked/40 bg-blocked/10 p-4 text-sm">
+          <p className="font-bold text-blocked">{t("history.noAccessTitle")}</p>
+          <p className="mt-1">{t("history.noAccessHint")}</p>
+          <p className="mt-2">
+            <Mono>sudo usermod -aG oblivio $USER</Mono>
+          </p>
+        </div>
+      )}
+      {listError !== null && listError !== "PermissionDenied" && <p className="text-sayno">{listError}</p>}
+      {listError === null && entries?.length === 0 && <p className="text-ash">{t("history.empty")}</p>}
       {entries && entries.length > 0 && shown.length === 0 && <p className="text-ash">{t("history.noMatch")}</p>}
 
       <ul className="space-y-3">

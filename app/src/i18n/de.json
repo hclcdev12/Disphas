@@ -224,7 +224,9 @@
       "Revoked": "Lizenz zum Datum der Bescheinigung widerrufen: Diese Bescheinigung wird nicht angezeigt"
     },
     "allBatches": "Alle Lose",
-    "batchPdf": "Loszertifikat (PDF)"
+    "batchPdf": "Loszertifikat (PDF)",
+    "noAccessTitle": "Zugriff auf die Bescheinigungen verweigert",
+    "noAccessHint": "Die Bescheinigungen sind Mitgliedern der Gruppe „oblivio“ vorbehalten. Ein Administrator muss dieses Konto hinzufügen; danach ab- und wieder anmelden:"
   },
   "verify": {
     "title": "Bescheinigung prüfen",
