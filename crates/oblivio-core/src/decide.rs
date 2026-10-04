@@ -1060,7 +1060,7 @@ mod tests {
     #[test]
     fn format_erases_every_namespace_when_the_controller_says_so() {
         let mut drive = nvme();
-        let narrow = ready(decide_baseline(&profile(Inspection::Nvme(drive.clone()))));
+        let narrow = ready(decide_baseline(&profile(Inspection::Nvme(drive))));
         assert!(narrow.erases_all_namespaces(Method::NvmeSanitizeBlockErase));
         assert!(!narrow.erases_all_namespaces(Method::NvmeFormatCryptoErase));
         assert!(!narrow.erases_all_namespaces(Method::HostOverwrite));
