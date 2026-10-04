@@ -15,6 +15,7 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Certificat](docs/certificat.md) | Brouillon : format signé, statuts, chaîne de confiance, vérification |
 | [Protocole UI ↔ helper](docs/protocole_ipc.md) | Frontière de sécurité : commandes, contrôles, événements, reprise |
 | [Banc de test](docs/banc_de_test.md) | Tests sur vrais disques : matériel, étapes, points à confirmer |
+| [Politique de sécurité](SECURITY.md) | Signaler une vulnérabilité |
 | [Conformité](docs/conformite.md) | RGPD, Cyber Resilience Act, normes (NIST, IEEE, BSI, ANSSI, ISO), licences : état et actions |
 | [Cahier des charges](docs/cahier_des_charges_logiciel_d_effacement_s_curis.md) | Spécifications techniques et fonctionnelles v2.0 |
 | [Specs UI & frontend](docs/oblivio_sp_cifications_ui_et_architecture_frontend.md) | Stack frontend, composants, workflow écrans |

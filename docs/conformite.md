@@ -65,10 +65,21 @@ durée de conservation (art. 5(1)(e)).
 
 | # | Action | Échéance | Statut |
 |---|---|---|---|
-| C1 | Procédure de signalement et contact sécurité (`SECURITY.md`), avant la première vente | Mise sur le marché | À faire |
+| C1 | Procédure de signalement et contact sécurité (`SECURITY.md`), avant la première vente | Mise sur le marché | **En partie** : `SECURITY.md` rédigé (2026-10-04) ; à compléter : adresse dédiée (`security@<domaine>`, avec le site) et délai définitif (5 jours ouvrés indicatifs). Procédure interne ci-dessous |
 | C2 | Désinstallation complète : clé du poste, licence, certificats, tâches, fichiers de reprise (annexe I (2)(m)) | 11/12/2027 | À faire |
 | C3 | Revue des exigences essentielles de l'annexe I et documentation technique simplifiée | 11/12/2027 | À faire (à détailler sur le texte) |
 | C4 | Marquage CE et déclaration UE de conformité (module A) | 11/12/2027 | À faire |
+
+### 2.1 Procédure interne de signalement (art. 14) — dès la mise sur le marché
+
+Si une vulnérabilité d'Oblivio est **activement exploitée**, ou en cas d'incident grave affectant
+sa sécurité, l'éditeur notifie via la **plateforme unique de signalement** prévue par le CRA :
+1. **alerte précoce sous 24 h** après en avoir eu connaissance (pour une micro-entreprise, pas
+   d'amende en cas de dépassement de ce délai — art. 64(10)(a)) ;
+2. **notification sous 72 h** ;
+3. information des utilisateurs concernés et correctif.
+*Non vérifié :* les modalités pratiques de la plateforme et l'autorité (CSIRT) compétente en
+France — à préciser avec l'ANSSI avant la mise sur le marché.
 
 ## 3. Normes et référentiels techniques
 
