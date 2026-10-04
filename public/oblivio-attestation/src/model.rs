@@ -99,6 +99,8 @@ text_enum! {
         SataSsd = "SATA-SSD",
         /// SATA hard disk drive.
         SataHdd = "SATA-HDD",
+        /// Not identified: the inspection failed (forced N1).
+        Unknown = "Unknown",
     }
 }
 

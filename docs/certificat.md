@@ -63,7 +63,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 | Clé | Sous-clés | Notes |
 |---|---|---|
 | `id` | — | UUID v7 en 16 octets bruts (pas en texte : économise ~20 octets dans le QR) |
-| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD`), `wwn`?, `eui`?, `ngu`? | |
+| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) |
 | `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `ref` (liste de référentiels) | |
 | `ver` | — | booléen, absent si rien n'a été exécuté |
 | `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |

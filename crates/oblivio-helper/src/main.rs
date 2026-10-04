@@ -19,23 +19,33 @@ use oblivio_license::LicenseStore;
 fn main() -> ExitCode {
     let config = SessionConfig {
         rules: RuleSet::baseline(),
-        // TODO: hash /proc/self/exe once the helper is packaged.
-        binary_sha256: String::new(),
+        binary_sha256: own_sha256(),
+        reports_dir: licensing::state_dir().join("reports"),
         licensing: Box::new(StoreLicensing::new(
             LicenseStore::new(licensing::state_dir()),
             licensing::root_key(),
         )),
     };
     #[cfg(feature = "demo")]
-    let backend = oblivio_helper::demo::DemoDevices::default();
+    let backend =
+        oblivio_helper::demo::DemoDevices::with_images(licensing::state_dir().join("demo-images"));
     #[cfg(not(feature = "demo"))]
     let backend = NoDevices;
     let mut session = Session::new(backend, config);
-    match serve(io::stdin().lock(), io::stdout().lock(), &mut session) {
-        Ok(()) => ExitCode::SUCCESS,
+    match serve(io::stdin().lock(), io::stdout(), &mut session) {
+        Ok(_) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("oblivio-helper: I/O error: {error}");
             ExitCode::FAILURE
         }
     }
+}
+
+/// SHA-256 of this executable, written into every attestation. Zero if the
+/// executable cannot be read, which the attestation then shows plainly.
+fn own_sha256() -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    std::fs::read("/proc/self/exe")
+        .map(|bytes| Sha256::digest(&bytes).into())
+        .unwrap_or([0; 32])
 }

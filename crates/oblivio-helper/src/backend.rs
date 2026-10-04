@@ -6,6 +6,8 @@
 use oblivio_core::profile::DeviceProfile;
 use oblivio_protocol::command::DeviceIdentity;
 
+use crate::erasure::ErasureTarget;
+
 /// A drive found by the backend.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Device {
@@ -25,6 +27,12 @@ pub trait DeviceBackend {
     /// The drive with exactly this identity, read again from the hardware.
     /// Never looked up by path.
     fn find(&mut self, identity: &DeviceIdentity) -> Option<Device>;
+
+    /// Opens the drive with this identity for erasure. Called only once every
+    /// Sanitize check passed. Refuses by default: no backend erases yet.
+    fn open(&mut self, _identity: &DeviceIdentity) -> Result<Box<dyn ErasureTarget>, String> {
+        Err("this backend cannot erase drives".to_owned())
+    }
 }
 
 /// Backend that sees no drive. Used until `oblivio-device` is wired in.

@@ -1,6 +1,7 @@
 //! The NDJSON loop over stdin/stdout (`docs/protocole_ipc.md` §3, §4).
 
 use std::io::{self, BufRead, Read, Write};
+use std::sync::mpsc;
 use std::time::Instant;
 
 use oblivio_protocol::wire::DecodeError;
@@ -21,16 +22,45 @@ enum LineRead {
 }
 
 /// Serves requests until end of input, `Shutdown`, or a message that forces
-/// the connection closed. Diagnostics go to stderr, never message contents.
-pub fn serve<R: BufRead, W: Write, B: DeviceBackend>(
+/// the connection closed, then waits for running jobs: a job always runs to
+/// its end, even if the UI is gone (§3). Responses and job events share one
+/// writer thread. Diagnostics go to stderr, never message contents.
+/// Returns the writer once everything is written.
+pub fn serve<R: BufRead, W: Write + Send + 'static, B: DeviceBackend>(
     mut reader: R,
-    mut writer: W,
+    writer: W,
+    session: &mut Session<B>,
+) -> io::Result<W> {
+    let (sender, receiver) = mpsc::channel::<ServerMessage>();
+    let output = std::thread::spawn(move || -> io::Result<W> {
+        let mut writer = writer;
+        for message in receiver {
+            write_message(&mut writer, &message)?;
+        }
+        Ok(writer)
+    });
+    session.set_events(Some(sender.clone()));
+
+    let read = read_requests(&mut reader, &sender, session);
+
+    session.wait_for_jobs();
+    session.set_events(None);
+    drop(sender);
+    let writer = output
+        .join()
+        .map_err(|_| io::Error::other("output thread panicked"))??;
+    read.map(|()| writer)
+}
+
+fn read_requests<R: BufRead, B: DeviceBackend>(
+    reader: &mut R,
+    output: &mpsc::Sender<ServerMessage>,
     session: &mut Session<B>,
 ) -> io::Result<()> {
     // The line may hold an ATA password: wipe it after every message.
     let mut line = Zeroizing::new(Vec::new());
     loop {
-        let read = read_line(&mut reader, &mut line);
+        let read = read_line(reader, &mut line);
         let response = match read? {
             LineRead::Eof => return Ok(()),
             LineRead::TooLong => {
@@ -44,7 +74,9 @@ pub fn serve<R: BufRead, W: Write, B: DeviceBackend>(
             eprintln!("oblivio-helper: unanswerable message, closing");
             return Ok(());
         };
-        write_message(&mut writer, &ServerMessage::Response(response))?;
+        if output.send(ServerMessage::Response(response)).is_err() {
+            return Err(io::Error::other("output closed"));
+        }
         if session.is_shut_down() {
             return Ok(());
         }
@@ -121,7 +153,8 @@ mod tests {
             NoDevices,
             SessionConfig {
                 rules: RuleSet::baseline(),
-                binary_sha256: "test".to_owned(),
+                binary_sha256: [0; 32],
+                reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
                 licensing: Box::new(crate::licensing::StoreLicensing::new(
                     oblivio_license::LicenseStore::new("/nonexistent/oblivio-test"),
                     None,
@@ -131,8 +164,7 @@ mod tests {
     }
 
     fn run(input: &str) -> Vec<Response> {
-        let mut output = Vec::new();
-        serve(input.as_bytes(), &mut output, &mut session()).expect("in-memory I/O");
+        let output = serve(input.as_bytes(), Vec::new(), &mut session()).expect("in-memory I/O");
         String::from_utf8(output)
             .expect("UTF-8 output")
             .lines()

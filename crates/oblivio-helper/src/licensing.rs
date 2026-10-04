@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
-use oblivio_license::{InstalledLicense, LicenseStatus, LicenseStore};
+use oblivio_license::{InstalledLicense, LicenseStatus, LicenseStore, WorkstationKey};
 use oblivio_protocol::response::{ErrorBody, ErrorCode, LicenseState, LicenseStatusResult};
 
 /// The official Oblivio root public key. Not generated yet.
@@ -22,6 +22,18 @@ pub trait Licensing: std::fmt::Debug {
     fn activation_request(&self) -> Result<String, ErrorBody>;
     /// Verifies and installs a license text, then returns the new status.
     fn install(&self, text: &str) -> Result<LicenseStatusResult, ErrorBody>;
+    /// Workstation key and signed license, to sign an attestation. Only
+    /// available while the license is valid.
+    fn signer(&self) -> Result<Signer, ErrorBody>;
+}
+
+/// What signs an attestation: the workstation key and its license.
+#[derive(Debug)]
+pub struct Signer {
+    /// Workstation key, wiped from memory on drop.
+    pub key: WorkstationKey,
+    /// License signed by the root key, embedded in the attestation.
+    pub license: Vec<u8>,
 }
 
 /// The root key licenses must be signed with, if this build has one.
@@ -130,6 +142,27 @@ impl Licensing for StoreLicensing {
             .install(text, root, now())
             .map_err(|error| invalid(error.to_string()))?;
         Ok(self.status())
+    }
+
+    fn signer(&self) -> Result<Signer, ErrorBody> {
+        let required = |detail: &str| ErrorBody {
+            code: ErrorCode::LicenseRequired,
+            detail: Some(detail.to_owned()),
+        };
+        let root = self.root.as_ref().ok_or_else(|| required("no root key"))?;
+        let Ok(LicenseStatus::Valid(installed)) = self.store.status(root, now()) else {
+            return Err(required("no valid license installed"));
+        };
+        let key = self
+            .store
+            .workstation_key()
+            .ok()
+            .flatten()
+            .ok_or_else(|| required("workstation key unavailable"))?;
+        Ok(Signer {
+            key,
+            license: installed.signed,
+        })
     }
 }
 

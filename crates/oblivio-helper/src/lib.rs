@@ -8,6 +8,11 @@ pub mod backend;
 pub mod convert;
 #[cfg(feature = "demo")]
 pub mod demo;
+pub mod erasure;
+pub mod job;
 pub mod licensing;
 pub mod serve;
 pub mod session;
+
+#[cfg(test)]
+mod job_tests;

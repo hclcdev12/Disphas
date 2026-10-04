@@ -237,3 +237,23 @@ UI                                   helper
   `OBLIVIO_STATE_DIR` ou `~/.local/state/oblivio-dev`.
 - Licence de développement : `cargo run -p oblivio-license --example issue_dev_license -- 'OBA1:…' [jours]`.
 
+### Exécution (moteur de tâches, 2026-10-04)
+
+- Un `Sanitize` accepté consomme son `verdict_id` (usage unique) et lance une tâche sur son propre fil ;
+  le helper continue de répondre. Réponses et événements passent par un même fil d'écriture.
+- Phases émises : `Preparing` → `Canaries` (méthodes firmware) → `Executing` → `Verifying` → `Validating`
+  → `Signing` → `Done`, puis `JobFinished`. `JobProgress` : source `host` (octets, débit, temps restant)
+  ou `firmware` (pourcentage). `JobLog` : codes `samples_selected`, `verification`, `validation`,
+  `attempt_retry`, `job_failed`.
+- Échantillons : bloc 0, bloc du milieu, dernier bloc + `validation_samples` blocs tirés de la graine.
+  Canari = SHA-256(graine ‖ « canary » ‖ LBA) répété sur le bloc. Validation hôte : blocs à zéro.
+- Toute tâche menée à son terme produit une attestation signée (CONFORME, NON CONFORME ou REFUS),
+  rangée dans `reports/<id>.cose` et `reports/<id>.json`. L'identifiant de tâche est l'UUID v7 du rapport.
+- Fermeture de l'UI pendant une tâche : le helper la termine avant de s'arrêter.
+- `GetJobResult` sur une tâche en cours → `BUSY`. `Cancel` → `NOT_CANCELLABLE` en V1 : un effacement lancé
+  va toujours à son terme.
+- Non encore fait : persistance `jobs/` et reprise après plantage (§10).
+- **Démo** (`--features demo`, debug uniquement) : trois disques fictifs adossés à des fichiers image de
+  256 Mio dans `<état>/demo-images/` ; les méthodes firmware y sont **simulées** (journal :
+  `simulated_firmware: true`), la réécriture hôte est réelle.
+

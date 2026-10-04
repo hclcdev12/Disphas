@@ -18,8 +18,17 @@ use oblivio_protocol::{PROTOCOL_VERSION, Request, Response};
 use serde::Serialize;
 use serde_json::Value;
 
+use std::sync::Arc;
+use std::sync::mpsc::Sender;
+use std::thread::JoinHandle;
+
+use oblivio_protocol::ServerMessage;
+use oblivio_protocol::command::JobId;
+use oblivio_protocol::response::{JobResult, JobSummary, SanitizeResult};
+
 use crate::backend::DeviceBackend;
 use crate::convert;
+use crate::job::{self, JobRecord, JobSpec, JobTable, Plan};
 use crate::licensing::Licensing;
 
 /// How long a verdict can be quoted by `Sanitize` (§6).
@@ -30,8 +39,10 @@ pub const VERDICT_TTL: Duration = Duration::from_secs(600);
 pub struct SessionConfig {
     /// Rule set of the decision engine.
     pub rules: RuleSet,
-    /// SHA-256 of the helper binary, hexadecimal.
-    pub binary_sha256: String,
+    /// SHA-256 of the helper binary.
+    pub binary_sha256: [u8; 32],
+    /// Where signed reports are stored (`reports/` of the state directory).
+    pub reports_dir: std::path::PathBuf,
     /// License status, activation and installation.
     pub licensing: Box<dyn Licensing + Send>,
 }
@@ -79,7 +90,9 @@ pub struct Session<B> {
     greeted: bool,
     verdicts: HashMap<VerdictId, IssuedVerdict>,
     issued: u64,
-    running_job: bool,
+    jobs: JobTable,
+    threads: Vec<JoinHandle<()>>,
+    events: Option<Sender<ServerMessage>>,
     shut_down: bool,
 }
 
@@ -92,9 +105,29 @@ impl<B: DeviceBackend> Session<B> {
             greeted: false,
             verdicts: HashMap::new(),
             issued: 0,
-            running_job: false,
+            jobs: JobTable::default(),
+            threads: Vec::new(),
+            events: None,
             shut_down: false,
         }
+    }
+
+    /// Where job events are sent, or `None` to drop them.
+    pub fn set_events(&mut self, events: Option<Sender<ServerMessage>>) {
+        self.events = events;
+    }
+
+    /// Waits until every job ended: a job always runs to its end (§3).
+    pub fn wait_for_jobs(&mut self) {
+        for thread in self.threads.drain(..) {
+            let _ = thread.join();
+        }
+    }
+
+    fn running_job(&self) -> bool {
+        self.jobs
+            .lock()
+            .map_or(true, |jobs| jobs.values().any(JobRecord::running))
     }
 
     /// The drive backend, for tests that change drives between requests.
@@ -131,9 +164,22 @@ impl<B: DeviceBackend> Session<B> {
             Command::ListDevices => self.list_devices(),
             Command::Inspect(args) => self.inspect(&args.device.identity, now),
             Command::Sanitize(args) => self.sanitize(&args, now),
-            Command::ListJobs => to_value(&ListJobsResult { jobs: Vec::new() }),
-            Command::Cancel(_) | Command::GetJobResult(_) => {
-                Err(Failure::new(ErrorCode::BadRequest, "unknown job"))
+            Command::ListJobs => self.list_jobs(),
+            Command::GetJobResult(args) => self.job_result(&args.job_id),
+            Command::Cancel(args) => {
+                let known = self
+                    .jobs
+                    .lock()
+                    .is_ok_and(|jobs| jobs.contains_key(&args.job_id));
+                if known {
+                    // V1: an erasure always runs to its end once started.
+                    Err(Failure::new(
+                        ErrorCode::NotCancellable,
+                        "erasures cannot be cancelled",
+                    ))
+                } else {
+                    Err(Failure::new(ErrorCode::BadRequest, "unknown job"))
+                }
             }
             Command::LicenseStatus => to_value(&self.config.licensing.status()),
             Command::Unlock(_) => Err(Failure::new(
@@ -149,7 +195,7 @@ impl<B: DeviceBackend> Session<B> {
                 to_value(&ActivationRequestResult { request })
             }
             Command::InstallLicense(args) => {
-                if self.running_job {
+                if self.running_job() {
                     return Err(Failure::new(ErrorCode::Busy, "a job is running"));
                 }
                 to_value(
@@ -161,7 +207,7 @@ impl<B: DeviceBackend> Session<B> {
                 )
             }
             Command::Shutdown => {
-                if self.running_job {
+                if self.running_job() {
                     return Err(Failure::new(ErrorCode::Busy, "a job is running"));
                 }
                 self.shut_down = true;
@@ -185,7 +231,12 @@ impl<B: DeviceBackend> Session<B> {
             protocol_version: PROTOCOL_VERSION,
             helper_version: env!("CARGO_PKG_VERSION").to_owned(),
             rules_version: self.config.rules.version.to_string(),
-            binary_sha256: self.config.binary_sha256.clone(),
+            binary_sha256: self
+                .config
+                .binary_sha256
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect(),
             license: self.config.licensing.status(),
         })
     }
@@ -314,10 +365,13 @@ impl<B: DeviceBackend> Session<B> {
         }
 
         // 7. Forcing only on a forcible SAY NO, with a long enough justification.
-        if let Some(force) = &args.force {
-            oblivio_core::force(&issued.verdict, &force.justification, &self.config.rules)
-                .map_err(|error| Failure::new(ErrorCode::ForceNotAllowed, error.to_string()))?;
-        }
+        let forced = match &args.force {
+            Some(force) => Some(
+                oblivio_core::force(&issued.verdict, &force.justification, &self.config.rules)
+                    .map_err(|error| Failure::new(ErrorCode::ForceNotAllowed, error.to_string()))?,
+            ),
+            None => None,
+        };
 
         // 8. License.
         if self.config.licensing.status().state != LicenseState::Valid {
@@ -328,14 +382,108 @@ impl<B: DeviceBackend> Session<B> {
         }
 
         // 9. One job at a time.
-        if self.running_job {
+        if self.running_job() {
             return Err(Failure::new(ErrorCode::Busy, "a job is running"));
         }
 
-        Err(Failure::new(
-            ErrorCode::Internal,
-            "execution not implemented yet",
-        ))
+        // Every check passed: plan, sign and run.
+        let wanted = choice.map(|(choice, _)| choice.method);
+        let plan = match (forced, &issued.verdict) {
+            (Some(forced), _) => Plan::Forced(forced),
+            (None, Verdict::Ready(ready)) => {
+                let option = ready
+                    .options()
+                    .find(|option| Some(convert::method(option.method)) == wanted)
+                    .ok_or_else(|| {
+                        Failure::new(
+                            ErrorCode::VerdictMismatch,
+                            "method not allowed by the verdict",
+                        )
+                    })?;
+                Plan::Ready {
+                    ready: ready.clone(),
+                    option,
+                }
+            }
+            (None, _) => {
+                return Err(Failure::new(
+                    ErrorCode::VerdictMismatch,
+                    "method not allowed by the verdict",
+                ));
+            }
+        };
+        let signer = self.config.licensing.signer().map_err(Failure::from)?;
+        let id = job::uuid_v7().map_err(|error| Failure::new(ErrorCode::Internal, error))?;
+        let target = self
+            .backend
+            .open(&issued.identity)
+            .map_err(|error| Failure::new(ErrorCode::Internal, error))?;
+        // A verdict is used once.
+        self.verdicts.remove(&args.verdict_id);
+        let spec = JobSpec {
+            id,
+            device: oblivio_protocol::command::DeviceRef {
+                node_hint: device.node_hint.clone(),
+                identity: issued.identity.clone(),
+            },
+            profile: device.profile.clone(),
+            capacity_bytes: device.capacity_bytes,
+            plan,
+            rules: self.config.rules.clone(),
+            signer,
+            target,
+            operator: args.operator.clone(),
+            organization: args.organization.clone(),
+            binary_sha256: self.config.binary_sha256,
+            reports_dir: self.config.reports_dir.clone(),
+        };
+        self.threads.push(job::spawn(
+            spec,
+            Arc::clone(&self.jobs),
+            self.events.clone(),
+        ));
+        to_value(&SanitizeResult {
+            job_id: JobId(oblivio_attestation::display::uuid(&id)),
+        })
+    }
+
+    fn list_jobs(&self) -> Handled {
+        let jobs = self
+            .jobs
+            .lock()
+            .map_err(|_| Failure::new(ErrorCode::Internal, "job table poisoned"))?
+            .iter()
+            .map(|(job_id, record)| JobSummary {
+                job_id: job_id.clone(),
+                device: record.device.clone(),
+                phase: record.phase,
+                status: record.status,
+            })
+            .collect();
+        to_value(&ListJobsResult { jobs })
+    }
+
+    fn job_result(&self, job_id: &JobId) -> Handled {
+        use base64::Engine;
+        let jobs = self
+            .jobs
+            .lock()
+            .map_err(|_| Failure::new(ErrorCode::Internal, "job table poisoned"))?;
+        let record = jobs
+            .get(job_id)
+            .ok_or_else(|| Failure::new(ErrorCode::BadRequest, "unknown job"))?;
+        if let Some(failure) = &record.failure {
+            return Err(Failure::new(ErrorCode::Internal, failure.clone()));
+        }
+        match (&record.status, &record.result) {
+            (Some(status), Some((signed, journal))) => to_value(&JobResult {
+                job_id: job_id.clone(),
+                status: *status,
+                attestation: base64::engine::general_purpose::STANDARD.encode(signed),
+                journal: String::from_utf8_lossy(journal).into_owned(),
+            }),
+            _ => Err(Failure::new(ErrorCode::Busy, "job still running")),
+        }
     }
 }
 
@@ -414,6 +562,10 @@ mod tests {
     use oblivio_protocol::command::{DeviceArgs, DeviceRef, ForceArgs};
     use oblivio_protocol::response::LicenseStatusResult;
 
+    /// Error of a fixed licensing asked for its key: reaching it proves that
+    /// a request passed every Sanitize check.
+    const NO_SIGNER: &str = "fixed licensing has no key";
+
     /// Licensing with a fixed state, for session tests.
     #[derive(Debug)]
     struct FixedLicensing(LicenseStatusResult);
@@ -431,6 +583,13 @@ mod tests {
             Err(ErrorBody {
                 code: ErrorCode::LicenseInvalid,
                 detail: None,
+            })
+        }
+
+        fn signer(&self) -> Result<crate::licensing::Signer, ErrorBody> {
+            Err(ErrorBody {
+                code: ErrorCode::LicenseRequired,
+                detail: Some(NO_SIGNER.to_owned()),
             })
         }
     }
@@ -522,7 +681,8 @@ mod tests {
         fn new(devices: Vec<Device>, license_state: LicenseState) -> Self {
             let config = SessionConfig {
                 rules: RuleSet::baseline(),
-                binary_sha256: "test".to_owned(),
+                binary_sha256: [0; 32],
+                reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
                 licensing: Box::new(FixedLicensing(license(license_state))),
             };
             Self {
@@ -762,9 +922,12 @@ mod tests {
         args.acknowledged = vec![Acknowledgement::Disposition(
             DispositionCode::ReallocatedAboveThreshold,
         )];
+        let error = harness
+            .send(Command::Sanitize(args))
+            .expect_err("no signing key");
         assert_eq!(
-            code(harness.send(Command::Sanitize(args))),
-            ErrorCode::Internal,
+            error.detail.as_deref(),
+            Some(NO_SIGNER),
             "acknowledged: the request passes every check"
         );
     }
@@ -849,17 +1012,13 @@ mod tests {
     }
 
     #[test]
-    fn valid_request_passes_every_check_but_execution_is_not_implemented() {
+    fn valid_request_passes_every_check() {
         let mut harness = Harness::greeted(vec![nvme_device("SN-0001")], LicenseState::Valid);
         let inspected = harness.inspect("SN-0001");
         let error = harness
             .send(Command::Sanitize(sanitize_args(&inspected, "0001")))
-            .expect_err("execution not implemented");
-        assert_eq!(error.code, ErrorCode::Internal);
-        assert_eq!(
-            error.detail.as_deref(),
-            Some("execution not implemented yet")
-        );
+            .expect_err("no signing key");
+        assert_eq!(error.detail.as_deref(), Some(NO_SIGNER));
     }
 
     #[test]
@@ -875,8 +1034,8 @@ mod tests {
         });
         let error = harness
             .send(Command::Sanitize(args))
-            .expect_err("execution not implemented");
-        assert_eq!(error.code, ErrorCode::Internal);
+            .expect_err("no signing key");
+        assert_eq!(error.detail.as_deref(), Some(NO_SIGNER));
     }
 
     #[test]
@@ -908,7 +1067,8 @@ mod licensing_commands {
             NoDevices,
             SessionConfig {
                 rules: RuleSet::baseline(),
-                binary_sha256: "test".to_owned(),
+                binary_sha256: [0; 32],
+                reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
                 licensing: Box::new(licensing),
             },
         );
