@@ -89,7 +89,10 @@
   ..d.rows
     .map(r => (
       text(size: 8pt, r.index),
-      mono(r.serial),
+      if r.hardware == none { mono(r.serial) } else [
+        #mono(r.serial) \
+        #text(font: "JetBrains Mono", size: 6.5pt, fill: muted, r.hardware)
+      ],
       text(size: 8pt, r.model),
       text(size: 8pt, r.capacity),
       text(size: 8pt, r.method),

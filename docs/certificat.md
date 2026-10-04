@@ -242,7 +242,11 @@ reste prouvé par sa propre attestation signée).
 - **Contenu** : en-tête (lot, libellé, période de la première à la dernière opération), synthèse (nombre de
   CONFORME / NON CONFORME / REFUS — bandeau vert seulement si tout est CONFORME), capacité totale, organisation(s),
   opérateur(s), licence(s), outil ; puis **une ligne par disque** (n° de série, modèle, capacité, méthode,
-  catégorie, statut, identifiant du rapport), dans l'ordre des opérations.
+  catégorie, statut, identifiant du rapport ; sous le n° de série, le premier identifiant matériel présent :
+  WWN sur SATA, EUI-64 ou NGUID sur NVMe), dans l'ordre des opérations.
+- **Production** : automatique à la **clôture du lot** dans l'application (refusée tant qu'un effacement du lot
+  est en cours, sans quoi son certificat manquerait ; un lot vide se clôt sans PDF), ou à la demande depuis
+  l'historique.
 - **Pièces jointes** : pour chaque disque, `<rapport>.cose` (attestation signée) et `<rapport>.json` (journal) —
   un seul fichier suffit pour tout vérifier hors ligne. Pas de QR (un lot ne tient pas dans un QR) : chaque
   disque garde le sien sur son certificat individuel.

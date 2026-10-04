@@ -119,7 +119,7 @@ export interface OblivioApi {
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
   /** Renders and saves the batch certificate of a batch from the history. */
-  renderBatch(batchId: string, lang: Language): Promise<Outcome<string>>;
+  renderBatch(batchId: string, lang: Language): Promise<Outcome<string | null>>;
   /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
   verifyCertificate(data: string): Promise<VerificationReport | { error: string }>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
@@ -172,7 +172,7 @@ const tauriApi: OblivioApi = {
   },
   renderBatch: async (batchId, lang) => {
     try {
-      return { ok: true, value: await invoke<string>("render_batch", { batchId, lang }) };
+      return { ok: true, value: await invoke<string | null>("render_batch", { batchId, lang }) };
     } catch (error) {
       return { ok: false, error: asHelperError(error) };
     }

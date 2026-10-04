@@ -307,6 +307,13 @@
     "open": "Ouvrir le lot",
     "close": "Clore le lot",
     "labelPlaceholder": "Libellé facultatif (ex. commande 4512)",
-    "tooLong": "128 caractères au plus."
+    "tooLong": "128 caractères au plus.",
+    "closing": "Clôture…",
+    "stillRunning_one": "{{count}} effacement de ce lot est encore en cours : attendez sa fin pour clore le lot.",
+    "stillRunning_other": "{{count}} effacements de ce lot sont encore en cours : attendez leur fin pour clore le lot.",
+    "pdfSaved": "Lot {{batch}} clos. Certificat de lot enregistré dans",
+    "closedEmpty": "Lot {{batch}} clos, sans effacement : aucun certificat de lot.",
+    "pdfFailed": "Le certificat du lot {{batch}} n'a pas pu être produit ; le lot reste ouvert.",
+    "empty": "Aucun certificat vérifié dans ce lot."
   }
 }

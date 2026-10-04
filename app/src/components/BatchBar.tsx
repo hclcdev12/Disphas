@@ -2,8 +2,16 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Layers } from "lucide-react";
 import type { BatchArgs } from "../bindings/BatchArgs";
+import type { HelperError } from "../lib/api";
 import { newBatchId } from "../lib/batch";
 import { Button, Mono } from "./ui";
+
+/** What closing the batch produced. */
+export type BatchNotice =
+  | { kind: "running"; count: number }
+  | { kind: "pdf"; batch: string; path: string }
+  | { kind: "empty"; batch: string }
+  | { kind: "error"; batch: string; error: HelperError };
 
 /** Largest label, as in the attestation. */
 const MAX_LABEL = 128;
@@ -13,7 +21,22 @@ const MAX_LABEL = 128;
  * and an optional label (a customer order number, say); every erasure
  * started while it is open carries it, signed.
  */
-export function BatchBar({ batch, onChange }: { batch: BatchArgs | null; onChange: (batch: BatchArgs | null) => void }) {
+export function BatchBar({
+  batch,
+  onOpen,
+  onClose,
+  closing,
+  notice,
+  onOpenPdf,
+}: {
+  batch: BatchArgs | null;
+  onOpen: (batch: BatchArgs) => void;
+  /** Closes the batch and renders its batch certificate. */
+  onClose: () => void;
+  closing: boolean;
+  notice: BatchNotice | null;
+  onOpenPdf: (path: string) => void;
+}) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState("");
@@ -21,7 +44,7 @@ export function BatchBar({ batch, onChange }: { batch: BatchArgs | null; onChang
 
   const open = () => {
     const trimmed = label.trim();
-    onChange({ id: newBatchId(), label: trimmed === "" ? null : trimmed });
+    onOpen({ id: newBatchId(), label: trimmed === "" ? null : trimmed });
     setLabel("");
     setEditing(false);
   };
@@ -35,8 +58,8 @@ export function BatchBar({ batch, onChange }: { batch: BatchArgs | null; onChang
             {t("batch.current")} <Mono>{batch.id}</Mono>
             {batch.label && <span className="text-ash"> — {batch.label}</span>}
           </span>
-          <Button className="ml-auto" onClick={() => onChange(null)}>
-            {t("batch.close")}
+          <Button className="ml-auto" disabled={closing} onClick={onClose}>
+            {closing ? t("batch.closing") : t("batch.close")}
           </Button>
         </>
       ) : editing ? (
@@ -59,11 +82,29 @@ export function BatchBar({ batch, onChange }: { batch: BatchArgs | null; onChang
         </>
       ) : (
         <>
+        <>
           <span className="text-ash">{t("batch.none")}</span>
           <Button className="ml-auto" onClick={() => setEditing(true)}>
             {t("batch.new")}
           </Button>
         </>
+        </>
+      )}
+      {notice?.kind === "running" && (
+        <p className="w-full text-xs text-blocked">{t("batch.stillRunning", { count: notice.count })}</p>
+      )}
+      {notice?.kind === "pdf" && (
+        <p className="flex w-full flex-wrap items-center gap-2 text-xs text-ash">
+          {t("batch.pdfSaved", { batch: notice.batch })} <Mono>{notice.path}</Mono>
+          <Button onClick={() => onOpenPdf(notice.path)}>{t("job.open")}</Button>
+        </p>
+      )}
+      {notice?.kind === "empty" && <p className="w-full text-xs text-ash">{t("batch.closedEmpty", { batch: notice.batch })}</p>}
+      {notice?.kind === "error" && (
+        <p className="w-full text-xs text-sayno">
+          {t("batch.pdfFailed", { batch: notice.batch })}
+          {notice.error.detail && <span className="block font-mono text-ash">{notice.error.detail}</span>}
+        </p>
       )}
     </div>
   );

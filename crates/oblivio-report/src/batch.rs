@@ -222,6 +222,19 @@ fn inputs(
         };
         put("index", (index + 1).to_string().into_value());
         put("serial", a.device.serial.clone().into_value());
+        // Hardware identifier under the serial number: WWN on SATA drives,
+        // EUI-64 or NGUID on NVMe ones, whichever is present first.
+        let hardware = [
+            ("WWN", &a.device.wwn),
+            ("EUI-64", &a.device.eui64),
+            ("NGUID", &a.device.nguid),
+        ]
+        .into_iter()
+        .find_map(|(name, value)| value.as_ref().map(|value| format!("{name} {value}")));
+        put(
+            "hardware",
+            hardware.map_or(Value::None, IntoValue::into_value),
+        );
         put("model", a.device.model.clone().into_value());
         put(
             "capacity",

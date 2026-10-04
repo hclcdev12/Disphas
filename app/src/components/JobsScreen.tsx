@@ -4,7 +4,7 @@ import type { JobView } from "../lib/jobs";
 import { Badge, Mono } from "./ui";
 
 /** What the app knows about a job besides its events. */
-export type JobInfo = { model: string; serial: string; resumed: boolean };
+export type JobInfo = { model: string; serial: string; resumed: boolean; batch: string | null };
 
 /** Thin progress line of a running job. */
 export function JobProgress({ job }: { job: JobView }) {

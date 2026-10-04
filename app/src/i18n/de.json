@@ -307,6 +307,13 @@
     "open": "Los öffnen",
     "close": "Los schließen",
     "labelPlaceholder": "Optionale Bezeichnung (z. B. Auftrag 4512)",
-    "tooLong": "Höchstens 128 Zeichen."
+    "tooLong": "Höchstens 128 Zeichen.",
+    "closing": "Wird geschlossen…",
+    "stillRunning_one": "{{count}} Löschung dieses Loses läuft noch: Warten Sie ihr Ende ab, bevor Sie das Los schließen.",
+    "stillRunning_other": "{{count}} Löschungen dieses Loses laufen noch: Warten Sie ihr Ende ab, bevor Sie das Los schließen.",
+    "pdfSaved": "Los {{batch}} geschlossen. Loszertifikat gespeichert in",
+    "closedEmpty": "Los {{batch}} ohne Löschung geschlossen: kein Loszertifikat.",
+    "pdfFailed": "Das Zertifikat des Loses {{batch}} konnte nicht erstellt werden; das Los bleibt offen.",
+    "empty": "Keine geprüfte Bescheinigung in diesem Los."
   }
 }

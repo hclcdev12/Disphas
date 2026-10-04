@@ -19,7 +19,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; error: HelperError } | null>(null);
   const [batch, setBatch] = useState("");
-  const [batchPdf, setBatchPdf] = useState<{ path: string } | { error: HelperError } | null>(null);
+  const [batchPdf, setBatchPdf] = useState<{ path: string } | { empty: true } | { error: HelperError } | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
 
   // Batches present in the history, with their label and number of drives.
@@ -38,7 +38,9 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
     setBatchBusy(true);
     setBatchPdf(null);
     const result = await api.renderBatch(batch, i18n.language as Language);
-    setBatchPdf(result.ok ? { path: result.value } : { error: result.error });
+    setBatchPdf(
+      !result.ok ? { error: result.error } : result.value === null ? { empty: true } : { path: result.value },
+    );
     setBatchBusy(false);
   };
 
@@ -126,6 +128,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
               <Button onClick={() => void api.openCertificate(batchPdf.path)}>{t("job.open")}</Button>
             </p>
           )}
+          {batchPdf && "empty" in batchPdf && <p className="w-full text-xs text-ash">{t("batch.empty")}</p>}
           {batchPdf && "error" in batchPdf && (
             <p className="w-full text-sm text-sayno">
               {t(`errors.${batchPdf.error.code}`, { defaultValue: batchPdf.error.code })}

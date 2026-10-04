@@ -16,7 +16,7 @@ import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
 import { JobsScreen, type JobInfo } from "./components/JobsScreen";
-import { BatchBar } from "./components/BatchBar";
+import { BatchBar, type BatchNotice } from "./components/BatchBar";
 import type { BatchArgs } from "./bindings/BatchArgs";
 import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
@@ -45,9 +45,37 @@ export default function App() {
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
   const [view, setView] = useState<"drives" | "jobs" | "history" | "verify">("drives");
   const [batch, setBatch] = useState<BatchArgs | null>(loadBatch);
+  const [batchNotice, setBatchNotice] = useState<BatchNotice | null>(null);
+  const [closingBatch, setClosingBatch] = useState(false);
   const changeBatch = (next: BatchArgs | null) => {
     setBatch(next);
     saveBatch(next);
+  };
+
+  // Closing a batch renders its batch certificate at once. Not while one of
+  // its erasures runs: its certificate would be missing from the PDF.
+  const closeBatch = async () => {
+    if (!batch) return;
+    // A job resumed after a crash may belong to the batch: it blocks too.
+    const running = Object.keys(jobInfo).filter(
+      (id) =>
+        (jobInfo[id].batch === batch.id || jobInfo[id].resumed) && jobs[id] && jobs[id].status === null,
+    ).length;
+    if (running > 0) {
+      setBatchNotice({ kind: "running", count: running });
+      return;
+    }
+    setClosingBatch(true);
+    const id = batch.id;
+    const result = await api.renderBatch(id, i18n.language as Language);
+    setClosingBatch(false);
+    if (!result.ok) {
+      // The batch stays open: the operator can retry.
+      setBatchNotice({ kind: "error", batch: id, error: result.error });
+      return;
+    }
+    changeBatch(null);
+    setBatchNotice(result.value === null ? { kind: "empty", batch: id } : { kind: "pdf", batch: id, path: result.value });
   };
 
   // Every drive is inspected by the helper; the UI only displays verdicts.
@@ -112,6 +140,7 @@ export default function App() {
                   model: job.device.identity.model,
                   serial: job.device.identity.serial,
                   resumed: true,
+                  batch: null,
                 };
               }
               return next;
@@ -146,7 +175,10 @@ export default function App() {
     });
     if (!result.ok) return result.error;
     const { model, serial } = request.inspection.device.identity;
-    setJobInfo((current) => ({ ...current, [result.value.job_id]: { model, serial, resumed: false } }));
+    setJobInfo((current) => ({
+      ...current,
+      [result.value.job_id]: { model, serial, resumed: false, batch: batch?.id ?? null },
+    }));
     setRequest(null);
     setOpenJob(null);
     // In a batch the operator chains drives: stay on the list, each card shows
@@ -216,7 +248,17 @@ export default function App() {
           </Button>
         </div>
         {hello && !hello.ok && <p className="text-sayno">{t(`errors.${hello.error.code}`)}</p>}
-        <BatchBar batch={batch} onChange={changeBatch} />
+        <BatchBar
+          batch={batch}
+          onOpen={(next) => {
+            changeBatch(next);
+            setBatchNotice(null);
+          }}
+          onClose={() => void closeBatch()}
+          closing={closingBatch}
+          notice={batchNotice}
+          onOpenPdf={(path) => void api.openCertificate(path)}
+        />
         {interrupted.map((job) => (
           <div
             key={job.job_id}

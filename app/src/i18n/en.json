@@ -307,6 +307,13 @@
     "open": "Open batch",
     "close": "Close batch",
     "labelPlaceholder": "Optional label (e.g. order 4512)",
-    "tooLong": "128 characters at most."
+    "tooLong": "128 characters at most.",
+    "closing": "Closing…",
+    "stillRunning_one": "{{count}} erasure of this batch is still running: wait for it to end before closing the batch.",
+    "stillRunning_other": "{{count}} erasures of this batch are still running: wait for them to end before closing the batch.",
+    "pdfSaved": "Batch {{batch}} closed. Batch certificate saved in",
+    "closedEmpty": "Batch {{batch}} closed without any erasure: no batch certificate.",
+    "pdfFailed": "The certificate of batch {{batch}} could not be produced; the batch stays open.",
+    "empty": "No verified certificate in this batch."
   }
 }

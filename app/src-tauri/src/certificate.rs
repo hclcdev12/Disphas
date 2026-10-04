@@ -68,8 +68,9 @@ pub fn save_signed(
 
 /// Renders the batch certificate of `batch_id` from the history: every
 /// report of that batch, each verified again by the renderer. Saved as
-/// `oblivio-lot-<batch>-<lang>.pdf`.
-pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<PathBuf, String> {
+/// `oblivio-lot-<batch>-<lang>.pdf`. `None` when the history holds no
+/// verified certificate of that batch (an empty batch).
+pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<Option<PathBuf>, String> {
     use oblivio_attestation::model::Batch;
     use oblivio_report::batch::{BatchEntry, BatchError, render_batch};
     if !Batch::valid_id(batch_id) {
@@ -88,7 +89,7 @@ pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<PathBuf, 
         .filter_map(|entry| crate::history::read(&dir, &entry.id))
         .collect();
     if files.is_empty() {
-        return Err("no verified certificate in this batch".to_owned());
+        return Ok(None);
     }
     let entries: Vec<BatchEntry<'_>> = files
         .iter()
@@ -121,7 +122,7 @@ pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<PathBuf, 
     };
     let path = out.join(format!("oblivio-lot-{batch_id}-{tag}.pdf"));
     std::fs::write(&path, pdf).map_err(|error| format!("{}: {error}", path.display()))?;
-    Ok(path)
+    Ok(Some(path))
 }
 
 /// Opens a saved certificate with the desktop's PDF viewer. Only files in

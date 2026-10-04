@@ -93,9 +93,10 @@ async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
     Ok(path.to_string_lossy().into_owned())
 }
 
-/// Renders the batch certificate of `batch_id` from the history.
+/// Renders the batch certificate of `batch_id` from the history; `None` for
+/// a batch without any certificate.
 #[tauri::command]
-async fn render_batch(batch_id: String, lang: String) -> Result<String, ErrorBody> {
+async fn render_batch(batch_id: String, lang: String) -> Result<Option<String>, ErrorBody> {
     let failure = |detail: String| ErrorBody {
         code: ErrorCode::Internal,
         detail: Some(detail),
@@ -108,7 +109,7 @@ async fn render_batch(batch_id: String, lang: String) -> Result<String, ErrorBod
     .await
     .map_err(|error| failure(error.to_string()))?
     .map_err(failure)?;
-    Ok(path.to_string_lossy().into_owned())
+    Ok(path.map(|path| path.to_string_lossy().into_owned()))
 }
 
 /// Verifies a certificate given by the user (PDF, COSE or QR text, base64).
