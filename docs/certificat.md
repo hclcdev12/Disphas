@@ -212,7 +212,8 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
 - Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
 - Clé racine officielle intégrée depuis le 2026-10-04 ; `--root-key` reste possible et le rapport avertit
   alors qu'il s'agit d'une clé non officielle (la liste intégrée, signée par la racine officielle, ne s'applique alors pas ;
-  `--revocations` reste possible).
+  `--revocations` reste possible). La clé officielle donnée par `--root-key` reste officielle : liste intégrée
+  appliquée, pas d'avertissement.
 
 ## 6. Mise en page du PDF
 

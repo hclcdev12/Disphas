@@ -110,20 +110,27 @@ fn attestation_bytes(data: Vec<u8>) -> Result<Vec<u8>, VerifyError> {
     }
 }
 
+/// The root key to verify with, and whether it is unofficial. The official
+/// key given with `--root-key` is still the official one: its built-in
+/// revocation list applies and no warning is printed.
+fn select_root(
+    given: Option<VerifyingKey>,
+    official: Option<VerifyingKey>,
+) -> Result<(VerifyingKey, bool), String> {
+    match (given, official) {
+        (Some(given), Some(official)) if given == official => Ok((official, false)),
+        (Some(given), _) => Ok((given, true)),
+        (None, Some(official)) => Ok((official, false)),
+        (None, None) => Err("no official root key in this build: give --root-key".to_owned()),
+    }
+}
+
 fn run(args: Args) -> Result<bool, String> {
     let lang = args.lang.unwrap_or_else(Lang::from_env);
     // Until the official root key exists, a root key must be given with
     // `--root-key`, and the report says so.
-    let (root, unofficial) = match (
-        &args.root_key,
-        oblivio_attestation::trust::official_root_key(),
-    ) {
-        (Some(hex), _) => (parse_key(hex)?, true),
-        (None, Some(official)) => (official, false),
-        (None, None) => {
-            return Err("no official root key in this build: give --root-key".to_owned());
-        }
-    };
+    let given = args.root_key.as_deref().map(parse_key).transpose()?;
+    let (root, unofficial) = select_root(given, oblivio_attestation::trust::official_root_key())?;
     let input = match (&args.qr, &args.file) {
         (Some(qr), _) => qr.clone().into_bytes(),
         (None, Some(file)) => read_bounded(file, MAX_INPUT_BYTES)?,
@@ -259,6 +266,18 @@ mod tests {
         ] {
             assert!(parse(args).is_err(), "{args:?}");
         }
+    }
+
+    #[test]
+    fn the_official_key_given_explicitly_stays_official() {
+        let key = |seed: u8| {
+            oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[seed; 32]).verifying_key()
+        };
+        assert_eq!(select_root(Some(key(1)), Some(key(1))), Ok((key(1), false)));
+        assert_eq!(select_root(Some(key(2)), Some(key(1))), Ok((key(2), true)));
+        assert_eq!(select_root(None, Some(key(1))), Ok((key(1), false)));
+        assert_eq!(select_root(Some(key(2)), None), Ok((key(2), true)));
+        assert!(select_root(None, None).is_err());
     }
 
     #[test]
