@@ -197,5 +197,22 @@
   "jobs": {
     "interruptedTitle": "Erasure interrupted, no certificate",
     "interruptedHint": "Oblivio stopped during this erasure and cannot prove it. Inspect and erase this drive again."
+  },
+  "nav": {
+    "drives": "Drives",
+    "history": "History"
+  },
+  "history": {
+    "title": "Certificate history",
+    "search": "Model, S/N, operator…",
+    "loading": "Verifying certificates…",
+    "empty": "No certificate yet.",
+    "noMatch": "No certificate matches.",
+    "pdf": "PDF certificate",
+    "check": {
+      "Invalid": "Invalid signature: this certificate is not shown",
+      "JournalMismatch": "Journal modified or replaced: this certificate is not shown",
+      "Unreadable": "Unreadable or incomplete certificate"
+    }
   }
 }

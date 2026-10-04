@@ -197,5 +197,22 @@
   "jobs": {
     "interruptedTitle": "Effacement interrompu, sans certificat",
     "interruptedHint": "Oblivio s'est arrêté pendant cet effacement et ne peut pas le prouver. Relancez une inspection puis un effacement de ce disque."
+  },
+  "nav": {
+    "drives": "Disques",
+    "history": "Historique"
+  },
+  "history": {
+    "title": "Historique des certificats",
+    "search": "Modèle, S/N, opérateur…",
+    "loading": "Vérification des certificats…",
+    "empty": "Aucun certificat pour l'instant.",
+    "noMatch": "Aucun certificat ne correspond.",
+    "pdf": "Certificat PDF",
+    "check": {
+      "Invalid": "Signature invalide : ce certificat n'est pas affiché",
+      "JournalMismatch": "Journal modifié ou remplacé : ce certificat n'est pas affiché",
+      "Unreadable": "Certificat illisible ou incomplet"
+    }
   }
 }

@@ -197,5 +197,22 @@
   "jobs": {
     "interruptedTitle": "Löschung unterbrochen, keine Bescheinigung",
     "interruptedHint": "Oblivio wurde während dieser Löschung beendet und kann sie nicht nachweisen. Prüfen und löschen Sie das Laufwerk erneut."
+  },
+  "nav": {
+    "drives": "Laufwerke",
+    "history": "Verlauf"
+  },
+  "history": {
+    "title": "Verlauf der Bescheinigungen",
+    "search": "Modell, S/N, Bediener…",
+    "loading": "Bescheinigungen werden geprüft…",
+    "empty": "Noch keine Bescheinigung.",
+    "noMatch": "Keine Bescheinigung passt.",
+    "pdf": "PDF-Bescheinigung",
+    "check": {
+      "Invalid": "Ungültige Signatur: Diese Bescheinigung wird nicht angezeigt",
+      "JournalMismatch": "Protokoll geändert oder ersetzt: Diese Bescheinigung wird nicht angezeigt",
+      "Unreadable": "Unlesbare oder unvollständige Bescheinigung"
+    }
   }
 }

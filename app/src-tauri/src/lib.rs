@@ -4,6 +4,7 @@
 
 mod certificate;
 mod helper;
+mod history;
 
 use std::collections::HashMap;
 
@@ -58,6 +59,36 @@ async fn render_certificate(
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// The certificate history, newest first, each report verified.
+#[tauri::command]
+async fn list_reports() -> Result<Vec<history::Entry>, String> {
+    // Verifying thousands of signatures: off the async runtime.
+    tauri::async_runtime::spawn_blocking(|| {
+        history::list(&history::reports_dir(), &oblivio_license::trusted_roots())
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
+/// Renders the PDF certificate of report `id` from the history, in `lang`.
+#[tauri::command]
+async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
+    let failure = |detail: String| ErrorBody {
+        code: ErrorCode::Internal,
+        detail: Some(detail),
+    };
+    let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        let (signed, journal) =
+            history::read(&history::reports_dir(), &id).ok_or("report not found")?;
+        certificate::save_signed(&id, &signed, &journal, lang)
+    })
+    .await
+    .map_err(|error| failure(error.to_string()))?
+    .map_err(failure)?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
 /// Opens a certificate saved by `render_certificate`.
 #[tauri::command]
 fn open_certificate(path: String) -> Result<(), String> {
@@ -92,7 +123,9 @@ pub fn run() {
             helper,
             code_labels,
             render_certificate,
-            open_certificate
+            open_certificate,
+            list_reports,
+            render_report
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {

@@ -11,6 +11,26 @@
 
 pub mod key;
 
+/// The state directory: keys, license, jobs and reports
+/// (`docs/protocole_ipc.md` §10). Shared by the helper and the app, which
+/// reads `reports/` for the history.
+///
+/// Release builds always use `/var/lib/oblivio` and ignore the environment,
+/// which pkexec clears anyway. Development builds run as the current user:
+/// `OBLIVIO_STATE_DIR`, else `~/.local/state/oblivio-dev`.
+pub fn state_dir() -> std::path::PathBuf {
+    #[cfg(debug_assertions)]
+    {
+        if let Some(dir) = std::env::var_os("OBLIVIO_STATE_DIR") {
+            return std::path::PathBuf::from(dir);
+        }
+        if let Some(home) = std::env::var_os("HOME") {
+            return std::path::PathBuf::from(home).join(".local/state/oblivio-dev");
+        }
+    }
+    std::path::PathBuf::from("/var/lib/oblivio")
+}
+
 /// Root keys licenses and certificates may chain to: the official root key;
 /// in development builds also the public development root, so licenses of
 /// both origins work there. Release builds trust the official key alone.

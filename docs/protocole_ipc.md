@@ -156,6 +156,11 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 ```
 
 - `reports/` sert aussi d'**historique** : l'app peut le lire directement, sans passer par le helper.
+  Implémenté le 2026-10-04 (onglet *Historique*) : l'app vérifie **chaque** rapport (signature, chaîne de
+  licence vers une racine de confiance, empreinte du journal, identifiant = nom du fichier) avant de
+  l'afficher ; un rapport qui échoue n'est montré que par son identifiant, jamais par son contenu. Lecture
+  bornée (1 Mio par attestation, 16 Mio par journal, 5 000 rapports les plus récents). Le dossier d'état
+  est défini une seule fois, dans `oblivio_license::state_dir()`.
   Droits : `reports/` 0755 et fichiers 0644 (jamais écrasés) ; `keys/` et `license/` restent 0700/0600.
 - Si le helper plante en cours de tâche, le lancement suivant reprend depuis `jobs/` :
   - **Sanitize firmware** : lecture du journal de statut du disque, puis vérification, validation et signature ;

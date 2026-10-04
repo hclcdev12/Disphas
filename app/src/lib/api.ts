@@ -17,6 +17,24 @@ import type { SanitizeResult } from "../bindings/SanitizeResult";
 import type { Language } from "../i18n";
 import recording from "../dev/demo-recording.json";
 import previewLabels from "../dev/code-labels.json";
+import previewHistory from "../dev/history-sample.json";
+
+/** One report of the certificate history (app/src-tauri/src/history.rs). */
+export type HistoryEntry = {
+  id: string;
+  check: "Valid" | "Invalid" | "JournalMismatch" | "Unreadable";
+  summary: {
+    issued_at: number;
+    status: "CONFORME" | "NON_CONFORME" | "REFUS";
+    category: "Clear" | "Purge" | "None";
+    method: string | null;
+    model: string;
+    serial: string;
+    capacity_bytes: number;
+    operator: string | null;
+    organization: string | null;
+  } | null;
+};
 
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
 export type HelperError = { code: string; detail: string | null };
@@ -43,6 +61,10 @@ export interface OblivioApi {
   renderCertificate(jobId: string, lang: Language): Promise<Outcome<string>>;
   /** Opens a saved certificate with the desktop's PDF viewer. */
   openCertificate(path: string): Promise<void>;
+  /** Signed reports stored by the helper, newest first, each one verified. */
+  listReports(): Promise<HistoryEntry[]>;
+  /** Renders and saves the PDF certificate of a report from the history. */
+  renderReport(id: string, lang: Language): Promise<Outcome<string>>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
   codeLabels(lang: Language): Promise<Record<string, string>>;
 }
@@ -83,6 +105,14 @@ const tauriApi: OblivioApi = {
     }
   },
   openCertificate: (path) => invoke<void>("open_certificate", { path }),
+  listReports: () => invoke<HistoryEntry[]>("list_reports").catch(() => []),
+  renderReport: async (id, lang) => {
+    try {
+      return { ok: true, value: await invoke<string>("render_report", { id, lang }) };
+    } catch (error) {
+      return { ok: false, error: asHelperError(error) };
+    }
+  },
   codeLabels: (lang) => invoke<Record<string, string>>("code_labels", { lang }),
 };
 
@@ -112,6 +142,8 @@ const previewApi: OblivioApi = {
   onEvent: async () => () => {},
   renderCertificate: async () => unavailable,
   openCertificate: async () => {},
+  listReports: async () => previewHistory.entries as HistoryEntry[],
+  renderReport: async () => unavailable,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 

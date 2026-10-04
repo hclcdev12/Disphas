@@ -3227,9 +3227,11 @@ dependencies = [
  "oblivio-license",
  "oblivio-protocol",
  "oblivio-report",
+ "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
  "tokio",
 ]
 

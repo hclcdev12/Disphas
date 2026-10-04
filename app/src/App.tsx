@@ -14,6 +14,7 @@ import { UnlockDialog } from "./components/UnlockDialog";
 import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
+import { HistoryScreen } from "./components/HistoryScreen";
 import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome } from "./lib/api";
 import type { Language } from "./i18n";
@@ -31,6 +32,7 @@ export default function App() {
   const [activeJob, setActiveJob] = useState<{ id: string; model: string; resumed: boolean } | null>(null);
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
+  const [view, setView] = useState<"drives" | "history">("drives");
 
   // Subscribed before any Sanitize, so no job event is ever missed.
   useEffect(() => {
@@ -122,6 +124,24 @@ export default function App() {
           />
         ) : (
         <>
+        <nav className="mb-5 flex gap-1 border-b border-edge">
+          {(["drives", "history"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setView(tab)}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm font-bold ${
+                view === tab ? "border-brand text-soft" : "border-transparent text-ash hover:text-soft"
+              }`}
+            >
+              {t(`nav.${tab}`)}
+            </button>
+          ))}
+        </nav>
+        {view === "history" ? (
+          <HistoryScreen labels={labels} />
+        ) : (
+        <>
         <div className="mb-4 flex items-center">
           <h1 className="text-xl font-bold">{t("drives.title")}</h1>
           <Button className="ml-auto flex items-center gap-2" onClick={() => void refresh()} disabled={!connected}>
@@ -167,6 +187,8 @@ export default function App() {
               />
             ))}
         </div>
+        </>
+        )}
         </>
         )}
       </main>

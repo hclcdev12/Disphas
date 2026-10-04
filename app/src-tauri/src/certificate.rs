@@ -20,11 +20,16 @@ pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
     let signed = base64::engine::general_purpose::STANDARD
         .decode(&result.attestation)
         .map_err(|error| format!("attestation: {error}"))?;
+    save_signed(&result.job_id.0, &signed, result.journal.as_bytes(), lang)
+}
+
+/// Renders report `id` from its signed attestation and journal, and saves it.
+pub fn save_signed(id: &str, signed: &[u8], journal: &[u8], lang: Lang) -> Result<PathBuf, String> {
     // The certificate is rendered only if it chains to a trusted root.
     let options = RenderOptions { lang, logo: None };
     let mut outcome = Err("this build trusts no root key".to_owned());
     for root in oblivio_license::trusted_roots() {
-        match render(&signed, result.journal.as_bytes(), &root, &[], &options) {
+        match render(signed, journal, &root, &[], &options) {
             Ok(pdf) => {
                 outcome = Ok(pdf);
                 break;
@@ -41,7 +46,7 @@ pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
         Lang::Fr => "fr",
         Lang::De => "de",
     };
-    let path = dir.join(format!("oblivio-{}-{tag}.pdf", result.job_id.0));
+    let path = dir.join(format!("oblivio-{id}-{tag}.pdf"));
     std::fs::write(&path, pdf).map_err(|error| format!("{}: {error}", path.display()))?;
     Ok(path)
 }

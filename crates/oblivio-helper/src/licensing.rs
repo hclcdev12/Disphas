@@ -32,22 +32,9 @@ pub struct Signer {
     pub license: Vec<u8>,
 }
 
-/// Where keys and licenses are stored.
-///
-/// Release builds always use `/var/lib/oblivio` and ignore the environment,
-/// which pkexec clears anyway. Development builds run as the current user:
-/// `OBLIVIO_STATE_DIR`, else `~/.local/state/oblivio-dev`.
+/// Where keys and licenses are stored: see [`oblivio_license::state_dir`].
 pub fn state_dir() -> PathBuf {
-    #[cfg(debug_assertions)]
-    {
-        if let Some(dir) = std::env::var_os("OBLIVIO_STATE_DIR") {
-            return PathBuf::from(dir);
-        }
-        if let Some(home) = std::env::var_os("HOME") {
-            return PathBuf::from(home).join(".local/state/oblivio-dev");
-        }
-    }
-    PathBuf::from("/var/lib/oblivio")
+    oblivio_license::state_dir()
 }
 
 /// Licensing backed by the on-disk store and the system clock.
