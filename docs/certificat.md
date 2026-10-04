@@ -140,7 +140,9 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
   saisie au terminal sans écho.
 - `oblivio-issuer issue root.key --customer … --offer … (--days N | --perpetual) 'OBA1:…'` : vérifie la preuve
   de possession de la demande, signe la licence `OBL1:…` et l'inscrit au registre `issued-licenses.csv`
-  (base de la future liste de révocation).
+  (base de la future liste de révocation). Identifiant `OBL-AAAAMMJJ-` + 64 bits aléatoires (16 chiffres
+  hexadécimaux) ; un identifiant déjà au registre est refusé, généré ou donné par `--id` (la révocation porte sur
+  l'identifiant : deux licences ne doivent jamais le partager).
 - La clé publique officielle n'existe qu'en un seul endroit : `oblivio_attestation::trust::OFFICIAL_ROOT_KEY`,
   lue par le helper, l'application et `oblivio-verify`.
   **Générée le 2026-10-04** : `90241925111469b68676f8041578355a9f3e0bf14d84afd825f24782c3508a0b`.
@@ -158,9 +160,11 @@ Implémentation (2026-10-04) :
   CBOR déterministe `{v: 1, seq, iat, rev: [[id, date], …]}`, identifiants triés et uniques, 100 000 entrées au plus.
   Une révocation est **définitive** : les listes ne font que grandir, et l'union de listes valides est toujours juste
   (pour une même licence, la date la plus ancienne l'emporte).
-- **Émission** : `oblivio-issuer revoke root.key --id ID [--at EPOCH] [--list ACTUELLE.obr] [--register FICHIER]
-  --out NOUVELLE.obr`. L'identifiant doit figurer au registre ; la nouvelle liste reprend l'actuelle (vérifiée) avec
-  `seq + 1` ; fichier jamais écrasé. `--at` permet d'antidater à la date de compromission d'une clé de poste : tout
+- **Émission** : `oblivio-issuer revoke root.key --id ID [--at EPOCH] (--list DERNIÈRE.obr | --first)
+  [--register FICHIER] --out NOUVELLE.obr`. L'identifiant doit figurer au registre ; la nouvelle liste reprend la
+  dernière (vérifiée) avec `seq + 1` ; fichier jamais écrasé. `--list` est obligatoire (une liste construite sans la
+  précédente perdrait ses révocations) ; seule la toute première liste se fait avec `--first`, refusé dès qu'une
+  liste est livrée, de même qu'une liste plus ancienne que celle livrée. `--at` permet d'antidater à la date de compromission d'une clé de poste : tout
   certificat signé depuis devient non authentique. Une date future est refusée.
 - **Livraison** : la liste est copiée dans `public/oblivio-attestation/revocations.obr` et référencée par
   `trust::OFFICIAL_REVOCATIONS` ; un test vérifie à la compilation qu'elle est signée par la racine officielle.

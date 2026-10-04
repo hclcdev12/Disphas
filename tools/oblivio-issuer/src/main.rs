@@ -7,7 +7,7 @@
 //! oblivio-issuer pubkey ROOT.key
 //! oblivio-issuer issue ROOT.key --customer NAME --offer OFFER (--days N | --perpetual)
 //!                      [--id ID] [--register FILE] 'OBA1:…'
-//! oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] [--list CURRENT.obr]
+//! oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] (--list LATEST.obr | --first)
 //!                       [--register FILE] --out NEW.obr
 //! ```
 
@@ -32,7 +32,7 @@ usage:
   oblivio-issuer pubkey ROOT.key
   oblivio-issuer issue ROOT.key --customer NAME --offer OFFER (--days N | --perpetual)
                        [--id ID] [--register FILE] 'OBA1:...'
-  oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] [--list CURRENT.obr]
+  oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] (--list LATEST.obr | --first)
                         [--register FILE] --out NEW.obr";
 
 fn now() -> u64 {
@@ -79,14 +79,15 @@ fn keygen(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// A new license identifier: the date, then 64 random bits. Revocation
+/// targets the identifier, so two licenses must never share one; the
+/// register check below refuses a collision anyway.
 fn license_id() -> Result<String, String> {
     let (year, month, day, ..) = civil(now());
-    let mut suffix = [0u8; 2];
+    let mut suffix = [0u8; 8];
     getrandom::fill(&mut suffix).map_err(|error| error.to_string())?;
-    Ok(format!(
-        "OBL-{year:04}{month:02}{day:02}-{:02X}{:02X}",
-        suffix[0], suffix[1]
-    ))
+    let suffix: String = suffix.iter().map(|byte| format!("{byte:02X}")).collect();
+    Ok(format!("OBL-{year:04}{month:02}{day:02}-{suffix}"))
 }
 
 fn issue_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<(), String> {
@@ -143,6 +144,18 @@ fn issue_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<
             .join("issued-licenses.csv")
     });
 
+    // Revoking one license must never revoke another: identifiers are unique.
+    if register.exists()
+        && revoke::registered(&register, &terms.id)
+            .map_err(|error| format!("{}: {error}", register.display()))?
+    {
+        return Err(format!(
+            "{} is already in {}: choose another --id",
+            terms.id,
+            register.display()
+        ));
+    }
+
     let secret = passphrase("root key passphrase: ")?;
     let root = root_key::unlock(path, &secret).map_err(|error| error.to_string())?;
     let (license, text) = issue::issue(&root, &request, &terms)?;
@@ -165,6 +178,7 @@ fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result
     let mut id = None;
     let mut at = None;
     let mut list = None;
+    let mut first = false;
     let mut register = None;
     let mut out = None;
     while let Some(arg) = args.next() {
@@ -179,6 +193,7 @@ fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result
                 );
             }
             "--list" => list = Some(PathBuf::from(value("--list")?)),
+            "--first" => first = true,
             "--register" => register = Some(PathBuf::from(value("--register")?)),
             "--out" => out = Some(PathBuf::from(value("--out")?)),
             other => return Err(format!("unexpected argument {other:?}")),
@@ -215,6 +230,15 @@ fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result
         }
         None => None,
     };
+    let shipped = match oblivio_attestation::trust::OFFICIAL_REVOCATIONS {
+        Some(text) => Some(
+            oblivio_attestation::revocation::RevocationList::decode(text, &public)
+                .map_err(|error| format!("shipped revocation list: {error}"))?
+                .seq,
+        ),
+        None => None,
+    };
+    revoke::check_base(shipped, current.as_ref().map(|list| list.seq), first)?;
     let next = revoke::next_list(current.as_ref(), &id, at, now)?;
 
     let secret = passphrase("root key passphrase: ")?;
@@ -259,5 +283,20 @@ fn main() -> ExitCode {
             eprintln!("{USAGE}");
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn license_ids_carry_64_random_bits() {
+        let first = license_id().expect("id");
+        let (prefix, suffix) = first.rsplit_once('-').expect("suffix");
+        assert!(prefix.starts_with("OBL-") && prefix.len() == 12, "{first}");
+        assert_eq!(suffix.len(), 16, "{first}");
+        assert!(suffix.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert_ne!(first, license_id().expect("id"));
     }
 }

@@ -39,6 +39,33 @@ pub fn next_list(
     })
 }
 
+/// A new list replaces the previous one entirely: built from anything but
+/// the latest list, it would silently drop revocations. So the latest list
+/// is required (`--list`), unless the publisher states this is the very
+/// first one (`--first`), which is refused once a list has been shipped.
+/// `shipped` and `given` are sequence numbers.
+pub fn check_base(shipped: Option<u64>, given: Option<u64>, first: bool) -> Result<(), String> {
+    match (given, first) {
+        (Some(_), true) => Err("give either --list or --first, not both".to_owned()),
+        (None, false) => Err(
+            "give the latest revocation list with --list, or --first for the very first list"
+                .to_owned(),
+        ),
+        (None, true) => match shipped {
+            Some(seq) => Err(format!(
+                "revocation list #{seq} is already shipped: give the latest with --list"
+            )),
+            None => Ok(()),
+        },
+        (Some(given), false) => match shipped {
+            Some(seq) if given < seq => Err(format!(
+                "list #{given} is older than the shipped list #{seq}"
+            )),
+            _ => Ok(()),
+        },
+    }
+}
+
 /// Whether `license_id` is in the issued-licenses register (first column).
 pub fn registered(register: &Path, license_id: &str) -> std::io::Result<bool> {
     let text = std::fs::read_to_string(register)?;
@@ -86,6 +113,23 @@ mod tests {
             RevocationList::decode(&text, &root.verifying_key()).expect("decoded"),
             second
         );
+    }
+
+    #[test]
+    fn the_latest_list_is_required_unless_first() {
+        assert!(check_base(None, None, false).is_err(), "nothing given");
+        assert!(check_base(None, None, true).is_ok(), "very first list");
+        assert!(
+            check_base(Some(3), None, true).is_err(),
+            "a list was shipped"
+        );
+        assert!(
+            check_base(Some(3), Some(2), false).is_err(),
+            "older than shipped"
+        );
+        assert!(check_base(Some(3), Some(3), false).is_ok());
+        assert!(check_base(None, Some(1), false).is_ok());
+        assert!(check_base(None, Some(1), true).is_err(), "both");
     }
 
     #[test]
