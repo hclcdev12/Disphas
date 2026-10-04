@@ -14,6 +14,8 @@ pub mod licensing;
 pub mod serve;
 pub mod session;
 pub mod startup;
+#[cfg(any(not(debug_assertions), feature = "real-devices"))]
+pub mod system;
 
 #[cfg(test)]
 mod job_tests;

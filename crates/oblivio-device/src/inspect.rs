@@ -1,0 +1,132 @@
+//! Firmware inspection of the drives of the inventory: the engine profile.
+//!
+//! Read-only commands only (Identify, logs, SMART, sanitize status), sent on
+//! a node opened read-only and non-exclusively, so mounted drives can be
+//! inspected too (they will be PROTECTED). Any failure gives
+//! `Inspection::Failed` (N1), never a guess.
+
+use std::fs::{File, OpenOptions};
+use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
+
+use oblivio_core::profile::{DeviceIdentity, DeviceProfile, Inspection, QuirkFlags};
+
+use crate::DeviceError;
+use crate::ata::AtaDevice;
+use crate::decode::{ata as ata_decode, nvme as nvme_decode};
+use crate::inventory::{BlockDevice, SystemPaths, Transport};
+use crate::nvme::NvmeDevice;
+
+/// A drive of the inventory with its engine profile.
+#[derive(Debug, Clone)]
+pub struct Inspected {
+    /// Kernel name, such as `nvme0n1`.
+    pub name: String,
+    /// Capacity in bytes, if known.
+    pub capacity_bytes: Option<u64>,
+    /// Profile for the decision engine.
+    pub profile: DeviceProfile,
+}
+
+fn open_read_only(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
+    let path = paths.dev.join(name);
+    if !std::fs::symlink_metadata(&path)?
+        .file_type()
+        .is_block_device()
+    {
+        return Err(DeviceError::Refused(format!(
+            "{} is not a block device",
+            path.display()
+        )));
+    }
+    Ok(OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open(path)?)
+}
+
+fn nvme_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
+    let device = NvmeDevice::new(file)?;
+    let controller = device.identify_controller()?;
+    let (_, namespace) = device.identify_namespace()?;
+    let health = device.health()?;
+    let (sanitize_state, _) = device.sanitize_status()?;
+    let identity = DeviceIdentity {
+        model: controller.model.clone(),
+        serial: controller.serial.clone(),
+        firmware: controller.firmware.clone(),
+        wwn: None,
+        eui64: namespace.eui64.clone(),
+        nguid: namespace.nguid.clone(),
+    };
+    let capacity = namespace.capacity_bytes().unwrap_or_default();
+    Ok((
+        identity,
+        capacity,
+        Inspection::Nvme(nvme_decode::profile(&controller, health, sanitize_state)),
+    ))
+}
+
+fn ata_profile(
+    file: &File,
+    rotational: Option<bool>,
+) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
+    let device = AtaDevice::new(file);
+    let identify = device.identify()?;
+    // SMART may be unsupported or disabled: no attributes is not a failure.
+    let smart = device.smart().ok();
+    let sanitize = if identify.sanitize_supported {
+        device.sanitize_status()?.0
+    } else {
+        ata_decode::sanitize_status(0, false)
+    };
+    let mut profile = ata_decode::profile(&identify, smart, sanitize, rotational);
+    // ATA Security Erase is not executed by this version (password handling
+    // and recovery after a failed erase are not implemented): do not offer it.
+    profile.security.supported = false;
+    let identity = DeviceIdentity {
+        model: identify.model.clone(),
+        serial: identify.serial.clone(),
+        firmware: identify.firmware.clone(),
+        wwn: identify.wwn.clone(),
+        eui64: None,
+        nguid: None,
+    };
+    Ok((identity, identify.capacity_bytes, Inspection::Ata(profile)))
+}
+
+/// Inspects one drive of the inventory. NVMe and SATA only (V1).
+pub fn inspect(paths: &SystemPaths, drive: &BlockDevice) -> Option<Inspected> {
+    let result = match drive.transport {
+        Transport::Nvme => open_read_only(paths, &drive.name).and_then(|file| nvme_profile(&file)),
+        Transport::Ata => {
+            open_read_only(paths, &drive.name).and_then(|file| ata_profile(&file, drive.rotational))
+        }
+        Transport::Usb | Transport::Other => return None,
+    };
+    let (identity, capacity, inspection) = match result {
+        Ok(found) => found,
+        Err(_) => (
+            DeviceIdentity {
+                model: drive.identity.model.clone().unwrap_or_default(),
+                serial: drive.identity.serial.clone().unwrap_or_default(),
+                firmware: drive.identity.firmware.clone().unwrap_or_default(),
+                wwn: None,
+                eui64: None,
+                nguid: None,
+            },
+            drive.size_bytes,
+            Inspection::Failed,
+        ),
+    };
+    Some(Inspected {
+        name: drive.name.clone(),
+        capacity_bytes: Some(capacity).filter(|&bytes| bytes > 0),
+        profile: DeviceProfile {
+            identity,
+            protection: drive.protection,
+            inspection,
+            failed_unblock_attempts: 0,
+            quirks: QuirkFlags::default(),
+        },
+    })
+}

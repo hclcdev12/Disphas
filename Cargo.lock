@@ -3257,6 +3257,7 @@ dependencies = [
 name = "oblivio-device"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "oblivio-core",
  "tempfile",
  "thiserror 2.0.21",

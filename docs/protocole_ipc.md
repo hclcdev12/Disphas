@@ -264,3 +264,16 @@ UI                                   helper
   256 Mio dans `<état>/demo-images/` ; les méthodes firmware y sont **simulées** (journal :
   `simulated_firmware: true`), la réécriture hôte est réelle.
 
+### Backends du helper (2026-10-04)
+
+| Build | Disques vus |
+|---|---|
+| release | **réels** (`SystemBackend` : inventaire, inspection firmware en lecture seule, effacement) |
+| debug | aucun (`NoDevices`) — **jamais** de disque réel par défaut |
+| debug `--features demo` | disques fictifs sur fichiers image |
+| debug `--features real-devices` | réels — banc de test uniquement, en root, avec accord du propriétaire |
+
+Ouvrir un disque pour l'effacer refait un inventaire, refuse tout disque protégé, n'accepte qu'un périphérique
+bloc et l'ouvre en `O_EXCL` (le noyau refuse un disque monté ou utilisé) et `O_DIRECT`. Inventaire impossible →
+aucun disque listé.
+

@@ -19,7 +19,12 @@ unwrap_used = "deny"
 expect_used = "deny"
 undocumented_unsafe_blocks = "deny"
 
+[features]
+# Tests on a real drive: also need OBLIVIO_TEST_DEVICE. Never run by default.
+hw-tests = []
+
 [dependencies]
+libc = "0.2.190"
 oblivio-core.workspace = true
 thiserror = "2.0.21"
 

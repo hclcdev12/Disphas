@@ -25,6 +25,9 @@ thiserror = "2.0.21"
 # Fictional in-memory drives, one per verdict state, for UI development.
 # Refused at compile time in release builds.
 demo = []
+# Real drives in a development build: test bench only, as root, with the
+# owner's consent (CLAUDE.md §2). Release builds always use real drives.
+real-devices = []
 
 [lints]
 workspace = true

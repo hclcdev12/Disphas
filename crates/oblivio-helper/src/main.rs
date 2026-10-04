@@ -3,13 +3,14 @@
 //! Launched once per session via `pkexec`, it talks to the UI over a private
 //! stdin/stdout JSON pipe. See `docs/protocole_ipc.md`.
 //!
-//! Not wired to `oblivio-device` yet: it sees no drive and cannot touch one.
+//! Release builds work on the real drives of the machine; development
+//! builds use demo drives or none (see the `demo` and `real-devices` features).
 
 use std::io;
 use std::process::ExitCode;
 
 use oblivio_core::RuleSet;
-#[cfg(not(feature = "demo"))]
+#[cfg(all(not(feature = "demo"), debug_assertions, not(feature = "real-devices")))]
 use oblivio_helper::backend::NoDevices;
 use oblivio_helper::licensing::{self, StoreLicensing};
 use oblivio_helper::serve::serve;
@@ -32,10 +33,17 @@ fn main() -> ExitCode {
             oblivio_license::trusted_roots(),
         )),
     };
+    // Development builds never touch real drives unless `real-devices` is
+    // enabled explicitly (test bench); release builds always use them.
     #[cfg(feature = "demo")]
     let backend =
         oblivio_helper::demo::DemoDevices::with_images(licensing::state_dir().join("demo-images"));
-    #[cfg(not(feature = "demo"))]
+    #[cfg(all(
+        not(feature = "demo"),
+        any(not(debug_assertions), feature = "real-devices")
+    ))]
+    let backend = oblivio_helper::system::SystemBackend::default();
+    #[cfg(all(not(feature = "demo"), debug_assertions, not(feature = "real-devices")))]
     let backend = NoDevices;
     let mut session = Session::new(backend, config);
     match serve(io::stdin().lock(), io::stdout(), &mut session) {

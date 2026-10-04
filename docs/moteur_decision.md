@@ -161,6 +161,13 @@ L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (rè
   tests différentiels contre `smartctl --json -x` à faire sur le banc (cadre §9). À vérifier en priorité :
   bits de SANITIZE STATUS EXT (14 = en cours, 13 = gelé), FNA et SANICAP.
 
+**Exécution** (`oblivio-device`, 2026-10-04) : NVMe Sanitize (Block / Crypto Erase) et Format NVM (SES 1/2)
+par commandes d'administration ; ATA Sanitize (Block Erase, Crypto Scramble, Overwrite 1 passe à zéro) par
+ATA PASS-THROUGH (16) ; progression lue dans le journal / SANITIZE STATUS EXT. ⚠️ **Écart** : ATA Security
+Erase **n'est pas exécuté** dans cette version (gestion du mot de passe temporaire et reprise d'un disque resté
+verrouillé après un échec non implémentées) : l'inspection le déclare non disponible, le moteur se replie sur
+la méthode suivante (souvent écriture hôte, Clear + R7). À implémenter avant la V1 pour les disques sans Sanitize.
+
 ### 4.1 NVMe (SSD)
 
 Ordre de préférence :

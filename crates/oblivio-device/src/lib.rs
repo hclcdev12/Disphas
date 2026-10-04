@@ -5,13 +5,42 @@
 //! PROTECTED drive by construction, including in tests. Hardware tests live
 //! behind the `hw-tests` feature and the `OBLIVIO_TEST_DEVICE` variable.
 //!
-//! So far it holds the read-only [`inventory`] (sysfs and procfs, no device
-//! node opened, no ioctl sent) and pure [`decode`]rs for firmware data.
+//! Read-only [`inventory`] (sysfs and procfs), pure [`decode`]rs, NVMe admin
+//! and ATA pass-through commands ([`nvme`], [`ata`]), firmware [`inspect`]ion,
+//! and [`drive`] access for erasure, which refuses protected drives by
+//! construction. All `unsafe` code lives in the private `sys` module and in
+//! [`aligned`].
 
+pub mod aligned;
+pub mod ata;
 pub mod block;
 pub mod decode;
+pub mod drive;
+pub mod inspect;
 pub mod inventory;
+pub mod nvme;
 pub mod procfs;
+mod sys;
 pub mod sysfs;
 
 pub use inventory::{BlockDevice, ScanError, SystemPaths, scan};
+
+/// Why a device operation failed.
+#[derive(Debug, thiserror::Error)]
+pub enum DeviceError {
+    /// System call failure.
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+    /// The inventory could not be trusted.
+    #[error("inventory: {0}")]
+    Scan(#[from] ScanError),
+    /// Firmware data could not be decoded.
+    #[error("{0}")]
+    Decode(#[from] decode::DecodeError),
+    /// The device rejected or failed a command.
+    #[error("{0}")]
+    Command(String),
+    /// Oblivio refuses to touch this drive.
+    #[error("refused: {0}")]
+    Refused(String),
+}
