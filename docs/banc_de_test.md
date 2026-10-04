@@ -46,3 +46,7 @@
 - NVMe à **plusieurs namespaces** (S5) : un Sanitize, ou un Format sur un contrôleur annonçant `FNA` bit 1,
   doit tenir les autres namespaces en `O_EXCL` (un `mount` d'un voisin pendant l'opération doit échouer) et
   être refusé si un voisin est utilisé avant le départ ; le bit `FNA` 1 décodé doit correspondre à la fiche du disque.
+- Loop (S9) : `losetup` d'une partition d'un disque de test → le disque doit passer PROTÉGÉ (P4) ; un `dd` ou une VM
+  qui garde le disque ouvert → refus à l'ouverture (« open in another process »).
+- Automount (S11) : sur un système où `/boot/efi` est en automount systemd, l'inventaire doit déclencher le
+  montage et protéger le disque de l'ESP (P1).

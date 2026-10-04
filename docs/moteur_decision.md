@@ -30,12 +30,22 @@ Le disque est intouchable si l'un de ces cas est vrai (vérifié **dans le helpe
 | P5 | NVMe : un **autre namespace** du même contrôleur est concerné par P1–P4 (Sanitize agit sur tout le contrôleur) | Identify + sysfs |
 
 **Détection** (`oblivio-device::inventory`, décidé le 2026-10-04) : lecture seule de `/sys` et `/proc`,
-aucun nœud `/dev` ouvert, aucun ioctl.
+aucun nœud `/dev` ouvert, aucun ioctl. Seule exception (S11, revue de sécurité) : un point de montage système
+monté à la demande (autofs, `/boot/efi` par exemple) est listé pour déclencher son montage, comme le ferait
+n'importe quel programme qui le lit ; s'il reste non monté, l'inventaire **échoue**.
 - Les montages sont rattachés aux disques par `major:minor`, puis en remontant les `slaves/` des
   périphériques empilés (dm-crypt, LVM, md) : une racine sur LUKS + LVM désigne bien le disque physique.
   Pour btrfs (numéro de périphérique anonyme), la source `/dev/…` du montage est utilisée.
 - P1 : points de montage `/`, `/boot`, `/boot/efi`, `/efi`.
+- P4 (S9) : un périphérique loop adossé directement à un disque ou à une partition (`loop/backing_file` en
+  `/dev/…`) compte comme P4 ; un système de fichiers monté par un tel loop est rattaché au disque dessous. Un loop
+  sur un fichier ordinaire relève du montage qui porte ce fichier.
 - P5 : namespaces d'un même contrôleur, d'après le nom (`nvme0n1`, `nvme0n2` → `nvme0`).
+- NVMe (S10) : seul le transport `pcie` du contrôleur (`device/transport`, ou chacun des contrôleurs du
+  sous-système en multipath) est un disque local ; NVMe sur réseau (`tcp`, `rdma`, `fc`) ou cible `loop` → transport
+  « autre », jamais ouvert pour effacement.
+- À l'ouverture pour effacement (S9) : refus si un autre processus a le disque, une de ses partitions ou un
+  namespace voisin tenu ouvert (`/proc/<pid>/fd`) — `O_EXCL` n'arrête que les ouvertures exclusives.
 - **Échec fermé** : `mountinfo` ou `swaps` illisible, swap ou montage `/dev/…` introuvable, ou racine `/`
   rattachée à aucun disque (ZFS, overlay d'un système live…) → l'inventaire **échoue** entièrement.
   Un dossier `holders/` illisible compte comme P4.

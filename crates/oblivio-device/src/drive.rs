@@ -16,6 +16,7 @@ use oblivio_core::profile::DeviceIdentity;
 
 use crate::inspect;
 use crate::inventory::{self, SystemPaths, Transport};
+use crate::openers;
 use crate::sysfs::DevNum;
 use crate::{DeviceError, sys};
 
@@ -106,10 +107,28 @@ impl ErasableDrive {
         same_drive(name, drive.dev, actual, expected, &reported)?;
 
         let mut siblings = Vec::new();
+        let mut held: std::collections::BTreeSet<DevNum> = inventory::device_numbers(paths, drive)?
+            .into_iter()
+            .collect();
         if whole_controller {
             for sibling in inventory::sibling_namespaces(&drives, name) {
                 siblings.push(hold(paths, sibling)?);
+                if let Some(sibling) = drives.iter().find(|drive| drive.name == sibling) {
+                    held.extend(inventory::device_numbers(paths, sibling)?);
+                }
             }
+        }
+        // O_EXCL does not stop a plain opener (an imaging tool, a VM).
+        let others = openers::openers(
+            &paths.proc,
+            &held,
+            std::process::id(),
+            openers::block_device_of,
+        )?;
+        if !others.is_empty() {
+            return Err(DeviceError::Refused(format!(
+                "{name} is open in another process (pid {others:?})"
+            )));
         }
 
         let block_size = u64::from(sys::logical_block_size(file.as_fd())?);

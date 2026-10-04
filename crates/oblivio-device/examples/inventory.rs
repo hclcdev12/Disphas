@@ -1,6 +1,7 @@
 //! Prints the read-only inventory of this machine: `cargo run -p oblivio-device --example inventory`.
 //!
-//! Reads `/sys` and `/proc` only. Needs no privileges and touches no drive.
+//! Reads `/sys` and `/proc` (and lists a system automount point to trigger it).
+//! Needs no privileges and touches no drive.
 
 use std::process::ExitCode;
 

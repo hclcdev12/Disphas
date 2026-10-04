@@ -19,6 +19,7 @@ pub mod drive;
 pub mod inspect;
 pub mod inventory;
 pub mod nvme;
+pub mod openers;
 pub mod procfs;
 pub mod security;
 mod sys;

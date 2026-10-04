@@ -1,6 +1,9 @@
 //! Read-only inventory of NVMe and SATA drives and of their protections (P1 to P5).
 //!
 //! Reads `/sys` and `/proc` only: no `/dev` node is opened, no ioctl is sent.
+//! One exception: an automount (autofs) on a system mount point is triggered
+//! by listing that directory, as any program reading it would, so that the
+//! drive behind it can be traced (S11).
 //! Fails closed: whatever cannot be proven free is reported protected, or the
 //! whole scan fails.
 
@@ -30,6 +33,9 @@ pub struct SystemPaths {
     pub proc: PathBuf,
     /// devtmpfs mount, normally `/dev`. Only symlinks are resolved there.
     pub dev: PathBuf,
+    /// Root of the mount points, normally `/`: only listed, to trigger the
+    /// automount of a system mount point.
+    pub root: PathBuf,
 }
 
 impl Default for SystemPaths {
@@ -38,6 +44,7 @@ impl Default for SystemPaths {
             sys: PathBuf::from("/sys"),
             proc: PathBuf::from("/proc"),
             dev: PathBuf::from("/dev"),
+            root: PathBuf::from("/"),
         }
     }
 }
@@ -108,9 +115,14 @@ pub enum ScanError {
         /// What is wrong.
         reason: String,
     },
-    /// A mounted or swap device could not be traced back to a drive.
+    /// A mounted, swap or loop backing device could not be traced back to a
+    /// drive.
     #[error("cannot trace {0} back to a drive")]
     Untraceable(String),
+    /// A system mount point is an automount that stays unmounted: the drive
+    /// it would mount (often the EFI partition) is unknown.
+    #[error("{0} is an automount whose drive cannot be traced")]
+    UntracedAutomount(String),
     /// The root filesystem could not be traced back to any drive, so the
     /// system drive is unknown.
     #[error("the drive holding / is unknown")]
@@ -138,8 +150,24 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
 
     // P1, P2: mounts, traced through device stacks.
     let mountinfo_path = paths.proc.join("self/mountinfo");
-    let mounts = procfs::parse_mountinfo(&read_required(&mountinfo_path)?)
-        .map_err(|error| parse_error(&mountinfo_path, error))?;
+    let read_mounts = || {
+        procfs::parse_mountinfo(&read_required(&mountinfo_path)?)
+            .map_err(|error| parse_error(&mountinfo_path, error))
+    };
+    let mut mounts = read_mounts()?;
+    // S11: a system mount point behind an automount (`/boot/efi` mounted on
+    // first access) hides its drive until something reads it. Read it, then
+    // look again; if still unmounted, the system drive cannot be known.
+    let pending = pending_automounts(&mounts);
+    if !pending.is_empty() {
+        for mount_point in &pending {
+            let _ = fs::read_dir(paths.root.join(mount_point.trim_start_matches('/')));
+        }
+        mounts = read_mounts()?;
+        if let Some(mount_point) = pending_automounts(&mounts).into_iter().next() {
+            return Err(ScanError::UntracedAutomount(mount_point));
+        }
+    }
     let mut root_resolved = false;
     for mount in &mounts {
         let disks = resolver.mount_disks(mount)?;
@@ -177,6 +205,16 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
                 .is_volume_member = true;
         }
     }
+    // P4 (S9): a loop device backed directly by a drive or a partition uses
+    // it without appearing in `holders/`.
+    for backing in resolver.loop_backings()? {
+        let name = resolver
+            .dev_path_name(&backing)
+            .ok_or_else(|| ScanError::Untraceable(backing.clone()))?;
+        for disk in resolver.disks_of(&name) {
+            protection.entry(disk).or_default().is_volume_member = true;
+        }
+    }
 
     // P5: a protected namespace protects its whole NVMe controller.
     let protected_controllers: BTreeSet<String> = devices
@@ -192,6 +230,60 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
         device.protection = facts;
     }
     Ok(devices)
+}
+
+/// Device numbers of `drive` and of its partitions.
+pub fn device_numbers(paths: &SystemPaths, drive: &BlockDevice) -> Result<Vec<DevNum>, ScanError> {
+    let mut numbers = vec![drive.dev];
+    for partition in &drive.partitions {
+        let path = paths.sys.join("class/block").join(partition).join("dev");
+        numbers.push(
+            read_required(&path)?
+                .parse()
+                .map_err(|()| parse_error(&path, "invalid major:minor"))?,
+        );
+    }
+    Ok(numbers)
+}
+
+/// System mount points whose only mount is an automount (autofs) trap.
+fn pending_automounts(mounts: &[MountEntry]) -> Vec<String> {
+    mounts
+        .iter()
+        .filter(|mount| mount.fs_type == "autofs")
+        .filter(|mount| SYSTEM_MOUNT_POINTS.contains(&mount.mount_point.as_str()))
+        .filter(|autofs| {
+            !mounts
+                .iter()
+                .any(|mount| mount.mount_point == autofs.mount_point && mount.fs_type != "autofs")
+        })
+        .map(|mount| mount.mount_point.clone())
+        .collect()
+}
+
+/// Transport of an NVMe namespace, from its controller(s): only `pcie` is a
+/// local drive. NVMe over a network (`tcp`, `rdma`, `fc`) or the `loop`
+/// target is another machine's storage, or not a drive at all (S10). With
+/// native multipath, `device` is the subsystem: every controller under it
+/// must be `pcie`. Unknown counts as not local.
+fn nvme_transport(dir: &Path) -> Transport {
+    let device = dir.join("device");
+    let mut transports: Vec<String> = sysfs::read_optional(&device.join("transport"))
+        .into_iter()
+        .collect();
+    if transports.is_empty() {
+        transports = sysfs::entry_names(&device)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|entry| entry.starts_with("nvme"))
+            .filter_map(|entry| sysfs::read_optional(&device.join(entry).join("transport")))
+            .collect();
+    }
+    if !transports.is_empty() && transports.iter().all(|transport| transport == "pcie") {
+        Transport::Nvme
+    } else {
+        Transport::Other
+    }
 }
 
 /// NVMe namespaces (`nvme0n1`) and SCSI disks (`sda`); nothing else in V1.
@@ -258,7 +350,7 @@ fn read_device(dir: &Path, name: &str) -> Result<BlockDevice, ScanError> {
         .collect();
 
     let transport = if name.starts_with("nvme") {
-        Transport::Nvme
+        nvme_transport(dir)
     } else {
         let real = fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
         let real = real.to_string_lossy();
@@ -366,6 +458,38 @@ impl<'a> Resolver<'a> {
         disks
     }
 
+    /// Backing devices (`/dev/…` paths) of the bound loop devices (those
+    /// with a `loop/` directory). A loop over a regular file is left out:
+    /// that file lives on a mounted filesystem, already traced. A bound loop
+    /// whose backing cannot be read fails the scan.
+    fn loop_backings(&self) -> Result<Vec<String>, ScanError> {
+        let class = self.paths.sys.join("class/block");
+        let mut backings = Vec::new();
+        for name in sysfs::entry_names(&class).map_err(|source| read_error(&class, source))? {
+            let dir = class.join(&name).join("loop");
+            if !name.starts_with("loop") || !dir.is_dir() {
+                continue;
+            }
+            let backing = read_required(&dir.join("backing_file"))?;
+            let backing = backing.trim();
+            if backing.starts_with("/dev/") {
+                backings.push(backing.to_owned());
+            }
+        }
+        Ok(backings)
+    }
+
+    /// `/dev/…` backing device of loop device `name`, if bound to one.
+    fn loop_backing(&self, name: &str) -> Option<String> {
+        let path = self
+            .paths
+            .sys
+            .join("class/block")
+            .join(name)
+            .join("loop/backing_file");
+        sysfs::read_optional(&path).filter(|backing| backing.starts_with("/dev/"))
+    }
+
     fn collect_disks(&self, name: &str, depth: usize, disks: &mut BTreeSet<String>) {
         if let Some(disk) = self.owner.get(name) {
             disks.insert(disk.clone());
@@ -373,6 +497,12 @@ impl<'a> Resolver<'a> {
         }
         if depth >= MAX_STACK_DEPTH {
             return;
+        }
+        // A filesystem mounted from a loop device over a partition.
+        if let Some(backing) = self.loop_backing(name)
+            && let Some(backing) = self.dev_path_name(&backing)
+        {
+            self.collect_disks(&backing, depth + 1, disks);
         }
         let slaves = self.paths.sys.join("class/block").join(name).join("slaves");
         for slave in sysfs::entry_names(&slaves).unwrap_or_default() {
@@ -462,6 +592,9 @@ mod tests {
             self.write(&format!("{real}/device/model"), "Fictional Drive  ");
             self.write(&format!("{real}/device/serial"), &format!("SN-{name}"));
             fs::create_dir_all(self.path(&format!("{real}/holders"))).expect("holders");
+            if name.starts_with("nvme") {
+                self.write(&format!("{real}/device/transport"), "pcie");
+            }
             symlink(self.path(&real), self.path(&format!("sys/block/{name}"))).expect("link");
             self.class_entry(name, dev);
             self
@@ -520,6 +653,7 @@ mod tests {
                 sys: self.path("sys"),
                 proc: self.path("proc"),
                 dev: self.path("dev"),
+                root: self.path("root"),
             })
         }
     }
@@ -730,6 +864,93 @@ mod tests {
         assert_eq!(usb.transport, Transport::Usb);
     }
 
+    #[test]
+    fn s10_only_local_pcie_nvme_is_an_nvme_drive() {
+        let fixture = two_nvme();
+        let transport = "sys/devices/pci0000:00/nvme/nvme1/block/nvme1n1/device/transport";
+        let of = |fixture: &Fixture| {
+            fixture
+                .scan()
+                .expect("scan")
+                .into_iter()
+                .find(|d| d.name == "nvme1n1")
+                .expect("listed")
+                .transport
+        };
+        for remote in ["tcp", "rdma", "fc", "loop"] {
+            fixture.write(transport, remote);
+            assert_eq!(of(&fixture), Transport::Other, "{remote}");
+        }
+        // Native multipath: `device` is the subsystem, its controllers decide.
+        fs::remove_file(fixture.path(transport)).expect("remove");
+        assert_eq!(of(&fixture), Transport::Other, "unknown transport");
+        let subsystem = "sys/devices/pci0000:00/nvme/nvme1/block/nvme1n1/device";
+        fixture.write(&format!("{subsystem}/nvme1/transport"), "pcie");
+        assert_eq!(of(&fixture), Transport::Nvme);
+        fixture.write(&format!("{subsystem}/nvme2/transport"), "tcp");
+        assert_eq!(of(&fixture), Transport::Other, "one remote path");
+    }
+
+    #[test]
+    fn s9_a_loop_over_a_drive_protects_it() {
+        let fixture = two_nvme();
+        fixture.partition("nvme1n1", "nvme1n1p1", "259:4");
+        fixture.class_entry("loop0", "7:0");
+        fixture.write("sys/class/block/loop0/loop/backing_file", "/dev/nvme1n1p1");
+        let devices = fixture.scan().expect("scan");
+        assert!(protection_of(&devices, "nvme1n1").is_volume_member);
+
+        // Over a regular file: that file's filesystem is already traced.
+        fixture.write(
+            "sys/class/block/loop0/loop/backing_file",
+            "/home/user/disk.img",
+        );
+        let devices = fixture.scan().expect("scan");
+        assert_eq!(
+            protection_of(&devices, "nvme1n1"),
+            ProtectionFacts::default()
+        );
+
+        // Bound, but its backing cannot be read: fail closed.
+        fs::remove_file(fixture.path("sys/class/block/loop0/loop/backing_file")).expect("rm");
+        assert!(matches!(fixture.scan(), Err(ScanError::Read { .. })));
+    }
+
+    #[test]
+    fn s9_a_filesystem_mounted_through_a_loop_is_traced_to_its_drive() {
+        let mut fixture = two_nvme();
+        fixture.class_entry("loop3", "7:3");
+        fixture.write("sys/class/block/loop3/loop/backing_file", "/dev/nvme1n1");
+        fixture.mount("7:3", "/srv/data", "ext4", "/dev/loop3");
+        let devices = fixture.scan().expect("scan");
+        let facts = protection_of(&devices, "nvme1n1");
+        assert!(facts.has_mounted_partition && facts.is_volume_member);
+    }
+
+    #[test]
+    fn s11_a_system_automount_is_resolved_or_fails_the_scan() {
+        let mut fixture = Fixture::new();
+        fixture
+            .disk("nvme0n1", "259:0", "pci0000:00/nvme/nvme0")
+            .partition("nvme0n1", "nvme0n1p2", "259:2")
+            .disk("nvme1n1", "259:3", "pci0000:00/nvme/nvme1")
+            .partition("nvme1n1", "nvme1n1p1", "259:4");
+        fixture
+            .mount("259:2", "/", "ext4", "/dev/nvme0n1p2")
+            .mount("0:35", "/proc/sys/fs/binfmt_misc", "autofs", "systemd-1")
+            .mount("0:40", "/boot/efi", "autofs", "systemd-1");
+        // The ESP behind /boot/efi never appears: its drive is unknown.
+        assert!(matches!(
+            fixture.scan(),
+            Err(ScanError::UntracedAutomount(point)) if point == "/boot/efi"
+        ));
+
+        // Once mounted (stacked over the trap), the drive is the system's.
+        fixture.mount("259:4", "/boot/efi", "vfat", "/dev/nvme1n1p1");
+        let devices = fixture.scan().expect("scan");
+        assert!(protection_of(&devices, "nvme1n1").hosts_system);
+    }
+
     // --- Fail closed.
 
     #[test]
@@ -756,6 +977,7 @@ mod tests {
             sys: fixture.path("sys"),
             proc: fixture.path("proc"),
             dev: fixture.path("dev"),
+            root: fixture.path("root"),
         });
         assert!(matches!(result, Err(ScanError::Read { .. })));
     }

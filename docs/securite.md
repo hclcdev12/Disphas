@@ -90,9 +90,17 @@ Corrigés le 2026-10-04 :
 | S6 ✅ | Identités en double (n° de série identique ou vide) : le premier disque correspondant est pris ; la reprise Security Erase ne compare que le n° de série | Oui | Refuser une identité ambiguë ou un n° de série vide ; comparer l'identité complète |
 | S7 ✅ | Rien ne revérifie la **cohérence** d'un certificat (ex. réécriture hôte certifiée Purge) ; l'option zéros est déclarée « validée » même si la validation échoue | Oui | Contrôle de cohérence avant signature et à la vérification ; `z` seulement si validé |
 | S8 ✅ | Outil éditeur : identifiants de licence sur 16 bits, unicité non vérifiée (la révocation porte sur l'identifiant) ; `revoke` sans `--list` oublie les révocations précédentes | Oui | Identifiants longs et uniques ; `--list` obligatoire dès qu'une liste existe |
-| S9 | Utilisateurs cachés d'un disque : périphérique loop adossé à une partition, swap sur loop, accès direct par un autre processus | *À confirmer* (comportement noyau) | Suivre les loop vers leur disque ; refuser si un processus tient le disque ouvert |
-| S10 | NVMe sur réseau (NVMe-oF) traité comme un disque local | Plausible | N'accepter que le transport `pcie` |
-| S11 | Partition EFI sur un autre disque, montée à la demande (autofs) : disque système non protégé | *À confirmer* | Traiter autofs sur les points système comme non traçable (refus) |
+| S9 ✅ | Utilisateurs cachés d'un disque : périphérique loop adossé à une partition, swap sur loop, accès direct par un autre processus | *À confirmer* (comportement noyau) | Suivre les loop vers leur disque ; refuser si un processus tient le disque ouvert |
+| S10 ✅ | NVMe sur réseau (NVMe-oF) traité comme un disque local | Plausible | N'accepter que le transport `pcie` |
+| S11 ✅ | Partition EFI sur un autre disque, montée à la demande (autofs) : disque système non protégé | *À confirmer* | Traiter autofs sur les points système comme non traçable (refus) |
+
+Corrigés le 2026-10-04 (suite) :
+
+- **S9** : un loop adossé à un disque ou à une partition protège ce disque (P4), un montage via un tel loop est rattaché au disque ; un loop lié dont la source est illisible fait échouer l'inventaire. À l'ouverture pour effacement, refus si un autre processus tient le disque, une partition ou un namespace voisin ouvert (`/proc/<pid>/fd`, comparaison par numéro de périphérique). Limite : un programme qui ouvre le disque **après** ce contrôle sans `O_EXCL` n'est pas arrêté.
+- **S10** : un NVMe n'est un disque local que si son contrôleur (ou chacun des contrôleurs en multipath) annonce le transport `pcie` ; sinon il n'est jamais ouvert pour effacement. Vérifié sur le poste de développement (`pcie`).
+- **S11** : un point de montage système en automount est lu pour déclencher son montage ; s'il reste non monté, l'inventaire échoue (le disque système serait inconnu). Un automount hors points système (`binfmt_misc`) est ignoré — vérifié sur le poste de développement.
+
+Testés sur arborescence simulée ; le comportement réel des loop et du déclenchement d'automount reste à confirmer au banc.
 
 ### 5.3 Faibles et informatifs (extraits)
 
