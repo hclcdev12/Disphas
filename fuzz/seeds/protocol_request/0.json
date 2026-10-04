@@ -1,0 +1,1 @@
+{"type": "request", "id": 1, "cmd": "Hello", "args": {"protocol_version": 1, "app_version": "0.1.0"}}

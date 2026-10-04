@@ -193,7 +193,10 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 - Aucune commande shell, aucun chemin fourni par l'UI utilisé tel quel.
 - Toute entrée bornée en taille et validée avant usage ; désérialisation stricte (`deny_unknown_fields`).
 - Secrets (mot de passe ATA, clé privée) effacés de la mémoire après usage (`zeroize`), jamais journalisés.
-- Fuzzing de la désérialisation (`cargo-fuzz`) dans la CI.
+- Fuzzing de la désérialisation (`cargo-fuzz`) dans la CI. Implémenté le 2026-10-04 (`fuzz/`, voir son README) :
+  7 cibles couvrant toutes les entrées non fiables (protocole dans les deux sens, session complète du helper,
+  attestations, QR, listes de révocation, PDF, licences et demandes d'activation, données renvoyées par les disques).
+  Premier passage de 60 s par cible : aucun plantage. ⚠️ Pas encore de CI : à brancher quand elle existera.
 - Fixtures JSON de référence partagées entre tests Rust et TypeScript.
 
 ## 12. Exemple de séquence complète

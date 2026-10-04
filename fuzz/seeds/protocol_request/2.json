@@ -1,0 +1,1 @@
+{"type": "request", "id": 3, "cmd": "Inspect", "args": {"device": {"node_hint": "/dev/sda", "identity": {"model": "M", "serial": "S1", "wwn": null, "eui64": null, "nguid": null}}}}

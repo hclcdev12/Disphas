@@ -1,0 +1,71 @@
+[package]
+name = "oblivio-fuzz"
+description = "Fuzz targets for every parser of untrusted input (cargo-fuzz, nightly)."
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+oblivio-attestation = { path = "../public/oblivio-attestation", features = ["pdf"] }
+oblivio-core = { path = "../crates/oblivio-core" }
+oblivio-device = { path = "../crates/oblivio-device" }
+oblivio-helper = { path = "../crates/oblivio-helper" }
+oblivio-license = { path = "../crates/oblivio-license" }
+oblivio-protocol = { path = "../crates/oblivio-protocol" }
+
+# Not a member of the main workspace: built by cargo-fuzz with nightly.
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "protocol_request"
+path = "fuzz_targets/protocol_request.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "protocol_server_message"
+path = "fuzz_targets/protocol_server_message.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "helper_serve"
+path = "fuzz_targets/helper_serve.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "attestation"
+path = "fuzz_targets/attestation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pdf_attachments"
+path = "fuzz_targets/pdf_attachments.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "license_text"
+path = "fuzz_targets/license_text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "device_decode"
+path = "fuzz_targets/device_decode.rs"
+test = false
+doc = false
+bench = false

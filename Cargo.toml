@@ -12,6 +12,8 @@ members = [
     "app/src-tauri",
     "tools/oblivio-issuer",
 ]
+# cargo-fuzz project, built with nightly on its own.
+exclude = ["fuzz"]
 
 # Shared metadata for the PRIVATE crates only.
 # Crates under public/ deliberately do not inherit anything from this file:

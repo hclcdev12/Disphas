@@ -1,0 +1,24 @@
+//! Everything a verifier reads: signed attestations, QR text, the CBOR
+//! payloads, and revocation lists.
+#![no_main]
+
+use libfuzzer_sys::fuzz_target;
+use oblivio_attestation::ed25519_dalek::SigningKey;
+use oblivio_attestation::model::{ActivationRequest, Attestation, License};
+use oblivio_attestation::revocation::RevocationList;
+use oblivio_attestation::{from_qr_text, verify};
+
+fuzz_target!(|data: &[u8]| {
+    let root = SigningKey::from_bytes(&[1; 32]).verifying_key();
+    let _ = verify(data, &root, &[]);
+    let _ = Attestation::from_cbor(data);
+    let _ = License::from_cbor(data);
+    let _ = ActivationRequest::from_cbor(data);
+    let _ = RevocationList::from_cbor(data);
+    if let Ok(text) = std::str::from_utf8(data) {
+        if let Ok(signed) = from_qr_text(text) {
+            let _ = verify(&signed, &root, &[]);
+        }
+        let _ = RevocationList::decode(text, &root);
+    }
+});

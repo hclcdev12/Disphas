@@ -1,0 +1,5 @@
+{"type": "request", "id": 1, "cmd": "Hello", "args": {"protocol_version": 1, "app_version": "0.1.0"}}
+{"type": "request", "id": 2, "cmd": "ListDevices"}
+{"type": "request", "id": 3, "cmd": "Inspect", "args": {"device": {"node_hint": "/dev/sda", "identity": {"model": "M", "serial": "S1", "wwn": null, "eui64": null, "nguid": null}}}}
+{"type": "request", "id": 4, "cmd": "ListJobs"}
+{"type": "request", "id": 5, "cmd": "Unlock", "args": {"device": {"node_hint": null, "identity": {"model": "M", "serial": "S1", "wwn": "5000", "eui64": null, "nguid": null}}, "kind": "User", "password": "x"}}
