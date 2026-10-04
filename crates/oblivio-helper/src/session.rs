@@ -137,6 +137,16 @@ impl<B: DeviceBackend> Session<B> {
             .map_or(true, |jobs| jobs.values().any(JobRecord::running))
     }
 
+    /// Whether a job is running on the drive with this serial number. For
+    /// NVMe it is the controller's: all its namespaces share it, so an
+    /// erasure of every namespace never meets another job on the controller.
+    fn drive_busy(&self, serial: &str) -> bool {
+        self.jobs.lock().map_or(true, |jobs| {
+            jobs.values()
+                .any(|job| job.running() && job.device.identity.serial == serial)
+        })
+    }
+
     /// The drive backend, for tests that change drives between requests.
     pub fn backend_mut(&mut self) -> &mut B {
         &mut self.backend
@@ -196,8 +206,11 @@ impl<B: DeviceBackend> Session<B> {
             }
             Command::LicenseStatus => to_value(&self.config.licensing.status()),
             Command::Unlock(args) => {
-                if self.running_job() {
-                    return Err(Failure::new(ErrorCode::Busy, "a job is running"));
+                if self.drive_busy(&args.device.identity.serial) {
+                    return Err(Failure::new(
+                        ErrorCode::Busy,
+                        "a job is running on this drive",
+                    ));
                 }
                 // ATA passwords are 32 bytes, zero-padded (as hdparm does).
                 let mut password = zeroize::Zeroizing::new([0u8; 32]);
@@ -408,9 +421,12 @@ impl<B: DeviceBackend> Session<B> {
             ));
         }
 
-        // 9. One job at a time.
-        if self.running_job() {
-            return Err(Failure::new(ErrorCode::Busy, "a job is running"));
+        // 9. One job per drive at a time; other drives erase in parallel.
+        if self.drive_busy(&issued.identity.serial) {
+            return Err(Failure::new(
+                ErrorCode::Busy,
+                "a job is running on this drive",
+            ));
         }
 
         // Every check passed: plan, sign and run.

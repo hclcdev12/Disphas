@@ -178,7 +178,7 @@
     "exporting": "Rendu en cours…",
     "saved": "Enregistré dans",
     "open": "Ouvrir",
-    "back": "Retour aux disques",
+    "back": "Retour aux effacements",
     "resumed": "Cet effacement a été repris après un arrêt inattendu d'Oblivio : le disque l'a poursuivi seul, Oblivio en vérifie maintenant le résultat."
   },
   "unlock": {
@@ -196,12 +196,19 @@
   },
   "jobs": {
     "interruptedTitle": "Effacement interrompu, sans certificat",
-    "interruptedHint": "Oblivio s'est arrêté pendant cet effacement et ne peut pas le prouver. Relancez une inspection puis un effacement de ce disque."
+    "interruptedHint": "Oblivio s'est arrêté pendant cet effacement et ne peut pas le prouver. Relancez une inspection puis un effacement de ce disque.",
+    "title": "Effacements",
+    "empty": "Aucun effacement dans cette session.",
+    "running_one": "{{count}} en cours",
+    "running_other": "{{count}} en cours",
+    "inProgress": "Effacement en cours",
+    "view": "Voir l'effacement"
   },
   "nav": {
     "drives": "Disques",
     "history": "Historique",
-    "verify": "Vérifier"
+    "verify": "Vérifier",
+    "jobs": "Effacements"
   },
   "history": {
     "title": "Historique des certificats",

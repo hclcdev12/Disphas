@@ -5,6 +5,8 @@ import type { DeviceSummary } from "../bindings/DeviceSummary";
 import type { InspectResult } from "../bindings/InspectResult";
 import type { MethodChoice } from "../bindings/MethodChoice";
 import type { Outcome } from "../lib/api";
+import type { JobView } from "../lib/jobs";
+import { JobProgress } from "./JobsScreen";
 import { capacity } from "../lib/format";
 import { Badge, Button, Mono } from "./ui";
 
@@ -34,12 +36,17 @@ export function DriveCard({
   labels,
   onErase,
   onUnlock,
+  running,
+  onOpenJob,
 }: {
   summary: DeviceSummary;
   inspection: Outcome<InspectResult> | undefined;
   labels: Record<string, string>;
   onErase: (request: EraseRequest) => void;
   onUnlock: (inspection: InspectResult) => void;
+  /** Erasure in progress on this drive, if any. */
+  running: { id: string; job: JobView } | null;
+  onOpenJob: (id: string) => void;
 }) {
   const { t, i18n } = useTranslation();
   const label = (code: string) => (labels[code] ? `${labels[code]} (${code})` : code);
@@ -85,7 +92,16 @@ export function DriveCard({
       {inspection && !inspection.ok && (
         <p className="mt-4 text-sm text-sayno">{t(`errors.${inspection.error.code}`)}</p>
       )}
-      {inspection?.ok && (
+      {running && (
+        <div className="mt-4 rounded-lg border border-brand/40 bg-brand/5 p-4">
+          <p className="mb-2 text-sm font-bold">{t("jobs.inProgress")}</p>
+          <JobProgress job={running.job} />
+          <div className="mt-3 flex justify-end">
+            <Button onClick={() => onOpenJob(running.id)}>{t("jobs.view")}</Button>
+          </div>
+        </div>
+      )}
+      {!running && inspection?.ok && (
         <div className={`mt-4 rounded-lg border p-4 ${frameTone[inspection.value.verdict.state]}`}>
           <Verdict inspection={inspection.value} label={label} onErase={onErase} onUnlock={onUnlock} />
         </div>

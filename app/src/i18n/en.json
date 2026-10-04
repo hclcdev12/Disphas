@@ -178,7 +178,7 @@
     "exporting": "Rendering…",
     "saved": "Saved to",
     "open": "Open",
-    "back": "Back to drives",
+    "back": "Back to erasures",
     "resumed": "This erasure was resumed after Oblivio stopped unexpectedly: the drive carried on by itself, Oblivio is now checking the result."
   },
   "unlock": {
@@ -196,12 +196,19 @@
   },
   "jobs": {
     "interruptedTitle": "Erasure interrupted, no certificate",
-    "interruptedHint": "Oblivio stopped during this erasure and cannot prove it. Inspect and erase this drive again."
+    "interruptedHint": "Oblivio stopped during this erasure and cannot prove it. Inspect and erase this drive again.",
+    "title": "Erasures",
+    "empty": "No erasure in this session.",
+    "running_one": "{{count}} running",
+    "running_other": "{{count}} running",
+    "inProgress": "Erasure in progress",
+    "view": "View erasure"
   },
   "nav": {
     "drives": "Drives",
     "history": "History",
-    "verify": "Verify"
+    "verify": "Verify",
+    "jobs": "Erasures"
   },
   "history": {
     "title": "Certificate history",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw, TriangleAlert, X } from "lucide-react";
 import type { Acknowledgement } from "./bindings/Acknowledgement";
@@ -15,6 +15,7 @@ import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
+import { JobsScreen, type JobInfo } from "./components/JobsScreen";
 import { VerifyScreen } from "./components/VerifyScreen";
 import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome } from "./lib/api";
@@ -30,18 +31,46 @@ export default function App() {
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [jobs, setJobs] = useState<Record<string, JobView>>({});
-  const [activeJob, setActiveJob] = useState<{ id: string; model: string; resumed: boolean } | null>(null);
+  // Several drives erase in parallel: every job of the session, and the one opened in detail.
+  const [jobInfo, setJobInfo] = useState<Record<string, JobInfo>>({});
+  const [openJob, setOpenJob] = useState<string | null>(null);
+  const jobInfoRef = useRef(jobInfo);
+  useEffect(() => {
+    jobInfoRef.current = jobInfo;
+  }, [jobInfo]);
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
-  const [view, setView] = useState<"drives" | "history" | "verify">("drives");
+  const [view, setView] = useState<"drives" | "jobs" | "history" | "verify">("drives");
 
-  // Subscribed before any Sanitize, so no job event is ever missed.
+  // Every drive is inspected by the helper; the UI only displays verdicts.
+  const reinspect = useCallback(
+    async (serial: string) => {
+      if (!devices?.ok) return;
+      const summary = devices.value.devices.find((drive) => drive.device.identity.serial === serial);
+      if (!summary) return;
+      const inspection = await api.inspect(summary.device);
+      setInspections((current) => ({ ...current, [serial]: inspection }));
+    },
+    [devices],
+  );
+  const reinspectRef = useRef(reinspect);
   useEffect(() => {
-    const unsubscribe = api.onEvent((event) => setJobs((current) => applyEvent(current, event)));
+    reinspectRef.current = reinspect;
+  }, [reinspect]);
+
+  // Subscribed before any Sanitize, so no job event is ever missed. A finished
+  // erasure changes its drive: it is inspected again.
+  useEffect(() => {
+    const unsubscribe = api.onEvent((event) => {
+      setJobs((current) => applyEvent(current, event));
+      if (event.event === "JobFinished") {
+        const info = jobInfoRef.current[event.data.job_id];
+        if (info) void reinspectRef.current(info.serial);
+      }
+    });
     return () => void unsubscribe.then((stop) => stop());
   }, []);
 
-  // Every drive is inspected by the helper; the UI only displays verdicts.
   const refresh = useCallback(async () => {
     setInspections({});
     const listed = await api.listDevices();
@@ -66,9 +95,20 @@ export default function App() {
         if (listed.ok) {
           setJobs((current) => seedJobs(current, listed.value.jobs));
           setInterrupted(listed.value.jobs.filter((job) => job.phase === "Interrupted"));
-          const resumed = listed.value.jobs.find((job) => job.phase !== "Interrupted");
-          if (resumed) {
-            setActiveJob({ id: resumed.job_id, model: resumed.device.identity.model, resumed: true });
+          const resumed = listed.value.jobs.filter((job) => job.phase !== "Interrupted");
+          if (resumed.length > 0) {
+            setJobInfo((current) => {
+              const next = { ...current };
+              for (const job of resumed) {
+                next[job.job_id] = {
+                  model: job.device.identity.model,
+                  serial: job.device.identity.serial,
+                  resumed: true,
+                };
+              }
+              return next;
+            });
+            setView("jobs");
           }
         }
       }
@@ -96,9 +136,20 @@ export default function App() {
       organization: null,
     });
     if (!result.ok) return result.error;
-    setActiveJob({ id: result.value.job_id, model: request.inspection.device.identity.model, resumed: false });
+    const { model, serial } = request.inspection.device.identity;
+    setJobInfo((current) => ({ ...current, [result.value.job_id]: { model, serial, resumed: false } }));
     setRequest(null);
+    setOpenJob(null);
+    setView("jobs");
     return null;
+  };
+
+  /** The erasure in progress on a drive, if any. */
+  const runningOn = (serial: string) => {
+    const id = Object.keys(jobInfo).find(
+      (key) => jobInfo[key].serial === serial && jobs[key] && jobs[key].status === null,
+    );
+    return id ? { id, job: jobs[id] } : null;
   };
 
   const connected = hello?.ok ?? false;
@@ -112,25 +163,16 @@ export default function App() {
         onLicense={() => setLicenseOpen(true)}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
-        {activeJob ? (
-          <JobScreen
-            jobId={activeJob.id}
-            model={activeJob.model}
-            resumed={activeJob.resumed}
-            job={jobs[activeJob.id] ?? emptyJob()}
-            onBack={() => {
-              setActiveJob(null);
-              void refresh();
-            }}
-          />
-        ) : (
         <>
         <nav className="mb-5 flex gap-1 border-b border-edge">
-          {(["drives", "history", "verify"] as const).map((tab) => (
+          {(["drives", "jobs", "history", "verify"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
-              onClick={() => setView(tab)}
+              onClick={() => {
+                setView(tab);
+                setOpenJob(null);
+              }}
               className={`-mb-px border-b-2 px-3 py-2 text-sm font-bold ${
                 view === tab ? "border-brand text-soft" : "border-transparent text-ash hover:text-soft"
               }`}
@@ -139,7 +181,17 @@ export default function App() {
             </button>
           ))}
         </nav>
-        {view === "history" ? (
+        {view === "jobs" && openJob && jobInfo[openJob] ? (
+          <JobScreen
+            jobId={openJob}
+            model={jobInfo[openJob].model}
+            resumed={jobInfo[openJob].resumed}
+            job={jobs[openJob] ?? emptyJob()}
+            onBack={() => setOpenJob(null)}
+          />
+        ) : view === "jobs" ? (
+          <JobsScreen jobs={jobs} info={jobInfo} onOpen={setOpenJob} />
+        ) : view === "history" ? (
           <HistoryScreen labels={labels} />
         ) : view === "verify" ? (
           <VerifyScreen labels={labels} />
@@ -187,13 +239,17 @@ export default function App() {
                 labels={labels}
                 onErase={setRequest}
                 onUnlock={setUnlocking}
+                running={runningOn(summary.device.identity.serial)}
+                onOpenJob={(id) => {
+                  setView("jobs");
+                  setOpenJob(id);
+                }}
               />
             ))}
         </div>
         </>
         )}
         </>
-        )}
       </main>
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />

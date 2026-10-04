@@ -124,7 +124,11 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 6. `method` ∈ méthodes autorisées par le verdict → sinon `VERDICT_MISMATCH`.
 7. `force` présent seulement si verdict SAY NO, justification ≥ 20 caractères → sinon `FORCE_NOT_ALLOWED`.
 8. Licence autorisant l'effacement → sinon `LICENSE_REQUIRED`.
-9. Aucune autre tâche en cours (V1 : une seule à la fois) → sinon `BUSY`.
+9. Aucune autre tâche en cours **sur ce disque** → sinon `BUSY`. Les autres disques s'effacent **en parallèle**
+   (exigé par le [cadre](cadre_projet.md) §1 ; décidé le 2026-10-04, remplace « une seule à la fois »).
+   Le disque est reconnu par son numéro de série ; pour un NVMe c'est celui du **contrôleur**, commun à tous
+   ses espaces de noms, si bien qu'un effacement de tous les espaces de noms ne croise jamais une autre tâche
+   sur le même contrôleur.
 
 `NS_ALL` : prise d'acte qu'un Sanitize NVMe efface **tous** les namespaces du contrôleur.
 
@@ -259,7 +263,7 @@ UI                                   helper
 - `Unlock` (2026-10-04) : `kind` = `User` ou `Master` (le maître ne marche qu'en niveau de sécurité *High*) ; déverrouille (SECURITY UNLOCK, mot de passe utilisateur complété par des zéros
   jusqu'à 32 octets) puis **retire** le mot de passe (SECURITY DISABLE PASSWORD), pour que le disque
   devienne effaçable ; le disque est retrouvé par identité ; chaque échec compte dans le compteur du disque
-  (B6) ; `UNLOCK_FAILED` sans jamais reprendre le mot de passe dans `detail`. Refusé pendant une tâche.
+  (B6) ; `UNLOCK_FAILED` sans jamais reprendre le mot de passe dans `detail`. Refusé pendant une tâche **sur ce disque**.
 - `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
   `binary_sha256` est vide et la licence est `Missing` (donc tout `Sanitize` s'arrête au contrôle 8).
 - Non encore fait : purge de l'environnement (§3).

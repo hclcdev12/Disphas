@@ -50,9 +50,31 @@ enum Firmware {
     Crash,
 }
 
+/// Holds firmware erasures until released, to keep jobs running.
+#[derive(Debug, Default)]
+struct Gate {
+    open: std::sync::Mutex<bool>,
+    changed: std::sync::Condvar,
+}
+
+impl Gate {
+    fn wait(&self) {
+        let mut open = self.open.lock().expect("gate");
+        while !*open {
+            open = self.changed.wait(open).expect("gate");
+        }
+    }
+
+    fn release(&self) {
+        *self.open.lock().expect("gate") = true;
+        self.changed.notify_all();
+    }
+}
+
 struct TestTarget {
     image: FileImage,
     firmware: Firmware,
+    gate: Option<std::sync::Arc<Gate>>,
 }
 
 impl ErasureTarget for TestTarget {
@@ -61,6 +83,9 @@ impl ErasureTarget for TestTarget {
     }
 
     fn firmware(&mut self, _: CoreMethod, progress: &mut dyn FnMut(u8)) -> Result<bool, String> {
+        if let Some(gate) = &self.gate {
+            gate.wait();
+        }
         match self.firmware {
             Firmware::Honest => {
                 erasure::host_overwrite(&mut self.image, &[0x11; 32], &mut |_| {})
@@ -99,6 +124,7 @@ struct ImageBackend {
     devices: Vec<Device>,
     dir: PathBuf,
     firmware: Firmware,
+    gate: Option<std::sync::Arc<Gate>>,
 }
 
 impl DeviceBackend for ImageBackend {
@@ -121,6 +147,7 @@ impl DeviceBackend for ImageBackend {
             return Ok(Box::new(TestTarget {
                 image,
                 firmware: self.firmware,
+                gate: self.gate.clone(),
             }));
         }
         let mut image = FileImage::create(&path, 512, BLOCKS).map_err(|e| e.to_string())?;
@@ -131,6 +158,7 @@ impl DeviceBackend for ImageBackend {
         Ok(Box::new(TestTarget {
             image,
             firmware: self.firmware,
+            gate: self.gate.clone(),
         }))
     }
 }
@@ -211,6 +239,7 @@ impl Bench {
             devices,
             dir: dir.path().to_path_buf(),
             firmware,
+            gate: None,
         };
         let mut session = Session::new(
             backend,
@@ -644,4 +673,48 @@ fn crash_during_a_non_resumable_method_is_interrupted() {
     assert_eq!(error.code, ErrorCode::JobInterrupted);
     assert!(bench.job_files().is_empty());
     assert!(bench.reports().is_empty());
+}
+
+#[test]
+fn different_drives_are_erased_in_parallel_but_a_drive_only_once() {
+    let mut bench = Bench::new(
+        vec![drive("SN-P001", nvme()), drive("SN-P002", nvme())],
+        Firmware::Honest,
+    );
+    let gate = std::sync::Arc::new(Gate::default());
+    bench.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+
+    let first = bench.inspect("SN-P001");
+    let one: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&first, None, ack())));
+
+    // The first job is held by its firmware: the same drive is refused…
+    let again = bench.inspect("SN-P001");
+    let error = bench
+        .send(Command::Sanitize(sanitize(&again, None, ack())))
+        .expect_err("drive busy");
+    assert_eq!(error.code, ErrorCode::Busy);
+
+    // …while another drive starts at once.
+    let second = bench.inspect("SN-P002");
+    let two: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&second, None, ack())));
+    let running: oblivio_protocol::response::ListJobsResult = bench.ok(Command::ListJobs);
+    assert_eq!(
+        running
+            .jobs
+            .iter()
+            .filter(|job| job.status.is_none())
+            .count(),
+        2,
+        "both jobs run at the same time"
+    );
+
+    gate.release();
+    bench.session.wait_for_jobs();
+    for job in [one.job_id, two.job_id] {
+        let result: JobResult = bench.ok(Command::GetJobResult(JobArgs { job_id: job }));
+        assert_eq!(result.status, FinalStatus::Compliant);
+    }
+    assert!(image_is_erased(&bench.dir.path().join("SN-P001.img")));
+    assert!(image_is_erased(&bench.dir.path().join("SN-P002.img")));
 }

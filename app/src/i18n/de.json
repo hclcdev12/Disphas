@@ -178,7 +178,7 @@
     "exporting": "Wird erstellt…",
     "saved": "Gespeichert unter",
     "open": "Öffnen",
-    "back": "Zurück zu den Laufwerken",
+    "back": "Zurück zu den Löschungen",
     "resumed": "Diese Löschung wurde nach einem unerwarteten Abbruch von Oblivio fortgesetzt: Das Laufwerk hat sie selbstständig weitergeführt, Oblivio prüft jetzt das Ergebnis."
   },
   "unlock": {
@@ -196,12 +196,19 @@
   },
   "jobs": {
     "interruptedTitle": "Löschung unterbrochen, keine Bescheinigung",
-    "interruptedHint": "Oblivio wurde während dieser Löschung beendet und kann sie nicht nachweisen. Prüfen und löschen Sie das Laufwerk erneut."
+    "interruptedHint": "Oblivio wurde während dieser Löschung beendet und kann sie nicht nachweisen. Prüfen und löschen Sie das Laufwerk erneut.",
+    "title": "Löschungen",
+    "empty": "Keine Löschung in dieser Sitzung.",
+    "running_one": "{{count}} läuft",
+    "running_other": "{{count}} laufen",
+    "inProgress": "Löschung läuft",
+    "view": "Löschung anzeigen"
   },
   "nav": {
     "drives": "Laufwerke",
     "history": "Verlauf",
-    "verify": "Prüfen"
+    "verify": "Prüfen",
+    "jobs": "Löschungen"
   },
   "history": {
     "title": "Verlauf der Bescheinigungen",
