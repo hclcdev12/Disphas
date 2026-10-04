@@ -306,7 +306,8 @@
       "JournalMissing": "Journal absent du PDF.",
       "NameMismatch": "Le nom du fichier ne correspond pas à l'identifiant du rapport.",
       "NoBatch": "Ce support n'a pas été effacé dans un lot.",
-      "OtherBatch": "Ce support appartient à un autre lot."
+      "OtherBatch": "Ce support appartient à un autre lot.",
+      "OtherCustomer": "Ce support a été effacé sous la licence d'un autre client que le reste du lot."
     },
     "validationMethod": {
       "canaris": "canaris",

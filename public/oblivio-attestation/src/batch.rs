@@ -3,7 +3,10 @@
 //!
 //! Each drive is verified on its own, its journal checked, its file name
 //! matched with its report identifier, and every drive must name the same
-//! batch. The batch is authentic only if every drive is.
+//! batch under a license of the same customer: a batch number is chosen by
+//! the operator, so two customers may use the same one, and their drives
+//! must never be presented as one batch. Several licenses (workstations) of
+//! one customer are fine. The batch is authentic only if every drive is.
 
 use ed25519_dalek::VerifyingKey;
 
@@ -26,6 +29,9 @@ pub enum DriveError {
     /// The attestation names another batch than the first drive.
     #[error("belongs to another batch")]
     OtherBatch,
+    /// Signed under the license of another customer than the first drive.
+    #[error("licensed to another customer")]
+    OtherCustomer,
 }
 
 /// One drive of a batch.
@@ -95,6 +101,7 @@ pub fn verify_batch(
     reports.dedup();
 
     let mut batch: Option<Batch> = None;
+    let mut customer: Option<String> = None;
     let mut drives = Vec::with_capacity(reports.len());
     for report in reports {
         let find = |extension: &str| {
@@ -112,6 +119,13 @@ pub fn verify_batch(
             .and_then(|verified| {
                 if uuid(&verified.attestation.id) != report {
                     return Err(DriveError::NameMismatch);
+                }
+                match &customer {
+                    Some(first) if *first != verified.license.customer => {
+                        return Err(DriveError::OtherCustomer);
+                    }
+                    Some(_) => {}
+                    None => customer = Some(verified.license.customer.clone()),
                 }
                 match (&verified.attestation.batch, &batch) {
                     (None, _) => Err(DriveError::NoBatch),

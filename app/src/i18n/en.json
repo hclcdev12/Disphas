@@ -306,7 +306,8 @@
       "JournalMissing": "Journal missing from the PDF.",
       "NameMismatch": "The file name does not match the report identifier.",
       "NoBatch": "This drive was not erased in a batch.",
-      "OtherBatch": "This drive belongs to another batch."
+      "OtherBatch": "This drive belongs to another batch.",
+      "OtherCustomer": "This drive was erased under another customer's license than the rest of the batch."
     },
     "validationMethod": {
       "canaris": "canaries",

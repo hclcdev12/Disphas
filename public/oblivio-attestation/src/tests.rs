@@ -346,6 +346,34 @@ mod batch_verification {
     }
 
     #[test]
+    fn drives_of_two_customers_are_never_one_batch() {
+        let other = |number: u8, customer: &str| {
+            let mut lic = license(None);
+            lic.id = format!("LIC-{customer}");
+            lic.customer = customer.to_owned();
+            let mut attestation = attestation(signed_license(&lic, &root()));
+            attestation.id[15] = number;
+            attestation.batch = Some(Batch {
+                id: "LOT-A".to_owned(),
+                label: None,
+            });
+            let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+            (uuid(&attestation.id), signed)
+        };
+        // Two licenses of the same customer: one batch.
+        let same = files(&[drive(1, Some("LOT-A")), other(2, "Atelier XYZ")]);
+        assert!(verify_batch(&same, &root_key(), &[]).authentic());
+        // Same batch number, another customer: refused.
+        let mixed = files(&[drive(1, Some("LOT-A")), other(2, "Concurrent SA")]);
+        let result = verify_batch(&mixed, &root_key(), &[]);
+        assert!(!result.authentic());
+        assert!(matches!(
+            result.drives[1].outcome,
+            Err(DriveError::OtherCustomer)
+        ));
+    }
+
+    #[test]
     fn any_bad_drive_fails_the_batch() {
         // Another batch, no batch, a renamed file, a replaced journal.
         let mixed = files(&[drive(1, Some("LOT-A")), drive(2, Some("LOT-B"))]);

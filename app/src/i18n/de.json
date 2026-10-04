@@ -306,7 +306,8 @@
       "JournalMissing": "Protokoll fehlt im PDF.",
       "NameMismatch": "Der Dateiname passt nicht zur Berichtskennung.",
       "NoBatch": "Dieser Datenträger wurde nicht in einem Los gelöscht.",
-      "OtherBatch": "Dieser Datenträger gehört zu einem anderen Los."
+      "OtherBatch": "Dieser Datenträger gehört zu einem anderen Los.",
+      "OtherCustomer": "Dieser Datenträger wurde unter der Lizenz eines anderen Kunden gelöscht als der Rest des Loses."
     },
     "validationMethod": {
       "canaris": "Kanarienblöcke",

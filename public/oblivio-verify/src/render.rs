@@ -268,6 +268,7 @@ pub fn batch(
                     DriveError::NameMismatch => m(Msg::ErrNameMismatch).to_owned(),
                     DriveError::NoBatch => m(Msg::ErrNoBatch).to_owned(),
                     DriveError::OtherBatch => m(Msg::ErrOtherBatch).to_owned(),
+                    DriveError::OtherCustomer => m(Msg::ErrOtherCustomer).to_owned(),
                 };
                 let _ = writeln!(out, "  ✘ {}  {reason}", drive.report);
             }

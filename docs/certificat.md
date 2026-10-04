@@ -254,6 +254,10 @@ Pour les gros volumes : **un PDF de synthèse** par lot, **en plus** des certifi
 reste prouvé par sa propre attestation signée).
 
 - **Appartenance prouvée** : chaque attestation porte le numéro de lot (`lot`, §2) **sous sa signature**.
+- **Un seul client par lot** (2026-10-04, revue de sécurité) : le numéro de lot est choisi par l'opérateur, deux
+  clients peuvent donc utiliser le même ; un disque signé sous la licence d'un **autre client** (`cli` de la licence)
+  que le premier disque est refusé, à la production comme à la vérification. Plusieurs licences (postes) d'un même
+  client restent possibles dans un lot.
 - **Contenu** : en-tête (lot, libellé, période de la première à la dernière opération), synthèse (nombre de
   CONFORME / NON CONFORME / REFUS — bandeau vert seulement si tout est CONFORME), capacité totale, organisation(s),
   opérateur(s), licence(s), outil ; puis **une ligne par disque** (n° de série, modèle, capacité, méthode,

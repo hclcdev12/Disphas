@@ -50,6 +50,9 @@ pub enum BatchError {
     /// Attestations name different batches.
     #[error("drive {0} belongs to another batch")]
     MixedBatches(usize),
+    /// Attestations signed under licenses of different customers.
+    #[error("drive {0} is licensed to another customer")]
+    MixedCustomers(usize),
     /// The same attestation is given twice.
     #[error("drive {0} is given twice")]
     Duplicate(usize),
@@ -96,6 +99,11 @@ pub fn render_batch(
             None => batch = Some(own.clone()),
             Some(first) if first != own => return Err(BatchError::MixedBatches(number)),
             Some(_) => {}
+        }
+        if drives.first().is_some_and(|first: &Drive<'_>| {
+            first.verified.license.customer != verified.license.customer
+        }) {
+            return Err(BatchError::MixedCustomers(number));
         }
         if drives
             .iter()

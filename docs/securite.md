@@ -110,6 +110,7 @@ Corrigés le 2026-10-04 :
 - **L2 tâche qui panique** : la panique est rattrapée et termine la tâche en échec, sans attestation, fichiers gardés pour le prochain démarrage comme après un arrêt brutal ; la table des tâches, empoisonnée par une panique, est récupérée : le disque n'est plus « occupé » jusqu'à la fin de la session. Testé (le test échoue sans la correction).
 - **L3 verdicts périmés** : le lancement d'une tâche invalide tous les verdicts du même disque, pas seulement celui utilisé. Testé.
 - **L4 onglet Vérifier** : un journal joint qui ne correspond pas à l'attestation donne un en-tête rouge « Attestation authentique, journal non conforme », comme `oblivio-verify` qui renvoie alors un échec (code 1).
+- **L5 lots mêlant plusieurs licences** : prévu par la spec (plusieurs postes d'un client) ; le risque réel est un même numéro de lot chez deux clients. Un disque sous licence d'un autre client que le premier est refusé, à la production du PDF de lot comme à la vérification (application, `oblivio-verify`). Testé.
 
 Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
 « format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après

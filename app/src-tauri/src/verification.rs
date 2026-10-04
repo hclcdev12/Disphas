@@ -355,6 +355,7 @@ fn check_batch(files: &[(String, Vec<u8>)], trust: &Trust) -> Report {
                 Err(DriveError::NameMismatch) => (Some("NameMismatch".to_owned()), None),
                 Err(DriveError::NoBatch) => (Some("NoBatch".to_owned()), None),
                 Err(DriveError::OtherBatch) => (Some("OtherBatch".to_owned()), None),
+                Err(DriveError::OtherCustomer) => (Some("OtherCustomer".to_owned()), None),
             };
             BatchDrive {
                 report: drive.report.clone(),
