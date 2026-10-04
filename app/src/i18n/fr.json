@@ -99,7 +99,8 @@
     "sent": "Demande transmise au helper.",
     "refused": "Le helper a refusé la demande :",
     "zeroPass": "Terminer par une passe de zéros",
-    "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique."
+    "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique.",
+    "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…)."
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"

@@ -99,7 +99,8 @@
     "sent": "Anfrage an den Helper übermittelt.",
     "refused": "Der Helper hat die Anfrage abgelehnt:",
     "zeroPass": "Mit einem Durchgang mit Nullen abschließen",
-    "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es."
+    "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es.",
+    "justificationPrivacy": "Dieser Text wird unverändert in die Bescheinigung signiert, die danach nicht mehr geändert werden kann: Geben Sie keine personenbezogenen Daten ein (Name eines Mitarbeiters, Inhalt des Laufwerks…)."
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"

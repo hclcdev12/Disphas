@@ -99,7 +99,8 @@
     "sent": "Request sent to the helper.",
     "refused": "The helper refused the request:",
     "zeroPass": "Finish with a pass of zeros",
-    "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so."
+    "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so.",
+    "justificationPrivacy": "This text is signed as typed into the certificate, which can no longer be changed: do not enter personal data (an employee's name, the drive's contents…)."
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"

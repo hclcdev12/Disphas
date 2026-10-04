@@ -142,6 +142,7 @@ export function ConfirmDialog({
           <span className="text-xs font-normal text-ash">
             {t("confirm.justificationCount", { count: justification.trim().length })}
           </span>
+          <span className="block text-xs font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
         </label>
       )}
 
