@@ -3,8 +3,8 @@
 
 use oblivio_attestation::ed25519_dalek::SigningKey;
 use oblivio_attestation::model::{
-    Category, Code, Device, Disposition, DispositionKind, DriveType, Sanitization, Status, Tool,
-    Validation, ValidationMethod,
+    Batch, Category, Code, Device, Disposition, DispositionKind, DriveType, Sanitization, Status,
+    Tool, Validation, ValidationMethod,
 };
 use oblivio_attestation::{Attestation, License, cose, sign_attestation};
 use sha2::{Digest, Sha256};
@@ -26,6 +26,15 @@ fn code(text: &str) -> Code {
 
 /// A signed attestation with `status`, and fields typical of that status.
 pub fn signed(status: Status, organization: &str) -> Vec<u8> {
+    signed_drive(status, organization, 1, None)
+}
+
+/// Drive `number` (distinct report id, serial and time) erased in `batch`.
+pub fn signed_in_batch(status: Status, number: u8, batch: Option<Batch>) -> Vec<u8> {
+    signed_drive(status, "Atelier XYZ", number, batch)
+}
+
+fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Batch>) -> Vec<u8> {
     let workstation = SigningKey::from_bytes(&[2; 32]);
     let license = License {
         id: "LIC-0001".to_owned(),
@@ -38,13 +47,13 @@ pub fn signed(status: Status, organization: &str) -> Vec<u8> {
     let ran = status != Status::Refused;
     let attestation = Attestation {
         id: [
-            0x01, 0x92, 0x8c, 0x3e, 0x5a, 0x1b, 0x70, 0x00, 0x80, 0, 0, 0, 0, 0, 0x42, 0x01,
+            0x01, 0x92, 0x8c, 0x3e, 0x5a, 0x1b, 0x70, 0x00, 0x80, 0, 0, 0, 0, 0, 0x42, number,
         ],
-        issued_at: ISSUED_AT,
+        issued_at: ISSUED_AT + u64::from(number) * 600 - 600,
         status,
         device: Device {
             model: "Fictional NVMe SSD 1TB".to_owned(),
-            serial: "FICT0000A001".to_owned(),
+            serial: format!("FICT0000A{number:03}"),
             firmware: "FICT01FW".to_owned(),
             capacity_bytes: 1_024_209_543_168,
             drive_type: DriveType::Nvme,
@@ -94,7 +103,7 @@ pub fn signed(status: Status, organization: &str) -> Vec<u8> {
         }),
         organization: Some(organization.to_owned()),
         operator: Some("J. Martin".to_owned()),
-        batch: None,
+        batch,
         tool: Tool {
             version: "0.1.0".to_owned(),
             rules_version: "1.0.0".to_owned(),

@@ -147,3 +147,91 @@ fn foreign_or_broken_pdfs_are_refused() {
         let _ = attachments(&pdf[..cut]);
     }
 }
+
+mod batch {
+    use super::*;
+    use crate::batch::{BatchEntry, BatchError, render_batch};
+    use crate::fixture::signed_in_batch;
+    use oblivio_attestation::model::Batch;
+
+    fn lot(id: &str) -> Option<Batch> {
+        Some(Batch {
+            id: id.to_owned(),
+            label: Some("Commande 4512".to_owned()),
+        })
+    }
+
+    fn render_all(signed: &[Vec<u8>], lang: Lang) -> Result<Vec<u8>, BatchError> {
+        let entries: Vec<BatchEntry<'_>> = signed
+            .iter()
+            .map(|signed| BatchEntry {
+                signed,
+                journal: JOURNAL,
+            })
+            .collect();
+        render_batch(
+            &entries,
+            &root().verifying_key(),
+            &[],
+            &RenderOptions { lang, logo: None },
+        )
+    }
+
+    #[test]
+    fn batch_certificate_carries_every_drive() {
+        let drives = vec![
+            signed_in_batch(Status::Compliant, 1, lot("LOT-2026-001")),
+            signed_in_batch(Status::NonCompliant, 2, lot("LOT-2026-001")),
+            signed_in_batch(Status::Refused, 3, lot("LOT-2026-001")),
+        ];
+        for lang in [Lang::En, Lang::Fr, Lang::De] {
+            let pdf = render_all(&drives, lang).expect("rendered");
+            assert!(pdf.starts_with(b"%PDF-"));
+            assert!(String::from_utf8_lossy(&pdf).contains("<pdfaid:part>3</pdfaid:part>"));
+        }
+        let pdf = render_all(&drives, Lang::Fr).expect("rendered");
+        assert_eq!(
+            pdf,
+            render_all(&drives, Lang::Fr).expect("again"),
+            "deterministic"
+        );
+        // Every attestation is attached, byte for byte.
+        let files = oblivio_attestation::pdf::all_attachments(&pdf).expect("attachments");
+        for signed in &drives {
+            assert!(files.iter().any(|(_, data)| data == signed));
+        }
+        assert_eq!(files.len(), 6, "an attestation and a journal per drive");
+    }
+
+    #[test]
+    fn mixed_missing_or_duplicate_batches_are_refused() {
+        let one = signed_in_batch(Status::Compliant, 1, lot("LOT-A"));
+        let other = signed_in_batch(Status::Compliant, 2, lot("LOT-B"));
+        let none = signed_in_batch(Status::Compliant, 3, None);
+        assert!(matches!(
+            render_all(&[one.clone(), other], Lang::En),
+            Err(BatchError::MixedBatches(2))
+        ));
+        assert!(matches!(
+            render_all(&[one.clone(), none], Lang::En),
+            Err(BatchError::NoBatch(2))
+        ));
+        assert!(matches!(
+            render_all(&[one.clone(), one], Lang::En),
+            Err(BatchError::Duplicate(2))
+        ));
+        assert!(matches!(render_all(&[], Lang::En), Err(BatchError::Size)));
+    }
+
+    #[test]
+    fn forged_drive_blocks_the_whole_batch() {
+        let mut forged = signed_in_batch(Status::Compliant, 2, lot("LOT-A"));
+        let last = forged.len() - 1;
+        forged[last] ^= 1;
+        let drives = vec![signed_in_batch(Status::Compliant, 1, lot("LOT-A")), forged];
+        assert!(matches!(
+            render_all(&drives, Lang::En),
+            Err(BatchError::Drive { index: 2, .. })
+        ));
+    }
+}

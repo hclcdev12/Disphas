@@ -9,6 +9,7 @@
 //! This crate never performs low-level disk access, never handles a private
 //! key, and makes no network access: Typst package downloads are disabled.
 
+pub mod batch;
 mod i18n;
 mod qr;
 
@@ -383,6 +384,13 @@ fn inputs(
     }
     if let Some(operator) = &a.operator {
         issuer_rows.push(row(t.text("operator")?, vec![operator.clone()], false));
+    }
+    if let Some(batch) = &a.batch {
+        let value = match &batch.label {
+            Some(label) => format!("{} — {label}", batch.id),
+            None => batch.id.clone(),
+        };
+        issuer_rows.push(row(t.text("batch")?, vec![value], false));
     }
     issuer_rows.push(row(
         t.text("tool")?,

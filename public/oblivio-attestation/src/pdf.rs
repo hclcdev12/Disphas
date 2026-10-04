@@ -30,7 +30,7 @@ pub enum ExtractError {
     NoAttestation,
     /// The same file name is attached twice: ambiguous, refused.
     #[error("{0} attached more than once")]
-    Duplicate(&'static str),
+    Duplicate(String),
 }
 
 /// Text of a PDF string: UTF-16BE with a byte order mark, else bytes as is.
@@ -63,11 +63,16 @@ fn embedded(document: &Document, spec: &lopdf::Dictionary) -> Option<Vec<u8>> {
         .ok()
 }
 
-fn read(pdf: &[u8]) -> Result<Attachments, ExtractError> {
+/// Most files read from one PDF (a batch of 2000 drives has 4000).
+const MAX_FILES: usize = 4096;
+/// Largest total of decoded files.
+const MAX_TOTAL_BYTES: usize = 256 << 20;
+
+fn read_all(pdf: &[u8]) -> Result<Vec<(String, Vec<u8>)>, ExtractError> {
     let document =
         Document::load_mem(pdf).map_err(|error| ExtractError::NotPdf(error.to_string()))?;
-    let mut attestation = None;
-    let mut journal = None;
+    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut total = 0usize;
     for object in document.objects.values() {
         let Ok(spec) = object.as_dict() else {
             continue;
@@ -81,23 +86,46 @@ fn read(pdf: &[u8]) -> Result<Attachments, ExtractError> {
             .and_then(Object::as_str)
             .map(pdf_text)
             .unwrap_or_default();
-        let (slot, label) = match name.as_str() {
-            "attestation.cose" => (&mut attestation, "attestation.cose"),
-            "journal.json" => (&mut journal, "journal.json"),
-            _ => continue,
-        };
         let Some(content) = embedded(&document, spec) else {
             continue;
         };
-        if slot.is_some() {
-            return Err(ExtractError::Duplicate(label));
+        if files.iter().any(|(other, _)| *other == name) {
+            return Err(ExtractError::Duplicate(name));
         }
-        *slot = Some(content);
+        total = total.saturating_add(content.len());
+        if files.len() >= MAX_FILES || total > MAX_TOTAL_BYTES {
+            return Err(ExtractError::NotPdf(
+                "too many or too large attachments".to_owned(),
+            ));
+        }
+        files.push((name, content));
+    }
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    Ok(files)
+}
+
+fn read(pdf: &[u8]) -> Result<Attachments, ExtractError> {
+    let mut attestation = None;
+    let mut journal = None;
+    for (name, content) in read_all(pdf)? {
+        match name.as_str() {
+            "attestation.cose" => attestation = Some(content),
+            "journal.json" => journal = Some(content),
+            _ => {}
+        }
     }
     Ok(Attachments {
         attestation: attestation.ok_or(ExtractError::NoAttestation)?,
         journal,
     })
+}
+
+/// Every file attached to a PDF, sorted by name: a batch certificate attaches
+/// `<report>.cose` and `<report>.json` per drive. Same bounds as
+/// [`attachments`]; a name attached twice is refused.
+pub fn all_attachments(pdf: &[u8]) -> Result<Vec<(String, Vec<u8>)>, ExtractError> {
+    std::panic::catch_unwind(|| read_all(pdf))
+        .unwrap_or_else(|_| Err(ExtractError::NotPdf("malformed PDF".to_owned())))
 }
 
 /// Reads the attachments of a certificate PDF. Untrusted input: decoded

@@ -233,6 +233,26 @@ Coût accepté : ~40 Mo de binaire contre ~4 Mo, côté application utilisateur 
   non installé) ; poppler émet un avertissement bénin sur `/Suspects`. À valider avant la première version.
 - Non encore rendu : profil S.M.A.R.T. de l'annexe (le schéma du journal reste à définir).
 
+### 6.1 Certificat de lot (décidé le 2026-10-04, option B)
+
+Pour les gros volumes : **un PDF de synthèse** par lot, **en plus** des certificats individuels (chaque disque
+reste prouvé par sa propre attestation signée).
+
+- **Appartenance prouvée** : chaque attestation porte le numéro de lot (`lot`, §2) **sous sa signature**.
+- **Contenu** : en-tête (lot, libellé, période de la première à la dernière opération), synthèse (nombre de
+  CONFORME / NON CONFORME / REFUS — bandeau vert seulement si tout est CONFORME), capacité totale, organisation(s),
+  opérateur(s), licence(s), outil ; puis **une ligne par disque** (n° de série, modèle, capacité, méthode,
+  catégorie, statut, identifiant du rapport), dans l'ordre des opérations.
+- **Pièces jointes** : pour chaque disque, `<rapport>.cose` (attestation signée) et `<rapport>.json` (journal) —
+  un seul fichier suffit pour tout vérifier hors ligne. Pas de QR (un lot ne tient pas dans un QR) : chaque
+  disque garde le sien sur son certificat individuel.
+- **Refus de rendu** si une attestation ne se vérifie pas, si un journal ne correspond pas, si un disque n'a pas
+  de lot ou appartient à un autre lot, ou s'il est fourni deux fois ; 1 à 2 000 disques par lot.
+- PDF/A-3b, rendu déterministe (`oblivio-report::batch`).
+- ⚠️ Limite assumée (option B) : le lot prouve l'**appartenance**, pas la **complétude** — retirer un disque du
+  PDF n'est pas détectable. Preuve de complétude = option C (clôture signée par le helper), qui exigerait
+  d'amender la règle invariante n° 5 de `CLAUDE.md`.
+
 ## 7. Points ouverts
 
 - ~~Spike `krilla` vs `typst`~~ → typst (§6).
