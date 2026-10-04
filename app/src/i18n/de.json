@@ -222,7 +222,9 @@
       "JournalMismatch": "Protokoll geändert oder ersetzt: Diese Bescheinigung wird nicht angezeigt",
       "Unreadable": "Unlesbare oder unvollständige Bescheinigung",
       "Revoked": "Lizenz zum Datum der Bescheinigung widerrufen: Diese Bescheinigung wird nicht angezeigt"
-    }
+    },
+    "allBatches": "Alle Lose",
+    "batchPdf": "Loszertifikat (PDF)"
   },
   "verify": {
     "title": "Bescheinigung prüfen",
@@ -287,5 +289,14 @@
       "canaris": "Kanarienblöcke",
       "motif": "Muster zurückgelesen"
     }
+  },
+  "batch": {
+    "current": "Aktuelles Los:",
+    "none": "Kein Los: Jede Löschung erhält nur ihr eigenes Zertifikat.",
+    "new": "Neues Los",
+    "open": "Los öffnen",
+    "close": "Los schließen",
+    "labelPlaceholder": "Optionale Bezeichnung (z. B. Auftrag 4512)",
+    "tooLong": "Höchstens 128 Zeichen."
   }
 }

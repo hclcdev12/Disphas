@@ -16,6 +16,9 @@ import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
 import { JobsScreen, type JobInfo } from "./components/JobsScreen";
+import { BatchBar } from "./components/BatchBar";
+import type { BatchArgs } from "./bindings/BatchArgs";
+import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
 import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome } from "./lib/api";
@@ -41,6 +44,11 @@ export default function App() {
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
   const [view, setView] = useState<"drives" | "jobs" | "history" | "verify">("drives");
+  const [batch, setBatch] = useState<BatchArgs | null>(loadBatch);
+  const changeBatch = (next: BatchArgs | null) => {
+    setBatch(next);
+    saveBatch(next);
+  };
 
   // Every drive is inspected by the helper; the UI only displays verdicts.
   const reinspect = useCallback(
@@ -134,6 +142,7 @@ export default function App() {
       force: input.justification === null ? null : { justification: input.justification },
       operator: null,
       organization: null,
+      batch,
     });
     if (!result.ok) return result.error;
     const { model, serial } = request.inspection.device.identity;
@@ -205,6 +214,7 @@ export default function App() {
           </Button>
         </div>
         {hello && !hello.ok && <p className="text-sayno">{t(`errors.${hello.error.code}`)}</p>}
+        <BatchBar batch={batch} onChange={changeBatch} />
         {interrupted.map((job) => (
           <div
             key={job.job_id}

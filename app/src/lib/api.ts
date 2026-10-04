@@ -106,6 +106,8 @@ export interface OblivioApi {
   listReports(): Promise<HistoryEntry[]>;
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
+  /** Renders and saves the batch certificate of a batch from the history. */
+  renderBatch(batchId: string, lang: Language): Promise<Outcome<string>>;
   /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
   verifyCertificate(data: string): Promise<VerificationReport | { error: string }>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
@@ -156,6 +158,13 @@ const tauriApi: OblivioApi = {
       return { ok: false, error: asHelperError(error) };
     }
   },
+  renderBatch: async (batchId, lang) => {
+    try {
+      return { ok: true, value: await invoke<string>("render_batch", { batchId, lang }) };
+    } catch (error) {
+      return { ok: false, error: asHelperError(error) };
+    }
+  },
   verifyCertificate: (data) =>
     invoke<VerificationReport>("verify_certificate", { data }).catch((error) => ({ error: String(error) })),
   codeLabels: (lang) => invoke<Record<string, string>>("code_labels", { lang }),
@@ -189,6 +198,7 @@ const previewApi: OblivioApi = {
   openCertificate: async () => {},
   listReports: async () => previewHistory.entries as HistoryEntry[],
   renderReport: async () => unavailable,
+  renderBatch: async () => unavailable,
   // The browser cannot verify: shows a fictional verified report, for layout only.
   verifyCertificate: async () => previewVerification.report as VerificationReport,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],

@@ -18,6 +18,29 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const [saved, setSaved] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; error: HelperError } | null>(null);
+  const [batch, setBatch] = useState("");
+  const [batchPdf, setBatchPdf] = useState<{ path: string } | { error: HelperError } | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  // Batches present in the history, with their label and number of drives.
+  const batches = useMemo(() => {
+    const found = new Map<string, { label: string | null; count: number }>();
+    for (const entry of entries ?? []) {
+      const id = entry.summary?.batch_id;
+      if (!id) continue;
+      const known = found.get(id);
+      found.set(id, { label: known?.label ?? entry.summary?.batch_label ?? null, count: (known?.count ?? 0) + 1 });
+    }
+    return [...found.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [entries]);
+
+  const exportBatch = async () => {
+    setBatchBusy(true);
+    setBatchPdf(null);
+    const result = await api.renderBatch(batch, i18n.language as Language);
+    setBatchPdf(result.ok ? { path: result.value } : { error: result.error });
+    setBatchBusy(false);
+  };
 
   useEffect(() => {
     void api.listReports().then(setEntries);
@@ -30,13 +53,14 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!entries || needle === "") return entries ?? [];
-    return entries.filter((entry) =>
+    const inBatch = (entries ?? []).filter((entry) => batch === "" || entry.summary?.batch_id === batch);
+    if (needle === "") return inBatch;
+    return inBatch.filter((entry) =>
       [entry.id, entry.summary?.model, entry.summary?.serial, entry.summary?.operator, entry.summary?.organization]
         .filter((field): field is string => typeof field === "string")
         .some((field) => field.toLowerCase().includes(needle)),
     );
-  }, [entries, query]);
+  }, [entries, query, batch]);
 
   const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
   const label = (code: string) => labels[code] ?? code;
@@ -69,6 +93,47 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
         </Button>
       </div>
 
+      {batches.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-card px-4 py-3 text-sm">
+          <label className="flex items-center gap-2">
+            {t("verify.field.batch")}
+            <select
+              className="rounded-md border border-edge bg-night px-2 py-1.5"
+              value={batch}
+              onChange={(event) => {
+                setBatch(event.target.value);
+                setBatchPdf(null);
+              }}
+            >
+              <option value="">{t("history.allBatches")}</option>
+              {batches.map(([id, info]) => (
+                <option key={id} value={id}>
+                  {id}
+                  {info.label ? ` — ${info.label}` : ""} ({info.count})
+                </option>
+              ))}
+            </select>
+          </label>
+          {batch !== "" && (
+            <Button variant="primary" className="ml-auto flex items-center gap-2" disabled={batchBusy} onClick={() => void exportBatch()}>
+              <FileText size={14} />
+              {batchBusy ? t("job.exporting") : t("history.batchPdf")}
+            </Button>
+          )}
+          {batchPdf && "path" in batchPdf && (
+            <p className="w-full text-xs text-ash">
+              {t("job.saved")} <Mono>{batchPdf.path}</Mono>{" "}
+              <Button onClick={() => void api.openCertificate(batchPdf.path)}>{t("job.open")}</Button>
+            </p>
+          )}
+          {batchPdf && "error" in batchPdf && (
+            <p className="w-full text-sm text-sayno">
+              {t(`errors.${batchPdf.error.code}`, { defaultValue: batchPdf.error.code })}
+              {batchPdf.error.detail && <span className="block font-mono text-xs text-ash">{batchPdf.error.detail}</span>}
+            </p>
+          )}
+        </div>
+      )}
       {entries === null && <p className="text-ash">{t("history.loading")}</p>}
       {entries?.length === 0 && <p className="text-ash">{t("history.empty")}</p>}
       {entries && entries.length > 0 && shown.length === 0 && <p className="text-ash">{t("history.noMatch")}</p>}

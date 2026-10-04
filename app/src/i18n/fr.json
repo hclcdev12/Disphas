@@ -222,7 +222,9 @@
       "JournalMismatch": "Journal modifié ou remplacé : ce certificat n'est pas affiché",
       "Unreadable": "Certificat illisible ou incomplet",
       "Revoked": "Licence révoquée à la date du certificat : ce certificat n'est pas affiché"
-    }
+    },
+    "allBatches": "Tous les lots",
+    "batchPdf": "Certificat de lot (PDF)"
   },
   "verify": {
     "title": "Vérifier un certificat",
@@ -287,5 +289,14 @@
       "canaris": "canaris",
       "motif": "motif relu"
     }
+  },
+  "batch": {
+    "current": "Lot en cours :",
+    "none": "Aucun lot : chaque effacement aura son certificat seul.",
+    "new": "Nouveau lot",
+    "open": "Ouvrir le lot",
+    "close": "Clore le lot",
+    "labelPlaceholder": "Libellé facultatif (ex. commande 4512)",
+    "tooLong": "128 caractères au plus."
   }
 }

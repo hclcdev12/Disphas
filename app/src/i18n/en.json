@@ -222,7 +222,9 @@
       "JournalMismatch": "Journal modified or replaced: this certificate is not shown",
       "Unreadable": "Unreadable or incomplete certificate",
       "Revoked": "License revoked at the certificate date: this certificate is not shown"
-    }
+    },
+    "allBatches": "All batches",
+    "batchPdf": "Batch certificate (PDF)"
   },
   "verify": {
     "title": "Verify a certificate",
@@ -287,5 +289,14 @@
       "canaris": "canaries",
       "motif": "pattern read back"
     }
+  },
+  "batch": {
+    "current": "Current batch:",
+    "none": "No batch: each erasure gets its own certificate only.",
+    "new": "New batch",
+    "open": "Open batch",
+    "close": "Close batch",
+    "labelPlaceholder": "Optional label (e.g. order 4512)",
+    "tooLong": "128 characters at most."
   }
 }

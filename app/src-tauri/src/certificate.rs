@@ -66,6 +66,64 @@ pub fn save_signed(
     Ok(path)
 }
 
+/// Renders the batch certificate of `batch_id` from the history: every
+/// report of that batch, each verified again by the renderer. Saved as
+/// `oblivio-lot-<batch>-<lang>.pdf`.
+pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<PathBuf, String> {
+    use oblivio_attestation::model::Batch;
+    use oblivio_report::batch::{BatchEntry, BatchError, render_batch};
+    if !Batch::valid_id(batch_id) {
+        return Err("invalid batch identifier".to_owned());
+    }
+    let dir = crate::history::reports_dir();
+    let files: Vec<(Vec<u8>, Vec<u8>)> = crate::history::list(&dir, trust)
+        .into_iter()
+        .filter(|entry| {
+            entry.check == crate::history::Check::Valid
+                && entry
+                    .summary
+                    .as_ref()
+                    .is_some_and(|summary| summary.batch_id.as_deref() == Some(batch_id))
+        })
+        .filter_map(|entry| crate::history::read(&dir, &entry.id))
+        .collect();
+    if files.is_empty() {
+        return Err("no verified certificate in this batch".to_owned());
+    }
+    let entries: Vec<BatchEntry<'_>> = files
+        .iter()
+        .map(|(signed, journal)| BatchEntry { signed, journal })
+        .collect();
+    let options = RenderOptions { lang, logo: None };
+    let mut outcome = Err("this build trusts no root key".to_owned());
+    for root in &trust.roots {
+        match render_batch(&entries, root, &trust.revocations, &options) {
+            Ok(pdf) => {
+                outcome = Ok(pdf);
+                break;
+            }
+            Err(BatchError::Drive {
+                source: ReportError::Verify(error),
+                index,
+            }) => {
+                outcome = Err(format!("drive {index}: {error}"));
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    let pdf = outcome?;
+    let out = output_dir()?;
+    std::fs::create_dir_all(&out).map_err(|error| format!("{}: {error}", out.display()))?;
+    let tag = match lang {
+        Lang::En => "en",
+        Lang::Fr => "fr",
+        Lang::De => "de",
+    };
+    let path = out.join(format!("oblivio-lot-{batch_id}-{tag}.pdf"));
+    std::fs::write(&path, pdf).map_err(|error| format!("{}: {error}", path.display()))?;
+    Ok(path)
+}
+
 /// Opens a saved certificate with the desktop's PDF viewer. Only files in
 /// the certificate folder can be opened.
 pub fn open(path: &Path) -> Result<(), String> {
