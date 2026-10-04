@@ -41,7 +41,18 @@ fn quoted(text: &str) -> String {
     serde_json::Value::String(text.to_owned()).to_string()
 }
 
+/// Whether a record's identity is that of `drive`: model, serial number and
+/// WWN (firmware revision excluded: an update does not change the drive).
+pub fn same_drive(recorded: &DeviceIdentity, drive: &DeviceIdentity) -> bool {
+    recorded.model == drive.model && recorded.serial == drive.serial && recorded.wwn == drive.wwn
+}
+
 impl FileRecord {
+    /// Identity of the drive the record belongs to.
+    pub fn identity(&self) -> &DeviceIdentity {
+        &self.identity
+    }
+
     /// The record of `identity` in `dir`.
     pub fn new(dir: &Path, identity: &DeviceIdentity) -> Self {
         Self {
@@ -159,6 +170,27 @@ mod tests {
             wwn: Some("5000c500deadbeef".to_owned()),
             eui64: None,
             nguid: None,
+        }
+    }
+
+    #[test]
+    fn a_record_matches_its_drive_by_model_serial_and_wwn() {
+        let recorded = identity();
+        let mut drive = identity();
+        drive.firmware = "2".to_owned();
+        assert!(
+            same_drive(&recorded, &drive),
+            "a firmware update keeps the drive"
+        );
+        for change in [
+            |d: &mut DeviceIdentity| d.model = "Other".to_owned(),
+            |d: &mut DeviceIdentity| d.serial = "SN-other".to_owned(),
+            |d: &mut DeviceIdentity| d.wwn = Some("5000c500feedface".to_owned()),
+            |d: &mut DeviceIdentity| d.wwn = None,
+        ] {
+            let mut other = identity();
+            change(&mut other);
+            assert!(!same_drive(&recorded, &other), "{other:?}");
         }
     }
 

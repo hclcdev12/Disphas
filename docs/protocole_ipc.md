@@ -124,7 +124,8 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 1. `verdict_id` connu et non expiré → sinon `VERDICT_EXPIRED`.
 2. Identité relue sur le disque = identité du verdict → sinon `DEVICE_CHANGED`.
 3. Protections réévaluées (montages, swap, volumes…) → sinon `PROTECTED`.
-4. `confirmation` = 4 derniers caractères du S/N → sinon `CONFIRMATION_MISMATCH`.
+4. `confirmation` = 4 derniers caractères du S/N → sinon `CONFIRMATION_MISMATCH` ; un disque sans S/N
+   (vide ou blanc) ne peut jamais être confirmé.
 5. `acknowledged` couvre **tous** les avertissements du verdict → sinon `ACK_MISSING`.
 6. `method` ∈ méthodes autorisées par le verdict → sinon `VERDICT_MISMATCH`.
 7. `force` présent seulement si verdict SAY NO, justification ≥ 20 caractères → sinon `FORCE_NOT_ALLOWED`.

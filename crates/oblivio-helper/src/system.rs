@@ -51,13 +51,24 @@ impl SystemBackend {
         recovery::pending(&self.recovery)
             .into_iter()
             .map(|mut pending| {
-                let Some((name, _)) = drives
-                    .iter()
-                    .find(|(_, device)| device.profile.identity.serial == pending.serial)
-                else {
-                    return format!("drive {} absent, recovery record kept", pending.serial);
+                // The full identity of the record, on exactly one drive: a
+                // password is never tried on another drive's attempt counter.
+                let found = unique(&drives, |device| {
+                    recovery::same_drive(pending.record.identity(), &device.profile.identity)
+                });
+                let (name, expected) = match found {
+                    Ok((name, device)) => (name, &device.profile.identity),
+                    Err(reason) => {
+                        return format!("drive {}: {reason}, recovery record kept", pending.serial);
+                    }
                 };
                 let outcome = open_exclusive(&self.paths, name).and_then(|file| {
+                    let reported = oblivio_device::inspect::identity_of(&file, false)?;
+                    if reported != *expected {
+                        return Err(oblivio_device::DeviceError::Refused(
+                            "the drive opened is not the one recorded".to_owned(),
+                        ));
+                    }
                     let mut drive = AtaSecurity {
                         ata: AtaDevice::new(&file),
                     };
@@ -76,6 +87,15 @@ impl SystemBackend {
                 }
             })
             .collect()
+    }
+
+    /// The one drive answering with `identity` (`find`, `open`, `unlock`).
+    fn lookup(&self, identity: &DeviceIdentity) -> Result<(String, Device), &'static str> {
+        let drives = self.inspected();
+        unique(&drives, |device| {
+            convert::identity(&device.profile.identity) == *identity
+        })
+        .map(|(name, device)| (name.clone(), device.clone()))
     }
 
     fn inspected(&self) -> Vec<(String, Device)> {
@@ -103,6 +123,24 @@ impl SystemBackend {
     }
 }
 
+/// The single drive among `drives` that `matches`. Refused when none does,
+/// when several do (two drives reporting the same identity cannot be told
+/// apart), or when the drive has no serial number (it cannot be confirmed).
+fn unique<'a>(
+    drives: &'a [(String, Device)],
+    matches: impl Fn(&Device) -> bool,
+) -> Result<(&'a String, &'a Device), &'static str> {
+    let mut found = drives.iter().filter(|(_, device)| matches(device));
+    let (name, device) = found.next().ok_or("drive not found")?;
+    if found.next().is_some() {
+        return Err("several drives report this identity");
+    }
+    if device.profile.identity.serial.trim().is_empty() {
+        return Err("drive without a serial number");
+    }
+    Ok((name, device))
+}
+
 impl DeviceBackend for SystemBackend {
     fn list(&mut self) -> Vec<Device> {
         self.inspected()
@@ -112,10 +150,7 @@ impl DeviceBackend for SystemBackend {
     }
 
     fn find(&mut self, identity: &DeviceIdentity) -> Option<Device> {
-        self.inspected()
-            .into_iter()
-            .map(|(_, device)| device)
-            .find(|device| convert::identity(&device.profile.identity) == *identity)
+        self.lookup(identity).ok().map(|(_, device)| device)
     }
 
     fn open(
@@ -125,11 +160,8 @@ impl DeviceBackend for SystemBackend {
     ) -> Result<Box<dyn ErasureTarget>, String> {
         // One lookup: the node name and the full identity it must answer with.
         let (name, identity) = self
-            .inspected()
-            .into_iter()
-            .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
-            .map(|(name, device)| (name, device.profile.identity))
-            .ok_or("drive not found")?;
+            .lookup(identity)
+            .map(|(name, device)| (name, device.profile.identity))?;
         // Opening re-checks protections on a fresh inventory, uses O_EXCL, and
         // verifies on the opened node that it is still this very drive.
         let drive = ErasableDrive::open(&self.paths, &name, &identity, whole_controller)
@@ -147,11 +179,8 @@ impl DeviceBackend for SystemBackend {
         password: &[u8; 32],
     ) -> Result<(), String> {
         let (name, expected) = self
-            .inspected()
-            .into_iter()
-            .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
-            .map(|(name, device)| (name, device.profile.identity))
-            .ok_or("drive not found")?;
+            .lookup(identity)
+            .map(|(name, device)| (name, device.profile.identity))?;
         if !name.starts_with("sd") {
             return Err("only SATA drives have ATA passwords".to_owned());
         }
@@ -395,6 +424,55 @@ mod tests {
         );
         assert_eq!(outcome, Ok(true));
         assert_eq!(seen, [0, 50, 100]);
+    }
+
+    fn drive(name: &str, serial: &str) -> (String, Device) {
+        let profile = oblivio_core::profile::DeviceProfile {
+            identity: oblivio_core::profile::DeviceIdentity {
+                serial: serial.to_owned(),
+                ..Default::default()
+            },
+            protection: Default::default(),
+            inspection: oblivio_core::profile::Inspection::Failed,
+            failed_unblock_attempts: 0,
+            quirks: Default::default(),
+        };
+        (
+            name.to_owned(),
+            Device {
+                node_hint: None,
+                capacity_bytes: None,
+                profile,
+            },
+        )
+    }
+
+    #[test]
+    fn a_drive_is_found_only_when_it_is_the_only_match_and_has_a_serial() {
+        let drives = [
+            drive("sda", "SN-1"),
+            drive("sdb", "SN-2"),
+            drive("sdc", "SN-2"),
+        ];
+        let serial =
+            |wanted: &'static str| move |device: &Device| device.profile.identity.serial == wanted;
+        assert_eq!(
+            unique(&drives, serial("SN-1")).map(|(name, _)| name.as_str()),
+            Ok("sda")
+        );
+        assert_eq!(
+            unique(&drives, serial("SN-2")).map(|_| ()),
+            Err("several drives report this identity")
+        );
+        assert_eq!(
+            unique(&drives, serial("SN-3")).map(|_| ()),
+            Err("drive not found")
+        );
+        let blank = [drive("sdd", " ")];
+        assert_eq!(
+            unique(&blank, |_| true).map(|_| ()),
+            Err("drive without a serial number")
+        );
     }
 
     #[test]

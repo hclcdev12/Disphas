@@ -377,8 +377,11 @@ impl<B: DeviceBackend> Session<B> {
             return Err(Failure::new(ErrorCode::Protected, codes.join(",")));
         }
 
-        // 4. Last four characters of the serial number.
-        if args.confirmation != last_chars(&issued.identity.serial, 4) {
+        // 4. Last four characters of the serial number. A drive without one
+        // cannot be confirmed (an empty confirmation would match).
+        if issued.identity.serial.trim().is_empty()
+            || args.confirmation != last_chars(&issued.identity.serial, 4)
+        {
             return Err(Failure::new(
                 ErrorCode::ConfirmationMismatch,
                 "confirmation does not match the serial number",
@@ -1143,6 +1146,17 @@ mod tests {
         for wrong in ["001", "N-0001", "SN-0", "0001 "] {
             let result = harness.send(Command::Sanitize(sanitize_args(&inspected, wrong)));
             assert_eq!(code(result), ErrorCode::ConfirmationMismatch, "{wrong:?}");
+        }
+    }
+
+    #[test]
+    fn check_4_a_drive_without_serial_number_cannot_be_confirmed() {
+        for serial in ["", "   "] {
+            let mut harness = Harness::greeted(vec![nvme_device(serial)], LicenseState::Valid);
+            let inspected = harness.inspect(serial);
+            let confirmation = last_chars(serial, 4).to_owned();
+            let result = harness.send(Command::Sanitize(sanitize_args(&inspected, &confirmation)));
+            assert_eq!(code(result), ErrorCode::ConfirmationMismatch, "{serial:?}");
         }
     }
 

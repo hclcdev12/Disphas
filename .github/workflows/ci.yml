@@ -68,6 +68,8 @@ jobs:
         run: |
           cargo test --workspace
           cargo test -p oblivio-helper --features demo
+          # Pure tests of the real backend (lookups, sanitize polling): no drive is opened.
+          cargo test -p oblivio-helper --features real-devices system::
 
       - name: Third-party notices are up to date
         run: python3 tools/third_party_notices.py --check
