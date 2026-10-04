@@ -98,16 +98,19 @@ impl Helper {
     /// Sends `command` and waits for its response.
     pub async fn request(&self, command: Command) -> Result<Response, ErrorBody> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        let line = Request { id, command }
-            .encode()
-            .map_err(|error| failure(ErrorCode::BadRequest, error.to_string()))?;
+        // An `Unlock` line holds the ATA password: wiped once written.
+        let line = zeroize::Zeroizing::new(
+            Request { id, command }
+                .encode()
+                .map_err(|error| failure(ErrorCode::BadRequest, error.to_string()))?,
+        );
         let (sender, receiver) = oneshot::channel();
         lock(&self.pending)?.insert(id, sender);
 
         let written = {
             let mut stdin = lock(&self.stdin)?;
             match stdin.as_mut() {
-                Some(stdin) => writeln!(stdin, "{line}").and_then(|()| stdin.flush()),
+                Some(stdin) => writeln!(stdin, "{}", line.as_str()).and_then(|()| stdin.flush()),
                 None => Err(std::io::Error::other("helper closed")),
             }
         };

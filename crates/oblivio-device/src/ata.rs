@@ -231,12 +231,13 @@ pub enum Identifier {
 
 /// The 512-byte data block of a security command (ACS-4 §7.42-7.47): the
 /// control word, then the 32-byte password as is, from byte 2 (as hdparm
-/// does, so a recorded password also works with standard tools).
-pub fn password_block(control: u16, password: &[u8; 32]) -> [u8; 512] {
-    let mut block = [0u8; 512];
+/// does, so a recorded password also works with standard tools). Written
+/// into `block`, a buffer the caller wipes: returning the block by value
+/// would leave copies of the password behind.
+pub fn fill_password_block(block: &mut [u8; 512], control: u16, password: &[u8; 32]) {
+    block.fill(0);
     block[..2].copy_from_slice(&control.to_le_bytes());
     block[2..34].copy_from_slice(password);
-    block
 }
 
 fn security_command(command: u8, timeout_ms: u32) -> AtaCommand {
@@ -529,10 +530,9 @@ impl<'a> AtaDevice<'a> {
         (command, control): (AtaCommand, u16),
         password: &[u8; 32],
     ) -> Result<(), DeviceError> {
-        let mut block = zeroize::Zeroizing::new(password_block(control, password));
-        let result = self.run_with(&command, Some(&block)).map(|_| ());
-        zeroize::Zeroize::zeroize(&mut *block);
-        result
+        let mut block = zeroize::Zeroizing::new([0u8; 512]);
+        fill_password_block(&mut block, control, password);
+        self.run_with(&command, Some(&block)).map(|_| ())
     }
 
     /// SECURITY SET PASSWORD: user password, security level High.
@@ -662,7 +662,8 @@ mod tests {
     #[test]
     fn password_block_layout() {
         let password = *b"ABCDEFGHIJKLMNOPQRSTUVWXYZ012345";
-        let block = password_block(ENHANCED_ERASE, &password);
+        let mut block = [0xffu8; 512];
+        fill_password_block(&mut block, ENHANCED_ERASE, &password);
         assert_eq!(&block[..2], &[0x02, 0x00]);
         assert_eq!(&block[2..34], &password);
         assert!(block[34..].iter().all(|&byte| byte == 0));

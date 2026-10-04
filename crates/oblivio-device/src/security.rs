@@ -50,6 +50,17 @@ impl Password {
         Self(Zeroizing::new(bytes))
     }
 
+    /// A password copied straight from `bytes` into its wiped buffer, with
+    /// no intermediate copy; `None` unless exactly 32 bytes.
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        let mut password = Zeroizing::new([0u8; 32]);
+        if bytes.len() != password.len() {
+            return None;
+        }
+        password.copy_from_slice(bytes);
+        Some(Self(password))
+    }
+
     /// The 32 bytes, for the drive and the recovery record only.
     pub fn bytes(&self) -> &[u8; 32] {
         &self.0

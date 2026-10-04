@@ -129,15 +129,19 @@ impl Request {
     /// Decodes one line, with or without its trailing newline.
     ///
     /// For `Unlock`, the caller must wipe `line` after use: it holds the password.
+    /// The arguments are never parsed into an intermediate JSON tree, which
+    /// would drop a copy of the password unwiped: they are kept as a slice of
+    /// `line`, then decoded once from a wiped buffer.
     pub fn decode(line: &str) -> Result<Self, DecodeError> {
         #[derive(Deserialize)]
         #[serde(deny_unknown_fields)]
-        struct Raw {
+        struct Raw<'a> {
             #[serde(rename = "type")]
             _kind: RequestTag,
             id: u64,
             cmd: String,
-            args: Option<Value>,
+            #[serde(borrow)]
+            args: Option<&'a serde_json::value::RawValue>,
         }
         #[derive(Deserialize)]
         enum RequestTag {
@@ -153,12 +157,12 @@ impl Request {
         if !Command::NAMES.contains(&raw.cmd.as_str()) {
             return Err(error(DecodeErrorKind::UnknownCommand(raw.cmd)));
         }
-        let mut tagged = Map::new();
-        tagged.insert("cmd".to_owned(), Value::String(raw.cmd.clone()));
-        if let Some(args) = raw.args {
-            tagged.insert("args".to_owned(), args);
-        }
-        let command = serde_json::from_value(Value::Object(tagged)).map_err(|reason| {
+        // The command name is one of `Command::NAMES`: plain ASCII, no escaping.
+        let tagged = zeroize::Zeroizing::new(match raw.args {
+            Some(args) => format!(r#"{{"cmd":"{}","args":{}}}"#, raw.cmd, args.get()),
+            None => format!(r#"{{"cmd":"{}"}}"#, raw.cmd),
+        });
+        let command = serde_json::from_str(&tagged).map_err(|reason| {
             error(DecodeErrorKind::Arguments {
                 command: raw.cmd.clone(),
                 reason: reason.to_string(),

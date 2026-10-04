@@ -15,7 +15,7 @@ oblivio-core = { version = "0.1.0", path = "../oblivio-core", features = ["serde
 oblivio-device.workspace = true
 oblivio-license.workspace = true
 serde_json = "1.0.151"
-zeroize = "1.9.0"
+zeroize = { version = "1.9.0", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 getrandom = "0.4.3"
 base64 = "0.23.1"

@@ -124,9 +124,17 @@ pub fn pending(dir: &Path) -> Vec<Pending> {
         .map(|entry| entry.path())
         .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
         .filter_map(|path| {
+            // Decoded into wiped strings only: no JSON tree holding a copy.
+            #[derive(serde::Deserialize)]
+            struct Record {
+                model: Option<String>,
+                serial: String,
+                wwn: Option<String>,
+                password: Zeroizing<String>,
+            }
             let text = Zeroizing::new(fs::read_to_string(&path).ok()?);
-            let value: serde_json::Value = match serde_json::from_str(&text) {
-                Ok(value) => value,
+            let record: Record = match serde_json::from_str(&text) {
+                Ok(record) => record,
                 Err(error) => {
                     eprintln!(
                         "oblivio-helper: unreadable recovery record {}: {error}",
@@ -135,19 +143,18 @@ pub fn pending(dir: &Path) -> Vec<Pending> {
                     return None;
                 }
             };
-            let field = |name: &str| value.get(name).and_then(|v| v.as_str()).map(str::to_owned);
-            let password: [u8; 32] = field("password")?.into_bytes().try_into().ok()?;
+            let password = Password::from_slice(record.password.as_bytes())?;
             let identity = DeviceIdentity {
-                model: field("model").unwrap_or_default(),
-                serial: field("serial")?,
+                model: record.model.unwrap_or_default(),
+                serial: record.serial,
                 firmware: String::new(),
-                wwn: field("wwn").filter(|wwn| !wwn.is_empty()),
+                wwn: record.wwn.filter(|wwn| !wwn.is_empty()),
                 eui64: None,
                 nguid: None,
             };
             Some(Pending {
                 serial: identity.serial.clone(),
-                password: Password::from_bytes(password),
+                password,
                 record: FileRecord {
                     dir: dir.to_path_buf(),
                     path,
