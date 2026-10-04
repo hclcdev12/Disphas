@@ -27,6 +27,8 @@ use crate::erasure::{self, ErasureTarget};
 pub struct DemoDevices {
     devices: Vec<Device>,
     images: Option<PathBuf>,
+    /// Failed `Unlock` attempts on the locked demo drive.
+    failed_unlocks: u32,
 }
 
 /// Size of a demo image: 256 MiB of 512-byte blocks, created sparse.
@@ -34,7 +36,19 @@ const IMAGE_BLOCKS: u64 = 256 * 1024 * 2;
 const BLOCK_SIZE: u64 = 512;
 
 /// Serials of the drives backed by an image file.
-const ERASABLE: &[&str] = &["DEMO-NVME-4567", "DEMO-HDD-8C21", "DEMO-MUTE-0N1X"];
+const ERASABLE: &[&str] = &[
+    "DEMO-NVME-4567",
+    "DEMO-HDD-8C21",
+    "DEMO-MUTE-0N1X",
+    "DEMO-LOCK-7A11",
+];
+
+/// User password of the locked demo drive. Fictional, not a secret: it is
+/// printed in the documentation so testers can try `Unlock`.
+pub const DEMO_PASSWORD: &str = "oblivio";
+
+/// Failed attempts before a drive refuses any more (B6), as on most drives.
+const DEMO_MAX_ATTEMPTS: u32 = 5;
 
 impl DemoDevices {
     /// Demo drives whose erasable ones are backed by images in `images`.
@@ -240,14 +254,74 @@ impl Default for DemoDevices {
         );
         mute.capacity_bytes = None;
 
+        let locked = device(
+            "/dev/sdd",
+            256_060_514_304,
+            identity(
+                "DEMO SATA SSD Locked 256GB",
+                "DEMO-LOCK-7A11",
+                None,
+                Some("5002538e00000002"),
+            ),
+            Inspection::Ata(AtaProfile {
+                solid_state: true,
+                security: AtaSecurity {
+                    supported: true,
+                    enhanced_erase: true,
+                    enabled: true,
+                    locked: true,
+                    ..AtaSecurity::default()
+                },
+                smart: AtaSmart {
+                    reallocated_sectors: Some(0),
+                    ..AtaSmart::default()
+                },
+                ..AtaProfile::default()
+            }),
+        );
+
         Self {
-            devices: vec![system, ready, worn, frozen, read_only, mute],
+            devices: vec![system, ready, worn, frozen, read_only, mute, locked],
             images: None,
+            failed_unlocks: 0,
         }
     }
 }
 
 impl DeviceBackend for DemoDevices {
+    fn unlock(
+        &mut self,
+        identity: &WireIdentity,
+        master: bool,
+        password: &[u8; 32],
+    ) -> Result<(), String> {
+        let attempts = self.failed_unlocks;
+        let device = self
+            .devices
+            .iter_mut()
+            .find(|device| convert::identity(&device.profile.identity) == *identity)
+            .ok_or("unknown demo drive")?;
+        let Inspection::Ata(ata) = &mut device.profile.inspection else {
+            return Err("only SATA drives have ATA passwords".to_owned());
+        };
+        if !ata.security.locked {
+            return Err("the drive is not locked".to_owned());
+        }
+        if ata.security.attempts_expired {
+            return Err("attempt counter expired: power cycle the drive".to_owned());
+        }
+        let mut expected = [0u8; 32];
+        expected[..DEMO_PASSWORD.len()].copy_from_slice(DEMO_PASSWORD.as_bytes());
+        if master || *password != expected {
+            self.failed_unlocks = attempts + 1;
+            ata.security.attempts_expired = self.failed_unlocks >= DEMO_MAX_ATTEMPTS;
+            return Err("wrong password, or the drive refused it".to_owned());
+        }
+        ata.security.locked = false;
+        ata.security.enabled = false;
+        Ok(())
+    }
+
     fn list(&mut self) -> Vec<Device> {
         self.devices.clone()
     }
@@ -311,8 +385,50 @@ mod tests {
                 "ready",
                 "blocked",
                 "say-no",
-                "say-no-forcible"
+                "say-no-forcible",
+                "blocked"
             ]
         );
+    }
+
+    fn locked() -> WireIdentity {
+        let devices = DemoDevices::default().list();
+        convert::identity(&devices[6].profile.identity)
+    }
+
+    fn padded(text: &str) -> [u8; 32] {
+        let mut password = [0u8; 32];
+        password[..text.len()].copy_from_slice(text.as_bytes());
+        password
+    }
+
+    #[test]
+    fn locked_demo_drive_unlocks_with_the_demo_password() {
+        let mut demo = DemoDevices::default();
+        assert!(demo.unlock(&locked(), false, &padded("wrong")).is_err());
+        demo.unlock(&locked(), false, &padded(DEMO_PASSWORD))
+            .expect("unlocked");
+        let device = demo.find(&locked()).expect("found");
+        assert!(matches!(
+            decide(&device.profile, &RuleSet::baseline()),
+            Verdict::Ready(_)
+        ));
+    }
+
+    #[test]
+    fn five_failures_expire_the_attempt_counter() {
+        let mut demo = DemoDevices::default();
+        for _ in 0..DEMO_MAX_ATTEMPTS {
+            assert!(demo.unlock(&locked(), false, &padded("wrong")).is_err());
+        }
+        assert!(
+            demo.unlock(&locked(), false, &padded(DEMO_PASSWORD))
+                .is_err()
+        );
+        let device = demo.find(&locked()).expect("found");
+        assert!(matches!(
+            decide(&device.profile, &RuleSet::baseline()),
+            Verdict::Blocked { .. }
+        ));
     }
 }

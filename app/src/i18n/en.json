@@ -81,7 +81,9 @@
   "actions": {
     "erase": "Erase — {{category}}",
     "force": "Force erasure",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "unlock": "Unlock…",
+    "dismiss": "Dismiss"
   },
   "confirm": {
     "title": "Confirm the erasure",
@@ -157,7 +159,9 @@
       "verification": "Firmware verification: {{passed}}",
       "validation": "Validation: {{result}}",
       "attempt_retry": "Check failed: retrying",
-      "job_failed": "The job failed: {{reason}}"
+      "job_failed": "The job failed: {{reason}}",
+      "job_resumed": "Job resumed after an unexpected stop",
+      "job_state_not_saved": "The job state could not be saved"
     },
     "finished": "Erasure finished",
     "status": {
@@ -174,6 +178,24 @@
     "exporting": "Rendering…",
     "saved": "Saved to",
     "open": "Open",
-    "back": "Back to drives"
+    "back": "Back to drives",
+    "resumed": "This erasure was resumed after Oblivio stopped unexpectedly: the drive carried on by itself, Oblivio is now checking the result."
+  },
+  "unlock": {
+    "title": "Unlock the drive",
+    "explain": "This drive is protected by an ATA password stored in the drive itself, set by its previous owner (BIOS, security tool). Without that password it refuses every read and write. Once unlocked, Oblivio removes the password so the drive can be inspected and erased.",
+    "attempts": "Every failed attempt counts: after 5 failures the drive refuses any new attempt until it is powered off and on again.",
+    "kind": "Password",
+    "User": "User",
+    "Master": "Master",
+    "masterHint": "The master password unlocks the drive only if its security level is “High”.",
+    "password": "ATA password",
+    "tooLong": "32 bytes at most.",
+    "submit": "Unlock",
+    "busy": "Unlocking…"
+  },
+  "jobs": {
+    "interruptedTitle": "Erasure interrupted, no certificate",
+    "interruptedHint": "Oblivio stopped during this erasure and cannot prove it. Inspect and erase this drive again."
   }
 }

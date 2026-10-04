@@ -3,6 +3,7 @@ import type { FinalStatus } from "../bindings/FinalStatus";
 import type { JobLogData } from "../bindings/JobLogData";
 import type { JobPhase } from "../bindings/JobPhase";
 import type { JobProgressData } from "../bindings/JobProgressData";
+import type { JobSummary } from "../bindings/JobSummary";
 
 /** What the interface knows about a job, built only from helper events. */
 export type JobView = {
@@ -31,6 +32,21 @@ export function applyEvent(jobs: Record<string, JobView>, event: HelperEvent): R
     default:
       return jobs;
   }
+}
+
+/**
+ * Adds jobs listed by the helper at start-up. Events may already have
+ * arrived for them: what they said is kept, the listing only fills gaps.
+ */
+export function seedJobs(jobs: Record<string, JobView>, listed: JobSummary[]): Record<string, JobView> {
+  const next = { ...jobs };
+  for (const summary of listed) {
+    const known = next[summary.job_id];
+    next[summary.job_id] = known
+      ? { ...known, phase: known.phase === "Preparing" ? summary.phase : known.phase, status: known.status ?? summary.status }
+      : { ...EMPTY, phase: summary.phase, status: summary.status };
+  }
+  return next;
 }
 
 export function emptyJob(): JobView {

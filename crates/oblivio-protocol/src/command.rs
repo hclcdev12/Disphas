@@ -84,9 +84,21 @@ pub struct DeviceArgs {
 pub struct UnlockArgs {
     /// The drive.
     pub device: DeviceRef,
+    /// Which password the operator gives.
+    pub kind: PasswordKind,
     /// ATA user or master password. Never logged, wiped after use.
     #[cfg_attr(feature = "ts-rs", ts(as = "String"))]
     pub password: AtaPassword,
+}
+
+/// Which ATA password is given to `Unlock`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+pub enum PasswordKind {
+    /// The user password.
+    User,
+    /// The master password (works only in High security level).
+    Master,
 }
 
 /// Arguments of `Sanitize` (§7).

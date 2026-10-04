@@ -139,7 +139,12 @@ impl DeviceBackend for SystemBackend {
         }))
     }
 
-    fn unlock(&mut self, identity: &DeviceIdentity, password: &[u8; 32]) -> Result<(), String> {
+    fn unlock(
+        &mut self,
+        identity: &DeviceIdentity,
+        master: bool,
+        password: &[u8; 32],
+    ) -> Result<(), String> {
         let name = self
             .inspected()
             .into_iter()
@@ -152,9 +157,14 @@ impl DeviceBackend for SystemBackend {
         let file = open_exclusive(&self.paths, &name).map_err(|error| error.to_string())?;
         let ata = AtaDevice::new(&file);
         // Each failed attempt counts towards the drive's limit (B6).
-        ata.unlock(Identifier::User, password)
+        let identifier = if master {
+            Identifier::Master
+        } else {
+            Identifier::User
+        };
+        ata.unlock(identifier, password)
             .map_err(|_| "wrong password, or the drive refused it".to_owned())?;
-        ata.disable_password(Identifier::User, password)
+        ata.disable_password(identifier, password)
             .map_err(|error| format!("unlocked, but the password could not be removed: {error}"))
     }
 }

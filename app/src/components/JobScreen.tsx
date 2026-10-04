@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Circle, FileText, LoaderCircle, TriangleAlert, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, FileText, History, LoaderCircle, TriangleAlert, XCircle } from "lucide-react";
 import type { JobPhase } from "../bindings/JobPhase";
 import { api, type HelperError } from "../lib/api";
 import type { JobView } from "../lib/jobs";
@@ -20,7 +20,20 @@ function duration(seconds: number): string {
 }
 
 /** Monitoring and closing screens of an erasure (UI spec §4, screens 3 and 4). */
-export function JobScreen({ jobId, job, model, onBack }: { jobId: string; job: JobView; model: string; onBack: () => void }) {
+export function JobScreen({
+  jobId,
+  job,
+  model,
+  resumed = false,
+  onBack,
+}: {
+  jobId: string;
+  job: JobView;
+  model: string;
+  /** Resumed by the helper after a crash (docs/protocole_ipc.md §10). */
+  resumed?: boolean;
+  onBack: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const [exporting, setExporting] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
@@ -48,6 +61,13 @@ export function JobScreen({ jobId, job, model, onBack }: { jobId: string; job: J
       <p className="mt-1 text-xs text-ash">
         <Mono>{jobId}</Mono>
       </p>
+
+      {resumed && (
+        <div className="mt-4 flex gap-2 rounded-md border border-brand/40 bg-brand/10 p-3 text-sm text-soft">
+          <History size={16} className="mt-0.5 shrink-0 text-brand" />
+          {t("job.resumed")}
+        </div>
+      )}
 
       {!finished && (
         <div className="mt-4 flex gap-2 rounded-md border border-blocked/40 bg-blocked/10 p-3 text-sm text-blocked">

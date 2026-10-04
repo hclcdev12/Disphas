@@ -10,6 +10,8 @@ import type { ActivationRequestResult } from "../bindings/ActivationRequestResul
 import type { InspectResult } from "../bindings/InspectResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import type { ListDevicesResult } from "../bindings/ListDevicesResult";
+import type { ListJobsResult } from "../bindings/ListJobsResult";
+import type { PasswordKind } from "../bindings/PasswordKind";
 import type { SanitizeArgs } from "../bindings/SanitizeArgs";
 import type { SanitizeResult } from "../bindings/SanitizeResult";
 import type { Language } from "../i18n";
@@ -28,6 +30,10 @@ export interface OblivioApi {
   listDevices(): Promise<Outcome<ListDevicesResult>>;
   inspect(device: DeviceRef): Promise<Outcome<InspectResult>>;
   sanitize(args: SanitizeArgs): Promise<Outcome<SanitizeResult>>;
+  /** Jobs known to the helper: at start-up, those resumed or interrupted after a crash. */
+  listJobs(): Promise<Outcome<ListJobsResult>>;
+  /** Unlocks a drive locked by an ATA password (B2) and removes that password. */
+  unlock(device: DeviceRef, kind: PasswordKind, password: string): Promise<Outcome<unknown>>;
   licenseStatus(): Promise<Outcome<LicenseStatusResult>>;
   createActivationRequest(): Promise<Outcome<ActivationRequestResult>>;
   installLicense(license: string): Promise<Outcome<LicenseStatusResult>>;
@@ -63,6 +69,8 @@ const tauriApi: OblivioApi = {
   listDevices: () => call<ListDevicesResult>({ cmd: "ListDevices" }),
   inspect: (device) => call<InspectResult>({ cmd: "Inspect", args: { device } }),
   sanitize: (args) => call<SanitizeResult>({ cmd: "Sanitize", args }),
+  listJobs: () => call<ListJobsResult>({ cmd: "ListJobs" }),
+  unlock: (device, kind, password) => call<unknown>({ cmd: "Unlock", args: { device, kind, password } }),
   licenseStatus: () => call<LicenseStatusResult>({ cmd: "LicenseStatus" }),
   createActivationRequest: () => call<ActivationRequestResult>({ cmd: "CreateActivationRequest" }),
   installLicense: (license) => call<LicenseStatusResult>({ cmd: "InstallLicense", args: { license } }),
@@ -96,6 +104,8 @@ const previewApi: OblivioApi = {
       : { ok: false, error: { code: "DEVICE_NOT_FOUND", detail: null } };
   },
   sanitize: async () => unavailable,
+  listJobs: async () => ({ ok: true, value: { jobs: [] } }),
+  unlock: async () => unavailable,
   licenseStatus: async () => ({ ok: true, value: recording.hello.license as LicenseStatusResult }),
   createActivationRequest: async () => unavailable,
   installLicense: async () => unavailable,

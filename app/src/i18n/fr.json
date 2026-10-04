@@ -81,7 +81,9 @@
   "actions": {
     "erase": "Effacer — {{category}}",
     "force": "Forcer l'effacement",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "unlock": "Déverrouiller…",
+    "dismiss": "Masquer"
   },
   "confirm": {
     "title": "Confirmer l'effacement",
@@ -157,7 +159,9 @@
       "verification": "Vérification firmware : {{passed}}",
       "validation": "Validation : {{result}}",
       "attempt_retry": "Contrôle en échec : nouvelle tentative",
-      "job_failed": "La tâche a échoué : {{reason}}"
+      "job_failed": "La tâche a échoué : {{reason}}",
+      "job_resumed": "Tâche reprise après un arrêt inattendu",
+      "job_state_not_saved": "L'état de la tâche n'a pas pu être enregistré"
     },
     "finished": "Effacement terminé",
     "status": {
@@ -174,6 +178,24 @@
     "exporting": "Rendu en cours…",
     "saved": "Enregistré dans",
     "open": "Ouvrir",
-    "back": "Retour aux disques"
+    "back": "Retour aux disques",
+    "resumed": "Cet effacement a été repris après un arrêt inattendu d'Oblivio : le disque l'a poursuivi seul, Oblivio en vérifie maintenant le résultat."
+  },
+  "unlock": {
+    "title": "Déverrouiller le disque",
+    "explain": "Ce disque est protégé par un mot de passe ATA enregistré dans le disque lui-même, posé par son ancien propriétaire (BIOS, outil de sécurité). Sans ce mot de passe, il refuse toute lecture et toute écriture. Une fois déverrouillé, Oblivio retire ce mot de passe pour pouvoir l'inspecter et l'effacer.",
+    "attempts": "Chaque essai raté compte : après 5 échecs, le disque refuse tout nouvel essai jusqu'à ce qu'il soit éteint puis rallumé.",
+    "kind": "Mot de passe",
+    "User": "Utilisateur",
+    "Master": "Maître",
+    "masterHint": "Le mot de passe maître ne déverrouille le disque que si son niveau de sécurité est « High ».",
+    "password": "Mot de passe ATA",
+    "tooLong": "32 octets au plus.",
+    "submit": "Déverrouiller",
+    "busy": "Déverrouillage…"
+  },
+  "jobs": {
+    "interruptedTitle": "Effacement interrompu, sans certificat",
+    "interruptedHint": "Oblivio s'est arrêté pendant cet effacement et ne peut pas le prouver. Relancez une inspection puis un effacement de ce disque."
   }
 }

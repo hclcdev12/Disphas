@@ -1,7 +1,7 @@
 {
   "_comment": "Recorded from `oblivio-helper --features demo` (fictional drives). Browser preview only.",
   "hello": {
-    "binary_sha256": "",
+    "binary_sha256": "7dda3240199fde7077222f8841c9b4ec7a8f3a3b700ac56218e2bb59d5680123",
     "helper_version": "0.1.0",
     "license": {
       "license_id": null,
@@ -32,7 +32,7 @@
       ]
     },
     {
-      "capacity_bytes": 2000398934016,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": "0011223344556677",
@@ -47,7 +47,7 @@
       "protection": []
     },
     {
-      "capacity_bytes": 4000787030016,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": null,
@@ -92,7 +92,7 @@
       "protection": []
     },
     {
-      "capacity_bytes": null,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": null,
@@ -104,6 +104,21 @@
         "node_hint": "/dev/sdc"
       },
       "kind": null,
+      "protection": []
+    },
+    {
+      "capacity_bytes": 268435456,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO SATA SSD Locked 256GB",
+          "nguid": null,
+          "serial": "DEMO-LOCK-7A11",
+          "wwn": "5002538e00000002"
+        },
+        "node_hint": "/dev/sdd"
+      },
+      "kind": "SataSsd",
       "protection": []
     }
   ],
@@ -133,7 +148,7 @@
       "verdict_id": "v1"
     },
     "DEMO-NVME-4567": {
-      "capacity_bytes": 2000398934016,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": "0011223344556677",
@@ -190,7 +205,7 @@
       "verdict_id": "v2"
     },
     "DEMO-HDD-8C21": {
-      "capacity_bytes": 4000787030016,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": null,
@@ -290,7 +305,7 @@
       "verdict_id": "v5"
     },
     "DEMO-MUTE-0N1X": {
-      "capacity_bytes": null,
+      "capacity_bytes": 268435456,
       "device": {
         "identity": {
           "eui64": null,
@@ -319,6 +334,29 @@
         "state": "SAY_NO"
       },
       "verdict_id": "v6"
+    },
+    "DEMO-LOCK-7A11": {
+      "capacity_bytes": 268435456,
+      "device": {
+        "identity": {
+          "eui64": null,
+          "model": "DEMO SATA SSD Locked 256GB",
+          "nguid": null,
+          "serial": "DEMO-LOCK-7A11",
+          "wwn": "5002538e00000002"
+        },
+        "node_hint": "/dev/sdd"
+      },
+      "firmware": "DEMO01",
+      "kind": "SataSsd",
+      "valid_for_seconds": 600,
+      "verdict": {
+        "reasons": [
+          "B2"
+        ],
+        "state": "BLOCKED"
+      },
+      "verdict_id": "v7"
     }
   }
 }

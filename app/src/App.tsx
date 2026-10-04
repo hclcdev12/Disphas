@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, TriangleAlert, X } from "lucide-react";
 import type { Acknowledgement } from "./bindings/Acknowledgement";
 import type { HelloResult } from "./bindings/HelloResult";
 import type { InspectResult } from "./bindings/InspectResult";
+import type { JobSummary } from "./bindings/JobSummary";
 import type { ListDevicesResult } from "./bindings/ListDevicesResult";
 import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { JobScreen } from "./components/JobScreen";
 import { LicenseDialog } from "./components/LicenseDialog";
-import { applyEvent, emptyJob, type JobView } from "./lib/jobs";
+import { UnlockDialog } from "./components/UnlockDialog";
+import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
-import { Button } from "./components/ui";
+import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome } from "./lib/api";
 import type { Language } from "./i18n";
 
@@ -26,7 +28,9 @@ export default function App() {
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [jobs, setJobs] = useState<Record<string, JobView>>({});
-  const [activeJob, setActiveJob] = useState<{ id: string; model: string } | null>(null);
+  const [activeJob, setActiveJob] = useState<{ id: string; model: string; resumed: boolean } | null>(null);
+  const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
+  const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
 
   // Subscribed before any Sanitize, so no job event is ever missed.
   useEffect(() => {
@@ -53,6 +57,17 @@ export default function App() {
       if (greeted.ok) {
         setLicense(greeted.value.license);
         await refresh();
+        // Jobs known at start-up come from a helper that crashed (protocole_ipc.md §10):
+        // a resumed Sanitize is followed on screen, interrupted ones are reported.
+        const listed = await api.listJobs();
+        if (listed.ok) {
+          setJobs((current) => seedJobs(current, listed.value.jobs));
+          setInterrupted(listed.value.jobs.filter((job) => job.phase === "Interrupted"));
+          const resumed = listed.value.jobs.find((job) => job.phase !== "Interrupted");
+          if (resumed) {
+            setActiveJob({ id: resumed.job_id, model: resumed.device.identity.model, resumed: true });
+          }
+        }
       }
     })();
   }, [refresh]);
@@ -78,7 +93,7 @@ export default function App() {
       organization: null,
     });
     if (!result.ok) return result.error;
-    setActiveJob({ id: result.value.job_id, model: request.inspection.device.identity.model });
+    setActiveJob({ id: result.value.job_id, model: request.inspection.device.identity.model, resumed: false });
     setRequest(null);
     return null;
   };
@@ -98,6 +113,7 @@ export default function App() {
           <JobScreen
             jobId={activeJob.id}
             model={activeJob.model}
+            resumed={activeJob.resumed}
             job={jobs[activeJob.id] ?? emptyJob()}
             onBack={() => {
               setActiveJob(null);
@@ -114,6 +130,29 @@ export default function App() {
           </Button>
         </div>
         {hello && !hello.ok && <p className="text-sayno">{t(`errors.${hello.error.code}`)}</p>}
+        {interrupted.map((job) => (
+          <div
+            key={job.job_id}
+            className="mb-4 flex gap-3 rounded-lg border border-sayno/40 bg-sayno/10 p-4 text-sm"
+          >
+            <TriangleAlert size={16} className="mt-0.5 shrink-0 text-sayno" />
+            <div>
+              <p className="font-bold text-sayno">{t("jobs.interruptedTitle")}</p>
+              <p className="mt-1">
+                {job.device.identity.model} · S/N <Mono>{job.device.identity.serial}</Mono>
+              </p>
+              <p className="mt-1 text-ash">{t("jobs.interruptedHint")}</p>
+            </div>
+            <button
+              type="button"
+              aria-label={t("actions.dismiss")}
+              className="ml-auto self-start text-ash hover:text-soft"
+              onClick={() => setInterrupted((current) => current.filter((other) => other.job_id !== job.job_id))}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
         {devices?.ok && devices.value.devices.length === 0 && <p className="text-ash">{t("drives.empty")}</p>}
         <div className="space-y-4">
           {devices?.ok &&
@@ -124,6 +163,7 @@ export default function App() {
                 inspection={inspections[summary.device.identity.serial]}
                 labels={labels}
                 onErase={setRequest}
+                onUnlock={setUnlocking}
               />
             ))}
         </div>
@@ -132,6 +172,16 @@ export default function App() {
       </main>
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
+      )}
+      {unlocking && (
+        <UnlockDialog
+          device={unlocking.device}
+          onCancel={() => setUnlocking(null)}
+          onUnlocked={() => {
+            setUnlocking(null);
+            void refresh();
+          }}
+        />
       )}
       {request && (
         <ConfirmDialog

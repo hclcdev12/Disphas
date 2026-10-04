@@ -367,6 +367,7 @@ mod tests {
             Command::Inspect(DeviceArgs { device: device() }),
             Command::Unlock(UnlockArgs {
                 device: device(),
+                kind: crate::command::PasswordKind::Master,
                 password: AtaPassword::new("hunter2".to_owned()).expect("short password"),
             }),
             Command::Sanitize(SanitizeArgs {

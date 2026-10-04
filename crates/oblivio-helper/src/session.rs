@@ -205,7 +205,11 @@ impl<B: DeviceBackend> Session<B> {
                     *byte = typed;
                 }
                 self.backend
-                    .unlock(&args.device.identity, &password)
+                    .unlock(
+                        &args.device.identity,
+                        args.kind == oblivio_protocol::command::PasswordKind::Master,
+                        &password,
+                    )
                     .map_err(|error| Failure::new(ErrorCode::UnlockFailed, error))?;
                 to_value(&Empty {})
             }
@@ -872,6 +876,7 @@ mod tests {
         let mut harness = Harness::greeted(vec![], LicenseState::Missing);
         let result = harness.send(Command::Unlock(UnlockArgs {
             device: device_ref("SN-LOCKED"),
+            kind: oblivio_protocol::command::PasswordKind::User,
             password: AtaPassword::new("correct horse".to_owned()).expect("short"),
         }));
         let error = result.expect_err("this backend cannot unlock");

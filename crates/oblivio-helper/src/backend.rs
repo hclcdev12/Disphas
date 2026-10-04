@@ -36,7 +36,12 @@ pub trait DeviceBackend {
 
     /// Unlocks a Locked ATA drive (B2) with the operator's password, then
     /// removes that password so the drive can be erased. Refuses by default.
-    fn unlock(&mut self, _identity: &DeviceIdentity, _password: &[u8; 32]) -> Result<(), String> {
+    fn unlock(
+        &mut self,
+        _identity: &DeviceIdentity,
+        _master: bool,
+        _password: &[u8; 32],
+    ) -> Result<(), String> {
         Err("this backend cannot unlock drives".to_owned())
     }
 }

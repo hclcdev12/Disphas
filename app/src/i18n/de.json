@@ -81,7 +81,9 @@
   "actions": {
     "erase": "Löschen — {{category}}",
     "force": "Löschung erzwingen",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "unlock": "Entsperren…",
+    "dismiss": "Ausblenden"
   },
   "confirm": {
     "title": "Löschung bestätigen",
@@ -157,7 +159,9 @@
       "verification": "Firmware-Verifizierung: {{passed}}",
       "validation": "Validierung: {{result}}",
       "attempt_retry": "Prüfung fehlgeschlagen: neuer Versuch",
-      "job_failed": "Der Auftrag ist fehlgeschlagen: {{reason}}"
+      "job_failed": "Der Auftrag ist fehlgeschlagen: {{reason}}",
+      "job_resumed": "Auftrag nach unerwartetem Abbruch fortgesetzt",
+      "job_state_not_saved": "Der Auftragsstatus konnte nicht gespeichert werden"
     },
     "finished": "Löschung abgeschlossen",
     "status": {
@@ -174,6 +178,24 @@
     "exporting": "Wird erstellt…",
     "saved": "Gespeichert unter",
     "open": "Öffnen",
-    "back": "Zurück zu den Laufwerken"
+    "back": "Zurück zu den Laufwerken",
+    "resumed": "Diese Löschung wurde nach einem unerwarteten Abbruch von Oblivio fortgesetzt: Das Laufwerk hat sie selbstständig weitergeführt, Oblivio prüft jetzt das Ergebnis."
+  },
+  "unlock": {
+    "title": "Laufwerk entsperren",
+    "explain": "Dieses Laufwerk ist durch ein ATA-Passwort geschützt, das im Laufwerk selbst gespeichert ist und vom Vorbesitzer gesetzt wurde (BIOS, Sicherheitswerkzeug). Ohne dieses Passwort verweigert es jedes Lesen und Schreiben. Nach dem Entsperren entfernt Oblivio das Passwort, damit das Laufwerk geprüft und gelöscht werden kann.",
+    "attempts": "Jeder Fehlversuch zählt: Nach 5 Fehlversuchen verweigert das Laufwerk jeden weiteren Versuch, bis es aus- und wieder eingeschaltet wird.",
+    "kind": "Passwort",
+    "User": "Benutzer",
+    "Master": "Master",
+    "masterHint": "Das Master-Passwort entsperrt das Laufwerk nur bei Sicherheitsstufe „High“.",
+    "password": "ATA-Passwort",
+    "tooLong": "Höchstens 32 Bytes.",
+    "submit": "Entsperren",
+    "busy": "Wird entsperrt…"
+  },
+  "jobs": {
+    "interruptedTitle": "Löschung unterbrochen, keine Bescheinigung",
+    "interruptedHint": "Oblivio wurde während dieser Löschung beendet und kann sie nicht nachweisen. Prüfen und löschen Sie das Laufwerk erneut."
   }
 }

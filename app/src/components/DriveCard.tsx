@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Ban, HardDrive, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Ban, HardDrive, KeyRound, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
 import type { DeviceSummary } from "../bindings/DeviceSummary";
 import type { InspectResult } from "../bindings/InspectResult";
 import type { MethodChoice } from "../bindings/MethodChoice";
@@ -33,11 +33,13 @@ export function DriveCard({
   inspection,
   labels,
   onErase,
+  onUnlock,
 }: {
   summary: DeviceSummary;
   inspection: Outcome<InspectResult> | undefined;
   labels: Record<string, string>;
   onErase: (request: EraseRequest) => void;
+  onUnlock: (inspection: InspectResult) => void;
 }) {
   const { t, i18n } = useTranslation();
   const label = (code: string) => (labels[code] ? `${labels[code]} (${code})` : code);
@@ -85,7 +87,7 @@ export function DriveCard({
       )}
       {inspection?.ok && (
         <div className={`mt-4 rounded-lg border p-4 ${frameTone[inspection.value.verdict.state]}`}>
-          <Verdict inspection={inspection.value} label={label} onErase={onErase} />
+          <Verdict inspection={inspection.value} label={label} onErase={onErase} onUnlock={onUnlock} />
         </div>
       )}
     </article>
@@ -96,10 +98,12 @@ function Verdict({
   inspection,
   label,
   onErase,
+  onUnlock,
 }: {
   inspection: InspectResult;
   label: (code: string) => string;
   onErase: (request: EraseRequest) => void;
+  onUnlock: (inspection: InspectResult) => void;
 }) {
   const { t } = useTranslation();
   const verdict = inspection.verdict;
@@ -116,13 +120,24 @@ function Verdict({
       );
     case "BLOCKED":
       return (
-        <Reasons
-          icon={<Lock size={16} className="text-blocked" />}
-          hint={t("verdict.blockedHint")}
-          items={verdict.reasons.map(
-            (code) => `${t(`block.${code}`)} (${code}) — ${t(`guidance.${code}`)}`,
+        <>
+          <Reasons
+            icon={<Lock size={16} className="text-blocked" />}
+            hint={t("verdict.blockedHint")}
+            items={verdict.reasons.map(
+              (code) => `${t(`block.${code}`)} (${code}) — ${t(`guidance.${code}`)}`,
+            )}
+          />
+          {/* B6: attempts exhausted, only a power cycle helps. */}
+          {verdict.reasons.includes("B2") && !verdict.reasons.includes("B6") && (
+            <div className="mt-4 flex justify-end">
+              <Button className="flex items-center gap-2" onClick={() => onUnlock(inspection)}>
+                <KeyRound size={14} />
+                {t("actions.unlock")}
+              </Button>
+            </div>
           )}
-        />
+        </>
       );
     case "SAY_NO": {
       const forcible = verdict.forcible;
