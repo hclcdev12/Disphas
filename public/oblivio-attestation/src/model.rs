@@ -181,6 +181,34 @@ pub struct Disposition {
     pub codes: Vec<Code>,
 }
 
+/// Whether `text` can be certified and displayed as typed: no control
+/// character (except line feeds when `multiline`), no invisible or
+/// direction-changing formatting character — those could make a printed
+/// name read differently from what is signed ("Trojan Source").
+pub fn is_displayable(text: &str, multiline: bool) -> bool {
+    text.chars()
+        .all(|c| !(c.is_control() && !(multiline && c == '\n')) && !is_format(c))
+}
+
+/// Unicode format characters (category Cf) that are invisible or change
+/// the direction of the text around them.
+fn is_format(c: char) -> bool {
+    matches!(
+        u32::from(c),
+        0x00AD                  // soft hyphen
+            | 0x061C            // Arabic letter mark
+            | 0x180E            // Mongolian vowel separator
+            | 0x200B..=0x200F   // zero-width space, joiners, LRM, RLM
+            | 0x202A..=0x202E   // embeddings and overrides
+            | 0x2060..=0x2064   // word joiner, invisible operators
+            | 0x2066..=0x206F   // isolates, deprecated format characters
+            | 0xFEFF            // zero-width no-break space
+            | 0xFFF9..=0xFFFB   // interlinear annotation
+            | 0xE0001
+            | 0xE0020..=0xE007F // tags
+    )
+}
+
 /// The batch a drive was erased in (`lot`): lets a batch certificate prove
 /// that each drive belongs to it. Declarative, chosen by the operator.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -206,10 +234,9 @@ impl Batch {
     /// Whether the identifier and label are within bounds.
     pub fn is_valid(&self) -> bool {
         Self::valid_id(&self.id)
-            && self
-                .label
-                .as_ref()
-                .is_none_or(|label| label.chars().count() <= Self::MAX_LABEL_CHARS)
+            && self.label.as_ref().is_none_or(|label| {
+                label.chars().count() <= Self::MAX_LABEL_CHARS && is_displayable(label, false)
+            })
     }
 }
 
@@ -369,6 +396,13 @@ impl ActivationRequest {
 }
 
 impl Attestation {
+    /// Longest operator name, in characters (`op`).
+    pub const MAX_OPERATOR_CHARS: usize = 64;
+    /// Longest organization name, in characters (`org`).
+    pub const MAX_ORGANIZATION_CHARS: usize = 128;
+    /// Longest forcing justification, in characters (`frc`).
+    pub const MAX_JUSTIFICATION_CHARS: usize = 500;
+
     /// Deterministic CBOR encoding.
     pub fn to_cbor(&self) -> Vec<u8> {
         let device = &self.device;
@@ -607,6 +641,16 @@ impl Attestation {
     /// - REFUS: category None, refusal reasons, no disposition, no `z`.
     pub fn check_consistency(&self) -> Result<(), CborError> {
         let fail = |reason| Err(CborError::Inconsistent(reason));
+        let bounded = |text: &Option<String>, max: usize, multiline: bool| {
+            text.as_ref()
+                .is_none_or(|text| text.chars().count() <= max && is_displayable(text, multiline))
+        };
+        if !bounded(&self.operator, Self::MAX_OPERATOR_CHARS, false)
+            || !bounded(&self.organization, Self::MAX_ORGANIZATION_CHARS, false)
+            || !bounded(&self.justification, Self::MAX_JUSTIFICATION_CHARS, true)
+        {
+            return fail("declarative text too long or not displayable");
+        }
         let san = &self.sanitization;
         let by_pattern = self
             .validation

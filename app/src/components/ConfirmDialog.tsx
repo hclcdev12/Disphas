@@ -145,6 +145,7 @@ export function ConfirmDialog({
           {t("confirm.justification")}
           <textarea
             className="mt-1.5 block h-20 w-full rounded-md border border-edge bg-night p-2 text-sm font-normal"
+            maxLength={500}
             value={justification}
             onChange={(event) => setJustification(event.target.value)}
           />

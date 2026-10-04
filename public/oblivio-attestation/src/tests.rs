@@ -517,3 +517,37 @@ fn contradictory_attestations_are_rejected_even_when_signed() {
         verify(&signed, &root_key(), &[]).expect("consistent");
     }
 }
+
+#[test]
+fn declarative_text_must_be_displayable() {
+    use crate::model::{Batch, is_displayable};
+    assert!(is_displayable("Atelier XYZ — Lyon", false));
+    assert!(is_displayable("ligne 1\nligne 2", true));
+    assert!(!is_displayable("ligne 1\nligne 2", false));
+    for bad in [
+        "\u{202E}",
+        "\u{200B}",
+        "\u{2067}",
+        "\u{FEFF}",
+        "\u{E0041}",
+        "\t",
+        "\u{7}",
+    ] {
+        assert!(!is_displayable(&format!("a{bad}b"), true), "{bad:?}");
+    }
+    let batch = |label: &str| Batch {
+        id: "LOT-1".to_owned(),
+        label: Some(label.to_owned()),
+    };
+    assert!(batch("Commande 4512").is_valid());
+    assert!(!batch("Commande \u{202E}2154").is_valid());
+
+    let key = workstation();
+    let mut spoofed = attestation(signed_license(&license(None), &root()));
+    spoofed.organization = Some("Atelier \u{202E}ZYX".to_owned());
+    let signed = sign_attestation(&spoofed, &key).expect("signed");
+    assert!(matches!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+    ));
+}

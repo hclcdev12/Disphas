@@ -90,6 +90,9 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
   `CONFORME` : méthode, `ver` vrai, `val.ok` vrai, catégorie ≠ `None`, `dis` présent, `rsn` vide, pas de `frc` ;
   `NON_CONFORME` : `frc` et `rsn` non vide, catégorie ≠ `Purge` ;
   `REFUS` : catégorie `None`, `rsn` non vide, ni `dis` ni `z`.
+  Textes déclaratifs : `op` ≤ 64, `org` ≤ 128, `frc` ≤ 500, `lot.lbl` ≤ 128 caractères, sans caractère de contrôle
+  (sauf retour à la ligne dans `frc`) ni caractère de mise en forme invisible ou d'inversion de sens : un nom
+  imprimé ne peut pas se lire autrement que ce qui est signé.
 
 ## 3. Les trois statuts
 

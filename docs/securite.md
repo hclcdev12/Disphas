@@ -104,6 +104,10 @@ Testés sur arborescence simulée ; le comportement réel des loop et du déclen
 
 ### 5.3 Faibles et informatifs (extraits)
 
+Corrigés le 2026-10-04 :
+
+- **L1 textes** : opérateur, organisation, justification (≤ 500) et libellé de lot refusent les caractères de contrôle et de mise en forme invisibles ou d'inversion de sens, au helper et au décodage de toute attestation.
+
 Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
 « format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après
 l'effacement du même disque ; l'onglet *Vérifier* affiche « authentique » en vert même si le journal joint ne

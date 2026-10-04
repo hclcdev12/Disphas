@@ -20,6 +20,8 @@ use serde_json::Value;
 
 use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
+
+use oblivio_attestation::model::{Attestation, is_displayable};
 use std::thread::JoinHandle;
 
 use oblivio_protocol::ServerMessage;
@@ -412,6 +414,15 @@ impl<B: DeviceBackend> Session<B> {
 
         // 7. Forcing only on a forcible SAY NO, with a long enough justification.
         let forced = match &args.force {
+            Some(force)
+                if force.justification.chars().count() > Attestation::MAX_JUSTIFICATION_CHARS
+                    || !is_displayable(&force.justification, true) =>
+            {
+                return Err(Failure::new(
+                    ErrorCode::ForceNotAllowed,
+                    "justification too long or not displayable",
+                ));
+            }
             Some(force) => Some(
                 oblivio_core::force(&issued.verdict, &force.justification, &self.config.rules)
                     .map_err(|error| Failure::new(ErrorCode::ForceNotAllowed, error.to_string()))?,
@@ -741,18 +752,18 @@ fn last_chars(text: &str, count: usize) -> &str {
 }
 
 /// Longest operator name or identifier, in characters.
-pub const MAX_OPERATOR_CHARS: usize = 64;
+pub const MAX_OPERATOR_CHARS: usize = Attestation::MAX_OPERATOR_CHARS;
 /// Longest organization name, in characters.
-pub const MAX_ORGANIZATION_CHARS: usize = 128;
+pub const MAX_ORGANIZATION_CHARS: usize = Attestation::MAX_ORGANIZATION_CHARS;
 
 /// A declarative field as it will be signed: trimmed, empty means absent.
-/// `None` when it is too long or holds control characters.
+/// `None` when it is too long or holds control or formatting characters.
 fn declarative(text: &Option<String>, max_chars: usize) -> Option<Option<String>> {
     let Some(text) = text else {
         return Some(None);
     };
     let text = text.trim();
-    if text.chars().count() > max_chars || text.chars().any(char::is_control) {
+    if text.chars().count() > max_chars || !is_displayable(text, false) {
         return None;
     }
     Some((!text.is_empty()).then(|| text.to_owned()))
@@ -1264,6 +1275,57 @@ mod tests {
             code(harness.send(Command::Sanitize(args))),
             ErrorCode::ForceNotAllowed
         );
+    }
+
+    #[test]
+    fn check_7_justification_must_be_bounded_and_displayable() {
+        let mut failed = nvme_device("SN-DEAD");
+        failed.profile.inspection = Inspection::Failed;
+        let mut harness = Harness::greeted(vec![failed], LicenseState::Valid);
+        let mut attempt = |justification: String| {
+            let inspected = harness.inspect("SN-DEAD");
+            let mut args = sanitize_args(&inspected, "DEAD");
+            args.acknowledged = vec![Acknowledgement::Reserve(ReserveCode::HostWriteCoverage)];
+            args.force = Some(ForceArgs { justification });
+            code(harness.send(Command::Sanitize(args)))
+        };
+        let base = "IDENTIFY muet, écriture forcée sur demande";
+        assert_eq!(
+            attempt(format!("{base} \u{202E}evil")),
+            ErrorCode::ForceNotAllowed,
+            "direction override"
+        );
+        assert_eq!(
+            attempt(format!("{base}\u{200B}")),
+            ErrorCode::ForceNotAllowed,
+            "zero-width space"
+        );
+        assert_eq!(attempt("x".repeat(501)), ErrorCode::ForceNotAllowed);
+        assert_ne!(
+            attempt(format!("{base}\nsur deux lignes")),
+            ErrorCode::ForceNotAllowed,
+            "line feeds are allowed"
+        );
+    }
+
+    #[test]
+    fn declarative_fields_refuse_formatting_characters() {
+        assert_eq!(
+            declarative(&Some("  J. Martin ".to_owned()), MAX_OPERATOR_CHARS),
+            Some(Some("J. Martin".to_owned()))
+        );
+        for bad in [
+            "J.\u{202E}nitraM",
+            "Atelier\u{2066}XYZ",
+            "a\nb",
+            "\u{FEFF}x",
+        ] {
+            assert_eq!(
+                declarative(&Some(bad.to_owned()), MAX_OPERATOR_CHARS),
+                None,
+                "{bad:?}"
+            );
+        }
     }
 
     #[test]

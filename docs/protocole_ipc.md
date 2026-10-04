@@ -272,7 +272,9 @@ UI                                   helper
   - contrôle 5 : `detail` liste les codes manquants (`"D4,R7"`) pour que l'app les signale ;
   - contrôle 5 porte sur la méthode **choisie** (R7 exigé pour une écriture hôte en alternative) ;
   - `operator` (≤ 64 caractères) et `organization` (≤ 128), signés tels quels : espaces de bord retirés, vide =
-    absent, caractères de contrôle refusés (`BAD_REQUEST`) — ajouté le 2026-10-04 ;
+    absent, caractères de contrôle refusés (`BAD_REQUEST`) — ajouté le 2026-10-04 ; caractères de mise en forme
+    invisibles ou d'inversion de sens (U+202E, U+200B…) refusés aussi, comme dans le libellé de lot ; justification
+    de forçage ≤ 500 caractères, retours à la ligne seuls permis (`FORCE_NOT_ALLOWED`) ;
   - au-delà des contrôles, l'exécution n'est pas encore implémentée (`INTERNAL`).
 - `Unlock` (2026-10-04) : `kind` = `User` ou `Master` (le maître ne marche qu'en niveau de sécurité *High*) ; déverrouille (SECURITY UNLOCK, mot de passe utilisateur complété par des zéros
   jusqu'à 32 octets) puis **retire** le mot de passe (SECURITY DISABLE PASSWORD), pour que le disque
