@@ -63,7 +63,7 @@ oblivio/
 │   ├── oblivio-license/
 │   ├── oblivio-helper/
 │   └── oblivio-report/
-└── app/                    oblivio-app : Tauri v2 + React/Vite/Tailwind/shadcn
+└── app/                    oblivio-app : Tauri v2 + React/Vite/Tailwind
 ```
 
 **Dépendances autorisées :**
