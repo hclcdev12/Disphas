@@ -110,3 +110,40 @@ fn remote_packages_cannot_be_imported() {
     let result = compile_pdf(template, Dict::new(), fixture::ISSUED_AT, "test");
     assert!(matches!(result, Err(ReportError::Layout(_))));
 }
+
+#[test]
+fn attachments_are_read_back_from_the_pdf() {
+    let signed_bytes = signed(Status::Compliant, "Atelier XYZ");
+    let pdf = render(
+        &signed_bytes,
+        JOURNAL,
+        &root().verifying_key(),
+        &[],
+        &RenderOptions {
+            lang: Lang::Fr,
+            logo: None,
+        },
+    )
+    .expect("rendered");
+    let attached = crate::extract::attachments(&pdf).expect("attachments");
+    assert_eq!(attached.attestation, signed_bytes);
+    assert_eq!(attached.journal.as_deref(), Some(JOURNAL));
+}
+
+#[test]
+fn foreign_or_broken_pdfs_are_refused() {
+    use crate::extract::{ExtractError, attachments};
+    assert!(matches!(
+        attachments(b"not a pdf"),
+        Err(ExtractError::NotPdf(_))
+    ));
+    assert!(matches!(
+        attachments(b"%PDF-1.7\n%%EOF"),
+        Err(ExtractError::NotPdf(_))
+    ));
+    // Truncated certificate: never a panic.
+    let pdf = render_with(Status::Refused, "x", Lang::En).expect("rendered");
+    for cut in [10, pdf.len() / 3, pdf.len() / 2, pdf.len() - 10] {
+        let _ = attachments(&pdf[..cut]);
+    }
+}

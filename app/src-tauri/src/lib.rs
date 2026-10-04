@@ -5,6 +5,7 @@
 mod certificate;
 mod helper;
 mod history;
+mod verification;
 
 use std::collections::HashMap;
 
@@ -89,6 +90,28 @@ async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// Verifies a certificate given by the user (PDF, COSE or QR text, base64).
+#[tauri::command]
+async fn verify_certificate(data: String) -> Result<verification::Report, String> {
+    use base64::Engine;
+    // Base64 is 4/3 of the input: refuse oversized input before decoding it.
+    if data.len() > verification::MAX_INPUT_BYTES / 3 * 4 + 4 {
+        return Err("input too large".to_owned());
+    }
+    let input = base64::engine::general_purpose::STANDARD
+        .decode(data.trim())
+        .map_err(|error| error.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let official = oblivio_attestation::trust::official_root_key();
+        let mut roots = oblivio_license::trusted_roots();
+        // The official root first, so it is the one reported when both match.
+        roots.sort_by_key(|root| Some(*root) != official);
+        verification::check(&input, official, &roots)
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
 /// Opens a certificate saved by `render_certificate`.
 #[tauri::command]
 fn open_certificate(path: String) -> Result<(), String> {
@@ -125,7 +148,8 @@ pub fn run() {
             render_certificate,
             open_certificate,
             list_reports,
-            render_report
+            render_report,
+            verify_certificate
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {

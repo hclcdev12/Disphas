@@ -200,7 +200,8 @@
   },
   "nav": {
     "drives": "Laufwerke",
-    "history": "Verlauf"
+    "history": "Verlauf",
+    "verify": "Prüfen"
   },
   "history": {
     "title": "Verlauf der Bescheinigungen",
@@ -213,6 +214,69 @@
       "Invalid": "Ungültige Signatur: Diese Bescheinigung wird nicht angezeigt",
       "JournalMismatch": "Protokoll geändert oder ersetzt: Diese Bescheinigung wird nicht angezeigt",
       "Unreadable": "Unlesbare oder unvollständige Bescheinigung"
+    }
+  },
+  "verify": {
+    "title": "Bescheinigung prüfen",
+    "drop": "Legen Sie hier eine PDF-Bescheinigung oder eine .cose-Datei ab. Die Prüfung erfolgt vollständig offline.",
+    "choose": "Datei wählen…",
+    "qr": "…oder fügen Sie den Text des QR-Codes ein",
+    "verifyQr": "Text prüfen",
+    "qrSource": "Text des QR-Codes",
+    "busy": "Wird geprüft…",
+    "authentic": "Echte Bescheinigung",
+    "rejected": "KEINE echte Bescheinigung",
+    "source": {
+      "Pdf": "PDF (angehängte Attestierung)",
+      "Cose": "COSE-Attestierung",
+      "Qr": "QR-Code"
+    },
+    "developmentRoot": "Mit dem ENTWICKLUNGS-Stammschlüssel signiert: Diese Bescheinigung hat im Betrieb keinen Wert.",
+    "journalMismatch": "Das angehängte Protokoll ist nicht das von der Attestierung signierte: Es wurde verändert oder ersetzt.",
+    "journalAbsent": "Kein ausführliches Protokoll angegeben: Nur die Attestierung wird geprüft.",
+    "journalMatches": "Das angehängte Protokoll ist das von der Attestierung signierte.",
+    "yes": "ja",
+    "no": "nein",
+    "validation": "{{method}}, {{samples}} Blöcke, bestanden: {{result}}",
+    "rules": "Regeln {{version}}",
+    "disposition": {
+      "Reuse": "Wiederverwendung möglich",
+      "DestroyRecommended": "Physische Vernichtung empfohlen"
+    },
+    "field": {
+      "date": "Datum",
+      "drive": "Laufwerk",
+      "firmware": "Firmware",
+      "method": "Methode",
+      "verified": "Firmware-Prüfung",
+      "validation": "Validierung",
+      "disposition": "Verbleib",
+      "reserves": "Vorbehalte",
+      "refusals": "Gründe",
+      "justification": "Begründung des Erzwingens",
+      "operator": "Bediener",
+      "license": "Lizenz",
+      "tool": "Werkzeug",
+      "binary": "Fingerabdruck der Binärdatei",
+      "id": "Kennung"
+    },
+    "reason": {
+      "NotOblivio": "Dies ist kein Oblivio-QR-Code.",
+      "Corrupted": "Der QR-Text ist beschädigt oder unvollständig.",
+      "AttestationInvalid": "Die Attestierung ist fehlerhaft oder verändert.",
+      "LicenseInvalid": "Die Lizenz ist nicht mit einem anerkannten Stammschlüssel signiert: Diese Bescheinigung stammt nicht von einem echten Oblivio.",
+      "LicenseNotValid": "Die Lizenz des Arbeitsplatzes war zum Datum der Bescheinigung nicht gültig.",
+      "LicenseRevoked": "Die Lizenz des Arbeitsplatzes war zum Datum der Bescheinigung widerrufen.",
+      "SignatureInvalid": "Die Signatur passt nicht: Die Bescheinigung wurde nach der Signatur verändert.",
+      "NoTrustedRoot": "Kein vertrauenswürdiger Stammschlüssel in dieser Version.",
+      "NoAttestation": "Dieses PDF enthält keine Oblivio-Attestierung: Es ist keine Oblivio-Bescheinigung oder wurde neu gedruckt.",
+      "PdfUnreadable": "Dieses PDF ist unlesbar.",
+      "TooLarge": "Datei zu groß (höchstens 32 MiB).",
+      "Unknown": "Bescheinigung nicht überprüfbar."
+    },
+    "validationMethod": {
+      "canaris": "Kanarienblöcke",
+      "motif": "Muster zurückgelesen"
     }
   }
 }

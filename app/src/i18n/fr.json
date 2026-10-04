@@ -200,7 +200,8 @@
   },
   "nav": {
     "drives": "Disques",
-    "history": "Historique"
+    "history": "Historique",
+    "verify": "Vérifier"
   },
   "history": {
     "title": "Historique des certificats",
@@ -213,6 +214,69 @@
       "Invalid": "Signature invalide : ce certificat n'est pas affiché",
       "JournalMismatch": "Journal modifié ou remplacé : ce certificat n'est pas affiché",
       "Unreadable": "Certificat illisible ou incomplet"
+    }
+  },
+  "verify": {
+    "title": "Vérifier un certificat",
+    "drop": "Déposez ici un certificat PDF ou un fichier .cose. La vérification se fait entièrement hors ligne.",
+    "choose": "Choisir un fichier…",
+    "qr": "…ou collez le texte du QR code",
+    "verifyQr": "Vérifier le texte",
+    "qrSource": "Texte du QR code",
+    "busy": "Vérification…",
+    "authentic": "Certificat authentique",
+    "rejected": "Certificat NON authentique",
+    "source": {
+      "Pdf": "PDF (attestation jointe)",
+      "Cose": "attestation COSE",
+      "Qr": "QR code"
+    },
+    "developmentRoot": "Signé avec la clé racine de DÉVELOPPEMENT : ce certificat n'a aucune valeur en production.",
+    "journalMismatch": "Le journal joint ne correspond pas à celui que l'attestation signe : il a été modifié ou remplacé.",
+    "journalAbsent": "Journal détaillé non fourni : seule l'attestation est vérifiée.",
+    "journalMatches": "Le journal joint est bien celui que l'attestation signe.",
+    "yes": "oui",
+    "no": "non",
+    "validation": "{{method}}, {{samples}} blocs, réussie : {{result}}",
+    "rules": "règles {{version}}",
+    "disposition": {
+      "Reuse": "Réemploi possible",
+      "DestroyRecommended": "Destruction physique recommandée"
+    },
+    "field": {
+      "date": "Date",
+      "drive": "Disque",
+      "firmware": "firmware",
+      "method": "Méthode",
+      "verified": "Vérification firmware",
+      "validation": "Validation",
+      "disposition": "Devenir",
+      "reserves": "Réserves",
+      "refusals": "Motifs",
+      "justification": "Justification du forçage",
+      "operator": "Opérateur",
+      "license": "Licence",
+      "tool": "Outil",
+      "binary": "Empreinte du binaire",
+      "id": "Identifiant"
+    },
+    "reason": {
+      "NotOblivio": "Ce n'est pas un QR code Oblivio.",
+      "Corrupted": "Le texte du QR code est corrompu ou incomplet.",
+      "AttestationInvalid": "L'attestation est mal formée ou altérée.",
+      "LicenseInvalid": "La licence n'est pas signée par une clé racine reconnue : ce certificat ne vient pas d'un Oblivio authentique.",
+      "LicenseNotValid": "La licence du poste n'était pas valide à la date du certificat.",
+      "LicenseRevoked": "La licence du poste avait été révoquée à la date du certificat.",
+      "SignatureInvalid": "La signature ne correspond pas : le certificat a été modifié après sa signature.",
+      "NoTrustedRoot": "Aucune clé racine de confiance dans cette version.",
+      "NoAttestation": "Ce PDF ne contient pas d'attestation Oblivio : ce n'est pas un certificat Oblivio, ou il a été réimprimé.",
+      "PdfUnreadable": "Ce PDF est illisible.",
+      "TooLarge": "Fichier trop volumineux (32 Mio au plus).",
+      "Unknown": "Certificat non vérifiable."
+    },
+    "validationMethod": {
+      "canaris": "canaris",
+      "motif": "motif relu"
     }
   }
 }

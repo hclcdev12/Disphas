@@ -200,7 +200,8 @@
   },
   "nav": {
     "drives": "Drives",
-    "history": "History"
+    "history": "History",
+    "verify": "Verify"
   },
   "history": {
     "title": "Certificate history",
@@ -213,6 +214,69 @@
       "Invalid": "Invalid signature: this certificate is not shown",
       "JournalMismatch": "Journal modified or replaced: this certificate is not shown",
       "Unreadable": "Unreadable or incomplete certificate"
+    }
+  },
+  "verify": {
+    "title": "Verify a certificate",
+    "drop": "Drop a PDF certificate or a .cose file here. Verification runs fully offline.",
+    "choose": "Choose a file…",
+    "qr": "…or paste the QR code text",
+    "verifyQr": "Verify the text",
+    "qrSource": "QR code text",
+    "busy": "Verifying…",
+    "authentic": "Authentic certificate",
+    "rejected": "NOT an authentic certificate",
+    "source": {
+      "Pdf": "PDF (attached attestation)",
+      "Cose": "COSE attestation",
+      "Qr": "QR code"
+    },
+    "developmentRoot": "Signed with the DEVELOPMENT root key: this certificate has no value in production.",
+    "journalMismatch": "The attached journal is not the one the attestation signs: it was modified or replaced.",
+    "journalAbsent": "Detailed journal not provided: only the attestation is verified.",
+    "journalMatches": "The attached journal is the one the attestation signs.",
+    "yes": "yes",
+    "no": "no",
+    "validation": "{{method}}, {{samples}} blocks, passed: {{result}}",
+    "rules": "rules {{version}}",
+    "disposition": {
+      "Reuse": "Can be reused",
+      "DestroyRecommended": "Physical destruction recommended"
+    },
+    "field": {
+      "date": "Date",
+      "drive": "Drive",
+      "firmware": "firmware",
+      "method": "Method",
+      "verified": "Firmware verification",
+      "validation": "Validation",
+      "disposition": "Disposition",
+      "reserves": "Reserves",
+      "refusals": "Reasons",
+      "justification": "Forcing justification",
+      "operator": "Operator",
+      "license": "License",
+      "tool": "Tool",
+      "binary": "Binary fingerprint",
+      "id": "Identifier"
+    },
+    "reason": {
+      "NotOblivio": "This is not an Oblivio QR code.",
+      "Corrupted": "The QR text is corrupted or incomplete.",
+      "AttestationInvalid": "The attestation is malformed or altered.",
+      "LicenseInvalid": "The license is not signed by a recognized root key: this certificate does not come from a genuine Oblivio.",
+      "LicenseNotValid": "The workstation license was not valid at the certificate date.",
+      "LicenseRevoked": "The workstation license had been revoked at the certificate date.",
+      "SignatureInvalid": "The signature does not match: the certificate was modified after signing.",
+      "NoTrustedRoot": "No trusted root key in this build.",
+      "NoAttestation": "This PDF holds no Oblivio attestation: it is not an Oblivio certificate, or it was reprinted.",
+      "PdfUnreadable": "This PDF is unreadable.",
+      "TooLarge": "File too large (32 MiB at most).",
+      "Unknown": "Certificate cannot be verified."
+    },
+    "validationMethod": {
+      "canaris": "canaries",
+      "motif": "pattern read back"
     }
   }
 }

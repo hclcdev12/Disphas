@@ -15,6 +15,7 @@ import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
+import { VerifyScreen } from "./components/VerifyScreen";
 import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome } from "./lib/api";
 import type { Language } from "./i18n";
@@ -32,7 +33,7 @@ export default function App() {
   const [activeJob, setActiveJob] = useState<{ id: string; model: string; resumed: boolean } | null>(null);
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
-  const [view, setView] = useState<"drives" | "history">("drives");
+  const [view, setView] = useState<"drives" | "history" | "verify">("drives");
 
   // Subscribed before any Sanitize, so no job event is ever missed.
   useEffect(() => {
@@ -125,7 +126,7 @@ export default function App() {
         ) : (
         <>
         <nav className="mb-5 flex gap-1 border-b border-edge">
-          {(["drives", "history"] as const).map((tab) => (
+          {(["drives", "history", "verify"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -140,6 +141,8 @@ export default function App() {
         </nav>
         {view === "history" ? (
           <HistoryScreen labels={labels} />
+        ) : view === "verify" ? (
+          <VerifyScreen labels={labels} />
         ) : (
         <>
         <div className="mb-4 flex items-center">

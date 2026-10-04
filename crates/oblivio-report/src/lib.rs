@@ -9,6 +9,7 @@
 //! This crate never performs low-level disk access, never handles a private
 //! key, and makes no network access: Typst package downloads are disabled.
 
+pub mod extract;
 mod i18n;
 mod qr;
 

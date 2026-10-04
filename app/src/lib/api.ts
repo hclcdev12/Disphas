@@ -18,6 +18,7 @@ import type { Language } from "../i18n";
 import recording from "../dev/demo-recording.json";
 import previewLabels from "../dev/code-labels.json";
 import previewHistory from "../dev/history-sample.json";
+import previewVerification from "../dev/verification-sample.json";
 
 /** One report of the certificate history (app/src-tauri/src/history.rs). */
 export type HistoryEntry = {
@@ -33,6 +34,42 @@ export type HistoryEntry = {
     capacity_bytes: number;
     operator: string | null;
     organization: string | null;
+  } | null;
+};
+
+/** Outcome of a certificate verification (app/src-tauri/src/verification.rs). */
+export type VerificationReport = {
+  source: "Pdf" | "Cose" | "Qr" | null;
+  authentic: boolean;
+  reason: string | null;
+  root: "Official" | "Development" | null;
+  journal: "Matches" | "Mismatch" | "Absent";
+  details: {
+    id: string;
+    issued_at: number;
+    status: "CONFORME" | "NON_CONFORME" | "REFUS";
+    category: "Clear" | "Purge" | "None";
+    method: string | null;
+    verified: boolean | null;
+    validation: { method: string; samples: number; passed: boolean } | null;
+    disposition: "Reuse" | "DestroyRecommended" | null;
+    disposition_codes: string[];
+    reserves: string[];
+    refusals: string[];
+    justification: string | null;
+    model: string;
+    serial: string;
+    firmware: string;
+    capacity_bytes: number;
+    drive_type: string;
+    hardware_id: string | null;
+    operator: string | null;
+    organization: string | null;
+    tool_version: string;
+    rules_version: string;
+    binary_sha256: string;
+    license_id: string;
+    customer: string;
   } | null;
 };
 
@@ -65,6 +102,8 @@ export interface OblivioApi {
   listReports(): Promise<HistoryEntry[]>;
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
+  /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
+  verifyCertificate(data: string): Promise<VerificationReport | { error: string }>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
   codeLabels(lang: Language): Promise<Record<string, string>>;
 }
@@ -113,6 +152,8 @@ const tauriApi: OblivioApi = {
       return { ok: false, error: asHelperError(error) };
     }
   },
+  verifyCertificate: (data) =>
+    invoke<VerificationReport>("verify_certificate", { data }).catch((error) => ({ error: String(error) })),
   codeLabels: (lang) => invoke<Record<string, string>>("code_labels", { lang }),
 };
 
@@ -144,6 +185,8 @@ const previewApi: OblivioApi = {
   openCertificate: async () => {},
   listReports: async () => previewHistory.entries as HistoryEntry[],
   renderReport: async () => unavailable,
+  // The browser cannot verify: shows a fictional verified report, for layout only.
+  verifyCertificate: async () => previewVerification.report as VerificationReport,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 

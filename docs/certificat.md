@@ -157,7 +157,11 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
 | **Audit** | PDF + journal | Idem + relecture complète des échantillons et de la chronologie |
 
 **Outils de vérification :**
-- Intégré à l'application (menu « Vérifier un certificat »).
+- Intégré à l'application (onglet « Vérifier », implémenté le 2026-10-04) : PDF (lecture de
+  `attestation.cose` et `journal.json` joints, tailles bornées), `.cose` ou texte du QR collé. Mêmes contrôles
+  que `oblivio-verify` ; un certificat non authentique est affiché par son motif seulement, jamais par son
+  contenu. Un certificat signé par la racine de **développement** est signalé comme sans valeur en production ;
+  un journal joint qui ne correspond pas à `jh` est signalé. Niveau *Audit* (relecture des échantillons) : à faire.
 - `oblivio-verify` : vérificateur CLI **gratuit et open source**, dans un dépôt public séparé qui n'expose
   que le format de l'attestation et la vérification (voir [cadre](cadre_projet.md) §8).
 - Le vérificateur affiche le résultat dans la langue de **son** utilisateur, quelle que soit la langue du PDF.
@@ -168,9 +172,8 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
   Lecture du **PDF** à ajouter quand `oblivio-report` en produira.
 - Codes de sortie : **0** authentique (et journal conforme s'il est fourni), **1** non authentique, **2** erreur d'usage.
 - Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
-- ⚠️ La clé racine officielle n'existe pas encore (`OFFICIAL_ROOT_KEY` vide) : `--root-key` est obligatoire
-  et le rapport avertit qu'il s'agit d'une clé non officielle. La liste de révocation n'est pas encore lue
-  (format à définir).
+- Clé racine officielle intégrée depuis le 2026-10-04 ; `--root-key` reste possible et le rapport avertit
+  alors qu'il s'agit d'une clé non officielle. La liste de révocation n'est pas encore lue (format à définir).
 
 ## 6. Mise en page du PDF
 
