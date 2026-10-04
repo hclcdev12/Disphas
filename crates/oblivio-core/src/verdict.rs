@@ -110,6 +110,8 @@ pub enum Guidance {
     WaitForCompletion,
     /// Send Exit Failure Mode, then retry.
     ExitFailureMode,
+    /// Remove the ATA password set by someone else, then inspect again.
+    RemovePassword,
 }
 
 impl BlockCode {
@@ -121,6 +123,7 @@ impl BlockCode {
             Self::SanitizeFrozen | Self::PasswordAttemptsExpired => Guidance::PowerCycle,
             Self::SanitizeInProgress => Guidance::WaitForCompletion,
             Self::SanitizeFailed => Guidance::ExitFailureMode,
+            Self::SecurityEnabled => Guidance::RemovePassword,
         }
     }
 }

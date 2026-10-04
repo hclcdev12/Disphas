@@ -78,6 +78,9 @@ struct Restrictions {
     all_methods: Vec<BlockCode>,
     /// B1: only ATA Security Erase is unavailable.
     security_frozen: bool,
+    /// B7: only ATA Security Erase is unavailable: we never override a
+    /// password someone else set.
+    security_enabled: bool,
     /// B3: only ATA Sanitize is unavailable.
     sanitize_frozen: bool,
 }
@@ -90,6 +93,7 @@ impl Restrictions {
             Inspection::Nvme(nvme) => nvme.sanitize_state,
             Inspection::Ata(ata) => {
                 restrictions.security_frozen = ata.security.frozen;
+                restrictions.security_enabled = ata.security.enabled && !ata.security.locked;
                 restrictions.sanitize_frozen = ata.sanitize_frozen;
                 if ata.security.locked {
                     restrictions.all_methods.push(BlockCode::SecurityLocked);
@@ -114,7 +118,7 @@ impl Restrictions {
 
     fn allows(&self, method: Method) -> bool {
         self.all_methods.is_empty()
-            && !(self.security_frozen && method.is_ata_security_erase())
+            && !((self.security_frozen || self.security_enabled) && method.is_ata_security_erase())
             && !(self.sanitize_frozen && method.is_ata_sanitize())
     }
 
@@ -123,6 +127,9 @@ impl Restrictions {
         let mut codes = self.all_methods.clone();
         if self.security_frozen && preferred.is_some_and(Method::is_ata_security_erase) {
             codes.push(BlockCode::SecurityFrozen);
+        }
+        if self.security_enabled && preferred.is_some_and(Method::is_ata_security_erase) {
+            codes.push(BlockCode::SecurityEnabled);
         }
         if self.sanitize_frozen && preferred.is_some_and(Method::is_ata_sanitize) {
             codes.push(BlockCode::SanitizeFrozen);
@@ -672,6 +679,45 @@ mod tests {
                 BlockCode::SecurityLocked,
                 BlockCode::PasswordAttemptsExpired
             ])
+        );
+    }
+
+    #[test]
+    fn b7_foreign_password_blocks_security_erase() {
+        let mut drive = sata_ssd_security_erase_only();
+        drive.security.enabled = true;
+        assert_eq!(
+            decide_baseline(&profile(Inspection::Ata(drive))),
+            blocked(&[BlockCode::SecurityEnabled])
+        );
+        assert_eq!(
+            BlockCode::SecurityEnabled.guidance(),
+            crate::verdict::Guidance::RemovePassword
+        );
+    }
+
+    #[test]
+    fn b7_does_not_block_when_sanitize_is_preferred() {
+        let mut drive = sata_ssd();
+        drive.security.enabled = true;
+        let ready = ready(decide_baseline(&profile(Inspection::Ata(drive))));
+        assert_eq!(ready.recommended.method, Method::AtaSanitizeBlockErase);
+        assert!(
+            ready
+                .alternatives
+                .iter()
+                .all(|o| !o.method.is_ata_security_erase())
+        );
+    }
+
+    #[test]
+    fn b7_does_not_apply_to_a_locked_drive() {
+        let mut drive = sata_ssd_security_erase_only();
+        drive.security.enabled = true;
+        drive.security.locked = true;
+        assert_eq!(
+            decide_baseline(&profile(Inspection::Ata(drive))),
+            blocked(&[BlockCode::SecurityLocked])
         );
     }
 

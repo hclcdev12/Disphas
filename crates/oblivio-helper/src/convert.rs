@@ -36,6 +36,7 @@ pub fn block_code(code: engine::BlockCode) -> wire::BlockCode {
         E::SanitizeInProgress => W::SanitizeInProgress,
         E::SanitizeFailed => W::SanitizeFailed,
         E::PasswordAttemptsExpired => W::PasswordAttemptsExpired,
+        E::SecurityEnabled => W::SecurityEnabled,
     }
 }
 

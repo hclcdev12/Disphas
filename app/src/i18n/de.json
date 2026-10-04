@@ -66,7 +66,8 @@
     "B3": "Sanitize-Freeze-Lock aktiv",
     "B4": "Ein Sanitize-Vorgang läuft",
     "B5": "Der vorherige Sanitize-Vorgang ist fehlgeschlagen",
-    "B6": "Passwortversuche erschöpft"
+    "B6": "Passwortversuche erschöpft",
+    "B7": "ATA-Sicherheit von Dritten aktiviert"
   },
   "guidance": {
     "B1": "Computer in den Ruhezustand versetzen und aufwecken, dann erneut prüfen.",
@@ -74,7 +75,8 @@
     "B3": "Laufwerk aus- und wieder einschalten.",
     "B4": "Warten: Der Vorgang wird automatisch fortgesetzt.",
     "B5": "Exit Failure Mode senden und erneut versuchen.",
-    "B6": "Laufwerk aus- und wieder einschalten."
+    "B6": "Laufwerk aus- und wieder einschalten.",
+    "B7": "Entfernen Sie das vorhandene ATA-Passwort (oder lassen Sie es vom Inhaber entfernen) und prüfen Sie erneut."
   },
   "actions": {
     "erase": "Löschen — {{category}}",

@@ -69,6 +69,9 @@ codes! {
         SanitizeFailed = "B5",
         /// ATA password attempt counter expired (IDENTIFY word 128 bit 4).
         PasswordAttemptsExpired = "B6",
+        /// ATA security enabled by someone else: a user password is set but
+        /// the drive is not locked (IDENTIFY word 128 bits 1 and 2).
+        SecurityEnabled = "B7",
     }
 }
 
@@ -169,9 +172,9 @@ mod tests {
         assert_eq!(
             all,
             [
-                "P1", "P2", "P3", "P4", "P5", "B1", "B2", "B3", "B4", "B5", "B6", "N1", "N3", "N8",
-                "N9", "N10", "D1", "D2", "D3", "D4", "D5", "R1", "R2", "R3", "R4", "R5", "R6",
-                "R7", "R8",
+                "P1", "P2", "P3", "P4", "P5", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "N1", "N3",
+                "N8", "N9", "N10", "D1", "D2", "D3", "D4", "D5", "R1", "R2", "R3", "R4", "R5",
+                "R6", "R7", "R8",
             ]
         );
     }

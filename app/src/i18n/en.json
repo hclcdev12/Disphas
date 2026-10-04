@@ -66,7 +66,8 @@
     "B3": "Sanitize freeze lock active",
     "B4": "A sanitize operation is in progress",
     "B5": "The previous sanitize operation failed",
-    "B6": "Password attempts exhausted"
+    "B6": "Password attempts exhausted",
+    "B7": "ATA security enabled by someone else"
   },
   "guidance": {
     "B1": "Suspend the computer and wake it up, then inspect again.",
@@ -74,7 +75,8 @@
     "B3": "Power-cycle the drive.",
     "B4": "Wait: the operation resumes automatically.",
     "B5": "Send Exit Failure Mode, then retry.",
-    "B6": "Power-cycle the drive."
+    "B6": "Power-cycle the drive.",
+    "B7": "Remove the existing ATA password (or have its owner do it), then inspect again."
   },
   "actions": {
     "erase": "Erase — {{category}}",

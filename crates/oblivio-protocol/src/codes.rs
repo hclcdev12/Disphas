@@ -68,6 +68,8 @@ wire_codes! {
         SanitizeFailed = "B5",
         /// B6.
         PasswordAttemptsExpired = "B6",
+        /// B7.
+        SecurityEnabled = "B7",
     }
 }
 

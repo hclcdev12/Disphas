@@ -66,7 +66,8 @@
     "B3": "Verrou de gel Sanitize actif",
     "B4": "Une opération Sanitize est en cours",
     "B5": "L'opération Sanitize précédente a échoué",
-    "B6": "Tentatives de mot de passe épuisées"
+    "B6": "Tentatives de mot de passe épuisées",
+    "B7": "Sécurité ATA activée par un tiers"
   },
   "guidance": {
     "B1": "Mettez l'ordinateur en veille puis réveillez-le, et relancez l'inspection.",
@@ -74,7 +75,8 @@
     "B3": "Effectuez un cycle d'alimentation du disque.",
     "B4": "Patientez : l'opération reprend automatiquement.",
     "B5": "Envoyez Exit Failure Mode, puis réessayez.",
-    "B6": "Effectuez un cycle d'alimentation du disque."
+    "B6": "Effectuez un cycle d'alimentation du disque.",
+    "B7": "Retirez le mot de passe ATA existant (ou faites-le retirer par son propriétaire), puis relancez l'inspection."
   },
   "actions": {
     "erase": "Effacer — {{category}}",

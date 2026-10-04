@@ -171,6 +171,8 @@ pub struct AtaSecurity {
     pub supported: bool,
     /// Bit 5: Enhanced Security Erase supported.
     pub enhanced_erase: bool,
+    /// Bit 1: Security enabled, i.e. a user password is set (B7 when not locked).
+    pub enabled: bool,
     /// Bit 2: Locked (B2).
     pub locked: bool,
     /// Bit 3: Frozen (B1).

@@ -54,10 +54,11 @@ Disque sain mais action impossible en l'état. Oblivio guide l'opérateur, ne pr
 | B4 | Sanitize précédent **en cours** | Attendre (progression lue dans le log), reprise automatique |
 | B5 | Sanitize précédent **en échec** (mode Failure) | Commande d'Exit Failure Mode puis nouvelle tentative |
 | B6 | Compteur de tentatives de mot de passe expiré (mot 128 bit 4) | Cycle d'alimentation |
+| B7 | Sécurité ATA **activée par un tiers** (mot 128 bit 1) sans verrouillage | Retirer le mot de passe existant, puis réinspection. Oblivio ne remplace jamais un mot de passe qu'il n'a pas posé (décidé le 2026-10-04) |
 
 **Portée d'un blocage** (décidé le 2026-10-03) :
 - B2, B4, B5, B6 rendent **toutes** les méthodes indisponibles : ils bloquent toujours.
-- B1 (*Frozen*) n'interdit que Security Erase, B3 (*Freeze Lock*) que l'ATA Sanitize.
+- B1 (*Frozen*) et B7 n'interdisent que Security Erase, B3 (*Freeze Lock*) que l'ATA Sanitize.
   Ils ne bloquent que s'ils empêchent la **méthode préférée** ; sinon le disque est PRÊT
   et la méthode concernée est simplement retirée des alternatives.
 

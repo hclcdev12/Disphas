@@ -92,6 +92,7 @@ pub fn identify_device(data: &[u8]) -> Result<IdentifyDevice, DecodeError> {
             frozen: bit(128, 3),
             attempts_expired: bit(128, 4),
             enhanced_erase: bit(128, 5),
+            enabled: bit(128, 1),
         },
     })
 }
@@ -301,6 +302,7 @@ mod tests {
             AtaSecurity {
                 supported: true,
                 enhanced_erase: true,
+                enabled: false,
                 locked: false,
                 frozen: true,
                 attempts_expired: false
