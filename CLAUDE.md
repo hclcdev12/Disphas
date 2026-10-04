@@ -81,6 +81,10 @@ oblivio/
 - Désérialisation stricte (`#[serde(deny_unknown_fields)]`) pour tout ce qui traverse le protocole.
 - Commits : Conventional Commits (`feat:`, `fix:`, `docs:`…), petits et ciblés.
 - Toute décision qui modifie une spec → mettre à jour le document concerné dans `docs/` dans le même commit.
+- **Push GitHub** : autorisé vers `origin` (dépôt privé), uniquement après fmt + clippy + tests verts en local,
+  et à la fin d'une tâche validée par le propriétaire. Jamais de `--force`, jamais de réécriture d'historique,
+  jamais vers un autre dépôt, jamais de dépôt public, sans accord explicite. Après chaque push, vérifier le
+  résultat de la CI et le signaler.
 
 ## 6. Premières tâches
 
