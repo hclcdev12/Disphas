@@ -125,6 +125,8 @@ struct ImageBackend {
     dir: PathBuf,
     firmware: Firmware,
     gate: Option<std::sync::Arc<Gate>>,
+    /// Every opening: serial and whether the whole controller was held.
+    opened: Vec<(String, bool)>,
 }
 
 impl DeviceBackend for ImageBackend {
@@ -139,7 +141,13 @@ impl DeviceBackend for ImageBackend {
             .cloned()
     }
 
-    fn open(&mut self, identity: &WireIdentity) -> Result<Box<dyn ErasureTarget>, String> {
+    fn open(
+        &mut self,
+        identity: &WireIdentity,
+        whole_controller: bool,
+    ) -> Result<Box<dyn ErasureTarget>, String> {
+        self.opened
+            .push((identity.serial.clone(), whole_controller));
         let path = self.dir.join(format!("{}.img", identity.serial));
         if path.exists() {
             // Reopened after a crash: the drive keeps its content.
@@ -190,6 +198,7 @@ fn nvme_format_only() -> Inspection {
         format: oblivio_core::profile::NvmeFormatCaps {
             supported: true,
             crypto_erase: false,
+            erases_all_namespaces: false,
         },
         ..NvmeProfile::default()
     })
@@ -240,6 +249,7 @@ impl Bench {
             dir: dir.path().to_path_buf(),
             firmware,
             gate: None,
+            opened: Vec::new(),
         };
         let mut session = Session::new(
             backend,
@@ -435,6 +445,11 @@ fn firmware_erasure_is_compliant_purge() {
         ]
     );
     assert_eq!(bench.reports().len(), 2, "report .cose and .json stored");
+    assert_eq!(
+        bench.session.backend_mut().opened,
+        [("SN-A001".to_owned(), true)],
+        "a Sanitize holds the whole controller"
+    );
 }
 
 #[test]
@@ -460,6 +475,11 @@ fn host_overwrite_is_compliant_clear_with_r7() {
     assert!(
         !bench.phases().contains(&JobPhase::Canaries),
         "no canaries for a host write"
+    );
+    assert_eq!(
+        bench.session.backend_mut().opened,
+        [("SN-B002".to_owned(), false)],
+        "a host write stays on its namespace"
     );
 }
 
@@ -629,6 +649,11 @@ fn sanitize_interrupted_by_a_crash_is_finished_and_certified() {
     assert!(result.journal.contains("\"resumed\""));
     assert!(image_is_erased(&bench.dir.path().join("SN-C001.img")));
     assert!(bench.job_files().is_empty(), "{:?}", bench.job_files());
+    assert_eq!(
+        bench.session.backend_mut().opened,
+        [("SN-C001".to_owned(), true)],
+        "a resumed Sanitize holds the whole controller again"
+    );
 }
 
 #[test]

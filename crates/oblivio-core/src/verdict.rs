@@ -54,6 +54,10 @@ pub struct Ready {
     pub drive_reserves: Vec<ReserveCode>,
     /// What should happen to the drive after a proven erasure.
     pub disposition: Disposition,
+    /// A secure erase by Format NVM erases every namespace of the controller
+    /// (`FNA` bit 1). See [`Ready::erases_all_namespaces`].
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub format_erases_all_namespaces: bool,
 }
 
 impl Ready {
@@ -72,6 +76,19 @@ impl Ready {
     pub fn reserves_for(&self, method: Method) -> Option<Vec<ReserveCode>> {
         self.option(method)?;
         Some(self.method_reserves(method))
+    }
+
+    /// Whether `method` erases every namespace of the NVMe controller, not
+    /// only the one inspected: always for Sanitize, for Format NVM when the
+    /// controller says so. The operator must acknowledge it (`NS_ALL`).
+    pub fn erases_all_namespaces(&self, method: Method) -> bool {
+        match method {
+            Method::NvmeSanitizeBlockErase | Method::NvmeSanitizeCryptoErase => true,
+            Method::NvmeFormatCryptoErase | Method::NvmeFormatUserDataErase => {
+                self.format_erases_all_namespaces
+            }
+            _ => false,
+        }
     }
 
     /// Drive reserves plus those of `method`, sorted by code, without

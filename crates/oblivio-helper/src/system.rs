@@ -118,7 +118,11 @@ impl DeviceBackend for SystemBackend {
             .find(|device| convert::identity(&device.profile.identity) == *identity)
     }
 
-    fn open(&mut self, identity: &DeviceIdentity) -> Result<Box<dyn ErasureTarget>, String> {
+    fn open(
+        &mut self,
+        identity: &DeviceIdentity,
+        whole_controller: bool,
+    ) -> Result<Box<dyn ErasureTarget>, String> {
         // One lookup: the node name and the full identity it must answer with.
         let (name, identity) = self
             .inspected()
@@ -128,7 +132,7 @@ impl DeviceBackend for SystemBackend {
             .ok_or("drive not found")?;
         // Opening re-checks protections on a fresh inventory, uses O_EXCL, and
         // verifies on the opened node that it is still this very drive.
-        let drive = ErasableDrive::open(&self.paths, &name, &identity)
+        let drive = ErasableDrive::open(&self.paths, &name, &identity, whole_controller)
             .map_err(|error| error.to_string())?;
         Ok(Box::new(DriveTarget {
             drive,

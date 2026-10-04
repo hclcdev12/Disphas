@@ -212,6 +212,20 @@ fn is_digits(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit())
 }
 
+/// The other namespaces of `name`'s NVMe controller, by kernel name: what
+/// an operation on the whole controller also erases. Empty for SATA.
+pub fn sibling_namespaces<'a>(drives: &'a [BlockDevice], name: &str) -> Vec<&'a str> {
+    let Some(controller) = nvme_controller(name) else {
+        return Vec::new();
+    };
+    drives
+        .iter()
+        .filter(|drive| drive.name != name)
+        .filter(|drive| nvme_controller(&drive.name).as_deref() == Some(controller.as_str()))
+        .map(|drive| drive.name.as_str())
+        .collect()
+}
+
 /// Controller of an NVMe namespace: `nvme0n2` -> `nvme0`.
 fn nvme_controller(name: &str) -> Option<String> {
     let rest = name.strip_prefix("nvme")?;
@@ -667,6 +681,21 @@ mod tests {
             .expect("remove holders");
         let devices = fixture.scan().expect("scan");
         assert!(protection_of(&devices, "nvme1n1").is_volume_member);
+    }
+
+    #[test]
+    fn sibling_namespaces_are_those_of_the_same_controller() {
+        let fixture = two_nvme();
+        fixture
+            .disk("nvme1n2", "259:5", "pci0000:00/nvme/nvme1b")
+            .disk("nvme1n3", "259:6", "pci0000:00/nvme/nvme1c")
+            .disk("nvme11n1", "259:7", "pci0000:00/nvme/nvme11");
+        let devices = fixture.scan().expect("scan");
+        let mut siblings = sibling_namespaces(&devices, "nvme1n1");
+        siblings.sort_unstable();
+        assert_eq!(siblings, ["nvme1n2", "nvme1n3"]);
+        assert_eq!(sibling_namespaces(&devices, "nvme11n1"), Vec::<&str>::new());
+        assert_eq!(sibling_namespaces(&devices, "sda"), Vec::<&str>::new());
     }
 
     #[test]

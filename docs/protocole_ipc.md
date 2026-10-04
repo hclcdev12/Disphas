@@ -135,7 +135,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
    ses espaces de noms, si bien qu'un effacement de tous les espaces de noms ne croise jamais une autre tâche
    sur le même contrôleur.
 
-`NS_ALL` : prise d'acte qu'un Sanitize NVMe efface **tous** les namespaces du contrôleur.
+`NS_ALL` : prise d'acte qu'un Sanitize NVMe, ou un Format NVM sur un contrôleur qui l'applique à tous (`FNA` bit 1), efface **tous** les namespaces du contrôleur.
 
 ## 8. Événements
 

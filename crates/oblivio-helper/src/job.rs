@@ -65,6 +65,15 @@ impl Plan {
             Self::Forced(forced) => forced.option,
         }
     }
+
+    /// Whether the method erases every namespace of the NVMe controller.
+    /// A forced plan is a host write: one namespace only.
+    pub(crate) fn erases_all_namespaces(&self) -> bool {
+        match self {
+            Self::Ready { ready, option } => ready.erases_all_namespaces(option.method),
+            Self::Forced(_) => false,
+        }
+    }
 }
 
 /// Everything a job needs, gathered once every Sanitize check passed.

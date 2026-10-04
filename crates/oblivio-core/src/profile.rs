@@ -111,6 +111,10 @@ pub struct NvmeFormatCaps {
     pub supported: bool,
     /// Cryptographic erase supported as a secure erase setting (`FNA` bit 2).
     pub crypto_erase: bool,
+    /// A secure erase by Format NVM applies to every namespace of the
+    /// controller, whatever the namespace targeted (`FNA` bit 1).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub erases_all_namespaces: bool,
 }
 
 /// NVMe SMART / Health Information log fields used by the engine.

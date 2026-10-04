@@ -192,6 +192,10 @@ Ordre de préférence :
 - Block Erase passe avant Crypto Erase parce qu'il ne repose pas sur la confiance dans l'implémentation du chiffrement, invérifiable de l'extérieur. Option avancée : **CE puis BE** enchaînés.
 - Sanitize **Overwrite** est exclu sur flash (usure, pas de gain).
 - Sanitize touche **tous les namespaces** : mention explicite dans la confirmation et le certificat.
+  Format NVM aussi quand le contrôleur l'annonce (`FNA` bit 1) : le verdict porte alors la même portée
+  (`all_namespaces`, prise d'acte `NS_ALL`). Pendant une opération à l'échelle du contrôleur, le helper tient
+  les autres namespaces en `O_EXCL` et refuse si l'un d'eux est utilisé.
+  **Écart connu** : l'attestation signée ne porte pas encore cette portée (à décider : champ signé).
 
 ### 4.2 SATA SSD (non rotatif)
 

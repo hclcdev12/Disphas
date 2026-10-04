@@ -27,10 +27,8 @@ pub struct IdentifyController {
     pub firmware: String,
     /// SANICAP, bytes 328..332.
     pub sanitize: NvmeSanitizeCaps,
-    /// OACS bit 1 and FNA (byte 524) bit 2.
+    /// OACS bit 1 and FNA (byte 524) bits 1 and 2.
     pub format: NvmeFormatCaps,
-    /// FNA bit 1: a secure erase by Format NVM applies to every namespace.
-    pub format_erases_all_namespaces: bool,
 }
 
 /// Decodes Identify Controller.
@@ -50,8 +48,8 @@ pub fn identify_controller(data: &[u8]) -> Result<IdentifyController, DecodeErro
         format: NvmeFormatCaps {
             supported: oacs & (1 << 1) != 0,
             crypto_erase: fna & (1 << 2) != 0,
+            erases_all_namespaces: fna & (1 << 1) != 0,
         },
-        format_erases_all_namespaces: fna & (1 << 1) != 0,
     })
 }
 
@@ -172,10 +170,10 @@ mod tests {
             controller.format,
             NvmeFormatCaps {
                 supported: true,
-                crypto_erase: true
+                crypto_erase: true,
+                erases_all_namespaces: true,
             }
         );
-        assert!(controller.format_erases_all_namespaces);
     }
 
     #[test]

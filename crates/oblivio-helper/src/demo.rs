@@ -139,6 +139,7 @@ fn healthy_nvme() -> NvmeProfile {
         format: NvmeFormatCaps {
             supported: true,
             crypto_erase: true,
+            erases_all_namespaces: false,
         },
         ..NvmeProfile::default()
     }
@@ -334,7 +335,11 @@ impl DeviceBackend for DemoDevices {
             .cloned()
     }
 
-    fn open(&mut self, identity: &WireIdentity) -> Result<Box<dyn ErasureTarget>, String> {
+    fn open(
+        &mut self,
+        identity: &WireIdentity,
+        _whole_controller: bool,
+    ) -> Result<Box<dyn ErasureTarget>, String> {
         let images = self.images.clone().ok_or("demo drives without images")?;
         let device = self.find(identity).ok_or("unknown demo drive")?;
         let serial = &device.profile.identity.serial;

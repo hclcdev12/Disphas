@@ -107,14 +107,6 @@ pub fn method(method: Method) -> wire::Method {
     }
 }
 
-/// Whether `method` erases every namespace of an NVMe controller (`NS_ALL`).
-pub fn erases_all_namespaces(method: Method) -> bool {
-    matches!(
-        method,
-        Method::NvmeSanitizeBlockErase | Method::NvmeSanitizeCryptoErase
-    )
-}
-
 /// Wire form of a drive identity. The firmware revision is not part of it.
 pub fn identity(identity: &DeviceIdentity) -> wire_command::DeviceIdentity {
     wire_command::DeviceIdentity {
@@ -148,17 +140,25 @@ pub fn disposition(disposition: &Disposition) -> wire_verdict::Disposition {
     }
 }
 
-fn choice(option: MethodOption, reserves: &[engine::ReserveCode]) -> wire_verdict::MethodChoice {
+fn choice(
+    option: MethodOption,
+    reserves: &[engine::ReserveCode],
+    all_namespaces: bool,
+) -> wire_verdict::MethodChoice {
     wire_verdict::MethodChoice {
         method: method(option.method),
         category: category(option.category),
         reserves: reserves.iter().copied().map(reserve_code).collect(),
-        all_namespaces: erases_all_namespaces(option.method),
+        all_namespaces,
     }
 }
 
 fn ready_choice(ready: &Ready, option: MethodOption) -> wire_verdict::MethodChoice {
-    choice(option, &ready.method_reserves(option.method))
+    choice(
+        option,
+        &ready.method_reserves(option.method),
+        ready.erases_all_namespaces(option.method),
+    )
 }
 
 /// Wire form of a verdict.
@@ -178,7 +178,8 @@ pub fn verdict(verdict: &Verdict) -> wire_verdict::Verdict {
                 } else {
                     &[]
                 };
-                choice(option, reserves)
+                // Forcible means a host write: one namespace only.
+                choice(option, reserves, false)
             }),
         },
         Verdict::Ready(ready) => wire_verdict::Verdict::Ready {
@@ -226,6 +227,45 @@ mod tests {
             engine::DispositionCode::ALL.len()
         );
         assert_eq!(wire::ReserveCode::ALL.len(), engine::ReserveCode::ALL.len());
+    }
+
+    #[test]
+    fn a_format_on_every_namespace_needs_ns_all() {
+        use oblivio_protocol::codes::{Acknowledgement, ScopeWarning};
+        let ready = |wide| Ready {
+            recommended: MethodOption {
+                method: Method::NvmeFormatCryptoErase,
+                category: Category::Purge,
+            },
+            alternatives: vec![MethodOption {
+                method: Method::HostOverwrite,
+                category: Category::Clear,
+            }],
+            drive_reserves: Vec::new(),
+            disposition: Disposition::Reuse,
+            format_erases_all_namespaces: wide,
+        };
+        for wide in [false, true] {
+            let wire_verdict::Verdict::Ready {
+                recommended,
+                alternatives,
+                disposition,
+            } = verdict(&Verdict::Ready(ready(wide)))
+            else {
+                panic!("expected Ready");
+            };
+            assert_eq!(recommended.all_namespaces, wide);
+            assert_eq!(
+                recommended
+                    .required_acknowledgements(&disposition)
+                    .contains(&Acknowledgement::Scope(ScopeWarning::AllNamespaces)),
+                wide
+            );
+            assert!(
+                !alternatives[0].all_namespaces,
+                "a host write stays on one namespace"
+            );
+        }
     }
 
     #[test]

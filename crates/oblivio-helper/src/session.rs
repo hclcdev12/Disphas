@@ -491,7 +491,7 @@ impl<B: DeviceBackend> Session<B> {
         let id = job::uuid_v7().map_err(|error| Failure::new(ErrorCode::Internal, error))?;
         let target = self
             .backend
-            .open(&issued.identity)
+            .open(&issued.identity, plan.erases_all_namespaces())
             .map_err(|error| Failure::new(ErrorCode::Internal, error))?;
         // A verdict is used once.
         self.verdicts.remove(&args.verdict_id);
@@ -569,7 +569,10 @@ impl<B: DeviceBackend> Session<B> {
                     continue;
                 }
             };
-            let target = match self.backend.open(&device.identity) {
+            let target = match self
+                .backend
+                .open(&device.identity, left.file.plan.erases_all_namespaces())
+            {
                 Ok(target) => target,
                 Err(error) => {
                     eprintln!("oblivio-helper: job {id} not resumed: {error}");

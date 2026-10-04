@@ -52,6 +52,10 @@ pub fn decide(profile: &DeviceProfile, rules: &RuleSet) -> Verdict {
         alternatives: available.collect(),
         drive_reserves: drive_reserves(profile, rules),
         disposition: disposition(&profile.inspection, rules),
+        format_erases_all_namespaces: matches!(
+            &profile.inspection,
+            Inspection::Nvme(nvme) if nvme.format.erases_all_namespaces
+        ),
     })
 }
 
@@ -341,6 +345,7 @@ mod tests {
             format: NvmeFormatCaps {
                 supported: true,
                 crypto_erase: true,
+                erases_all_namespaces: false,
             },
             ..NvmeProfile::default()
         }
@@ -1053,11 +1058,27 @@ mod tests {
     }
 
     #[test]
+    fn format_erases_every_namespace_when_the_controller_says_so() {
+        let mut drive = nvme();
+        let narrow = ready(decide_baseline(&profile(Inspection::Nvme(drive.clone()))));
+        assert!(narrow.erases_all_namespaces(Method::NvmeSanitizeBlockErase));
+        assert!(!narrow.erases_all_namespaces(Method::NvmeFormatCryptoErase));
+        assert!(!narrow.erases_all_namespaces(Method::HostOverwrite));
+
+        drive.format.erases_all_namespaces = true;
+        let wide = ready(decide_baseline(&profile(Inspection::Nvme(drive))));
+        assert!(wide.erases_all_namespaces(Method::NvmeFormatCryptoErase));
+        assert!(wide.erases_all_namespaces(Method::NvmeFormatUserDataErase));
+        assert!(!wide.erases_all_namespaces(Method::HostOverwrite));
+    }
+
+    #[test]
     fn nvme_format_categories_come_from_the_rule_set() {
         let drive = NvmeProfile {
             format: NvmeFormatCaps {
                 supported: true,
                 crypto_erase: false,
+                erases_all_namespaces: false,
             },
             ..NvmeProfile::default()
         };

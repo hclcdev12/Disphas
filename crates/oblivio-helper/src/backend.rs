@@ -29,8 +29,13 @@ pub trait DeviceBackend {
     fn find(&mut self, identity: &DeviceIdentity) -> Option<Device>;
 
     /// Opens the drive with this identity for erasure. Called only once every
-    /// Sanitize check passed. Refuses by default: no backend erases yet.
-    fn open(&mut self, _identity: &DeviceIdentity) -> Result<Box<dyn ErasureTarget>, String> {
+    /// Sanitize check passed. With `whole_controller`, the other namespaces
+    /// of its NVMe controller are held too. Refuses by default.
+    fn open(
+        &mut self,
+        _identity: &DeviceIdentity,
+        _whole_controller: bool,
+    ) -> Result<Box<dyn ErasureTarget>, String> {
         Err("this backend cannot erase drives".to_owned())
     }
 

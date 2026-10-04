@@ -31,6 +31,9 @@ pub enum Interface {
 /// A drive opened read-write for erasure.
 pub struct ErasableDrive {
     file: File,
+    /// Sibling namespaces held with `O_EXCL` while the operation erases the
+    /// whole NVMe controller: nobody can start using them meanwhile.
+    _siblings: Vec<File>,
     name: String,
     interface: Interface,
     block_size: u64,
@@ -44,11 +47,15 @@ impl ErasableDrive {
     /// then, on the opened node itself, refuses unless its device number is
     /// the inventory's and its firmware reports exactly `expected` — so a
     /// drive swapped under the same name between inspection and opening is
-    /// never touched.
+    /// never touched. With `whole_controller` (an NVMe Sanitize, or a Format
+    /// the controller applies to every namespace), every other namespace of
+    /// the controller is also held with `O_EXCL` until the drive is closed,
+    /// and the opening is refused if one of them is in use.
     pub fn open(
         paths: &SystemPaths,
         name: &str,
         expected: &DeviceIdentity,
+        whole_controller: bool,
     ) -> Result<Self, DeviceError> {
         let drives = inventory::scan(paths)?;
         let drive = drives
@@ -98,6 +105,13 @@ impl ErasableDrive {
         let reported = inspect::identity_of(&file, interface == Interface::Nvme)?;
         same_drive(name, drive.dev, actual, expected, &reported)?;
 
+        let mut siblings = Vec::new();
+        if whole_controller {
+            for sibling in inventory::sibling_namespaces(&drives, name) {
+                siblings.push(hold(paths, sibling)?);
+            }
+        }
+
         let block_size = u64::from(sys::logical_block_size(file.as_fd())?);
         let size = sys::block_device_size(file.as_fd())?;
         if block_size == 0 || size % block_size != 0 {
@@ -107,6 +121,7 @@ impl ErasableDrive {
         }
         Ok(Self {
             file,
+            _siblings: siblings,
             name: name.to_owned(),
             interface,
             block_size,
@@ -143,6 +158,31 @@ impl ErasableDrive {
         }
         Ok(lba * self.block_size)
     }
+}
+
+/// Opens a sibling namespace with `O_EXCL` only to hold it: the kernel
+/// refuses if it is mounted or held, and refuses others while it is held.
+fn hold(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
+    let path = paths.dev.join(name);
+    if !std::fs::symlink_metadata(&path)?
+        .file_type()
+        .is_block_device()
+    {
+        return Err(DeviceError::Refused(format!(
+            "{} is not a block device",
+            path.display()
+        )));
+    }
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_EXCL)
+        .open(&path)
+        .map_err(|error| match error.raw_os_error() {
+            Some(libc::EBUSY) => DeviceError::Refused(format!(
+                "{name}, another namespace of the same controller, is in use (O_EXCL)"
+            )),
+            _ => DeviceError::Io(error),
+        })
 }
 
 /// Whether the node opened for `name` is the inventoried, confirmed drive:

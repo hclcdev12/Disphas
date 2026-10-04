@@ -43,3 +43,6 @@
 - B5 (Sanitize en échec) : ajouter et valider la commande « Exit Failure Mode » (NVMe Sanitize action 1,
   ATA SANITIZE STATUS EXT avec Clear Sanitize Operation Failed), avec un bouton dans l'application ;
   d'ici là, la consigne oriente vers la destruction ou l'outil du constructeur (décidé le 2026-10-04).
+- NVMe à **plusieurs namespaces** (S5) : un Sanitize, ou un Format sur un contrôleur annonçant `FNA` bit 1,
+  doit tenir les autres namespaces en `O_EXCL` (un `mount` d'un voisin pendant l'opération doit échouer) et
+  être refusé si un voisin est utilisé avant le départ ; le bit `FNA` 1 décodé doit correspondre à la fiche du disque.
