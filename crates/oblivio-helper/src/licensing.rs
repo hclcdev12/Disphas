@@ -11,9 +11,6 @@ use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_license::{InstalledLicense, LicenseStatus, LicenseStore, WorkstationKey};
 use oblivio_protocol::response::{ErrorBody, ErrorCode, LicenseState, LicenseStatusResult};
 
-/// The official Oblivio root public key. Not generated yet.
-const OFFICIAL_ROOT_KEY: Option<[u8; 32]> = None;
-
 /// License operations needed by the session.
 pub trait Licensing: std::fmt::Debug {
     /// Current license status.
@@ -38,8 +35,8 @@ pub struct Signer {
 
 /// The root key licenses must be signed with, if this build has one.
 pub fn root_key() -> Option<VerifyingKey> {
-    if let Some(bytes) = OFFICIAL_ROOT_KEY {
-        return VerifyingKey::from_bytes(&bytes).ok();
+    if let Some(official) = oblivio_attestation::trust::official_root_key() {
+        return Some(official);
     }
     #[cfg(debug_assertions)]
     {

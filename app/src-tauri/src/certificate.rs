@@ -10,14 +10,11 @@ use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_protocol::response::JobResult;
 use oblivio_report::{RenderOptions, render};
 
-/// The official Oblivio root public key. Not generated yet.
-const OFFICIAL_ROOT_KEY: Option<[u8; 32]> = None;
-
 /// Root key certificates must chain to: the official one; in development
 /// builds only, the public development root as a fallback.
 pub fn root_key() -> Option<VerifyingKey> {
-    if let Some(bytes) = OFFICIAL_ROOT_KEY {
-        return VerifyingKey::from_bytes(&bytes).ok();
+    if let Some(official) = oblivio_attestation::trust::official_root_key() {
+        return Some(official);
     }
     #[cfg(debug_assertions)]
     {

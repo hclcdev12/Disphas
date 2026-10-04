@@ -123,6 +123,19 @@ chiffrement stockée sur le même disque n'ajouterait rien aux permissions.
 L'installation exige la signature de la racine, `wpk` = clé du poste, et une licence non expirée.
 L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé de poste perdue, rend la licence invalide.
 
+**Clé racine et émission** (`tools/oblivio-issuer`, outil de l'éditeur, jamais livré, 2026-10-04) :
+- `oblivio-issuer keygen root.key` : paire Ed25519 tirée du générateur de l'OS ; graine chiffrée par
+  ChaCha20-Poly1305 sous une clé dérivée de la phrase secrète par **Argon2id** (256 Mio, 3 passes) ; l'en-tête
+  (paramètres, sel, nonce, clé publique) est authentifié. Fichier 0600, jamais écrasé, phrase ≥ 12 caractères,
+  saisie au terminal sans écho.
+- `oblivio-issuer issue root.key --customer … --offer … (--days N | --perpetual) 'OBA1:…'` : vérifie la preuve
+  de possession de la demande, signe la licence `OBL1:…` et l'inscrit au registre `issued-licenses.csv`
+  (base de la future liste de révocation).
+- La clé publique officielle n'existe qu'en un seul endroit : `oblivio_attestation::trust::OFFICIAL_ROOT_KEY`,
+  lue par le helper, l'application et `oblivio-verify`.
+- ⚠️ Recommandation : générer et conserver `root.key` sur une machine hors ligne ; deux sauvegardes sur supports
+  distincts ; la phrase secrète conservée séparément. Perdre l'une ou l'autre interdit toute nouvelle licence.
+
 **Activation offline** : le poste génère sa paire de clés → produit une demande d'activation
 (fichier ou QR contenant la clé publique) → l'éditeur renvoie le `.lic` signé.
 

@@ -17,10 +17,6 @@ use oblivio_attestation::{VerifyError, from_qr_text, verify};
 
 use crate::labels::Lang;
 
-/// The official Oblivio root public key. Not generated yet: until then a
-/// root key must be given with `--root-key`, and the report says so.
-const OFFICIAL_ROOT_KEY: Option<[u8; 32]> = None;
-
 /// Largest input file read.
 const MAX_INPUT_BYTES: u64 = 1 << 20;
 
@@ -106,12 +102,14 @@ fn attestation_bytes(data: Vec<u8>) -> Result<Vec<u8>, VerifyError> {
 
 fn run(args: Args) -> Result<bool, String> {
     let lang = args.lang.unwrap_or_else(Lang::from_env);
-    let (root, unofficial) = match (&args.root_key, OFFICIAL_ROOT_KEY) {
+    // Until the official root key exists, a root key must be given with
+    // `--root-key`, and the report says so.
+    let (root, unofficial) = match (
+        &args.root_key,
+        oblivio_attestation::trust::official_root_key(),
+    ) {
         (Some(hex), _) => (parse_key(hex)?, true),
-        (None, Some(bytes)) => (
-            VerifyingKey::from_bytes(&bytes).map_err(|_| "invalid official root key".to_owned())?,
-            false,
-        ),
+        (None, Some(official)) => (official, false),
         (None, None) => {
             return Err("no official root key in this build: give --root-key".to_owned());
         }

@@ -12,6 +12,7 @@ pub mod cbor;
 pub mod cose;
 pub mod display;
 pub mod model;
+pub mod trust;
 pub mod verify;
 
 /// Re-exported so that users share the exact Ed25519 implementation.

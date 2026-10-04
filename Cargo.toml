@@ -10,6 +10,7 @@ members = [
     "public/oblivio-attestation",
     "public/oblivio-verify",
     "app/src-tauri",
+    "tools/oblivio-issuer",
 ]
 
 # Shared metadata for the PRIVATE crates only.

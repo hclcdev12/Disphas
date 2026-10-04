@@ -29,6 +29,9 @@ app/src-tauri/WixTools/
 .env.*
 !.env.example
 
+# Register of issued licenses (customer data, issuer tool)
+issued-licenses.csv
+
 # --- Test artefacts: disk images and loop-device fixtures ---
 *.img
 *.raw
