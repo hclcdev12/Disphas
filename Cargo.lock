@@ -3123,8 +3123,11 @@ dependencies = [
 name = "oblivio-app"
 version = "0.1.0"
 dependencies = [
+ "base64 0.23.1",
  "oblivio-attestation",
+ "oblivio-license",
  "oblivio-protocol",
+ "oblivio-report",
  "serde_json",
  "tauri",
  "tauri-build",

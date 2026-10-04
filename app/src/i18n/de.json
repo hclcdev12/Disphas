@@ -132,5 +132,44 @@
     "installButton": "Lizenz installieren",
     "installed": "Lizenz installiert.",
     "close": "Schließen"
+  },
+  "job": {
+    "title": "Löschung läuft",
+    "warning": "Trennen Sie das Laufwerk nicht und schalten Sie den Computer nicht aus.",
+    "phase": {
+      "Preparing": "Vorbereitung",
+      "Canaries": "Kanarien",
+      "Executing": "Löschen",
+      "Verifying": "Verifizierung",
+      "Validating": "Validierung",
+      "Signing": "Signatur",
+      "Done": "Fertig"
+    },
+    "rate": "{{rate}}/s",
+    "eta": "noch {{eta}}",
+    "log": "Prüfprotokoll",
+    "logCodes": {
+      "samples_selected": "{{count}} Stichprobenblöcke ausgewählt",
+      "verification": "Firmware-Verifizierung: {{passed}}",
+      "validation": "Validierung: {{result}}",
+      "attempt_retry": "Prüfung fehlgeschlagen: neuer Versuch",
+      "job_failed": "Der Auftrag ist fehlgeschlagen: {{reason}}"
+    },
+    "finished": "Löschung abgeschlossen",
+    "status": {
+      "CONFORME": "KONFORM",
+      "NON_CONFORME": "NICHT KONFORM",
+      "REFUS": "VERWEIGERT"
+    },
+    "statusHint": {
+      "CONFORME": "Die Löschung ist nachgewiesen und zertifiziert.",
+      "NON_CONFORME": "Erzwungene Löschung: physische Vernichtung erforderlich.",
+      "REFUS": "Die Löschung konnte nicht nachgewiesen werden: physische Vernichtung erforderlich."
+    },
+    "export": "Signiertes PDF-Zertifikat exportieren",
+    "exporting": "Wird erstellt…",
+    "saved": "Gespeichert unter",
+    "open": "Öffnen",
+    "back": "Zurück zu den Laufwerken"
   }
 }

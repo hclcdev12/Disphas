@@ -1,6 +1,8 @@
 // Access to the root helper. The UI never decides anything: it forwards
 // requests and displays the helper's answers (docs/protocole_ipc.md).
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { Event as HelperEvent } from "../bindings/Event";
 import type { Command } from "../bindings/Command";
 import type { DeviceRef } from "../bindings/DeviceRef";
 import type { HelloResult } from "../bindings/HelloResult";
@@ -29,6 +31,12 @@ export interface OblivioApi {
   licenseStatus(): Promise<Outcome<LicenseStatusResult>>;
   createActivationRequest(): Promise<Outcome<ActivationRequestResult>>;
   installLicense(license: string): Promise<Outcome<LicenseStatusResult>>;
+  /** Subscribes to job events; returns the unsubscribe function. */
+  onEvent(handler: (event: HelperEvent) => void): Promise<() => void>;
+  /** Renders and saves the PDF certificate of a finished job; returns its path. */
+  renderCertificate(jobId: string, lang: Language): Promise<Outcome<string>>;
+  /** Opens a saved certificate with the desktop's PDF viewer. */
+  openCertificate(path: string): Promise<void>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
   codeLabels(lang: Language): Promise<Record<string, string>>;
 }
@@ -58,6 +66,15 @@ const tauriApi: OblivioApi = {
   licenseStatus: () => call<LicenseStatusResult>({ cmd: "LicenseStatus" }),
   createActivationRequest: () => call<ActivationRequestResult>({ cmd: "CreateActivationRequest" }),
   installLicense: (license) => call<LicenseStatusResult>({ cmd: "InstallLicense", args: { license } }),
+  onEvent: (handler) => listen<HelperEvent>("oblivio://event", (event) => handler(event.payload)),
+  renderCertificate: async (jobId, lang) => {
+    try {
+      return { ok: true, value: await invoke<string>("render_certificate", { jobId, lang }) };
+    } catch (error) {
+      return { ok: false, error: asHelperError(error) };
+    }
+  },
+  openCertificate: (path) => invoke<void>("open_certificate", { path }),
   codeLabels: (lang) => invoke<Record<string, string>>("code_labels", { lang }),
 };
 
@@ -82,6 +99,9 @@ const previewApi: OblivioApi = {
   licenseStatus: async () => ({ ok: true, value: recording.hello.license as LicenseStatusResult }),
   createActivationRequest: async () => unavailable,
   installLicense: async () => unavailable,
+  onEvent: async () => () => {},
+  renderCertificate: async () => unavailable,
+  openCertificate: async () => {},
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 

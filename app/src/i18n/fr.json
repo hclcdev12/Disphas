@@ -132,5 +132,44 @@
     "installButton": "Installer la licence",
     "installed": "Licence installée.",
     "close": "Fermer"
+  },
+  "job": {
+    "title": "Effacement en cours",
+    "warning": "Ne débranchez pas le disque et n'éteignez pas l'ordinateur.",
+    "phase": {
+      "Preparing": "Préparation",
+      "Canaries": "Canaris",
+      "Executing": "Effacement",
+      "Verifying": "Vérification",
+      "Validating": "Validation",
+      "Signing": "Signature",
+      "Done": "Terminé"
+    },
+    "rate": "{{rate}}/s",
+    "eta": "{{eta}} restantes",
+    "log": "Journal d'audit",
+    "logCodes": {
+      "samples_selected": "{{count}} blocs échantillons sélectionnés",
+      "verification": "Vérification firmware : {{passed}}",
+      "validation": "Validation : {{result}}",
+      "attempt_retry": "Contrôle en échec : nouvelle tentative",
+      "job_failed": "La tâche a échoué : {{reason}}"
+    },
+    "finished": "Effacement terminé",
+    "status": {
+      "CONFORME": "CONFORME",
+      "NON_CONFORME": "NON CONFORME",
+      "REFUS": "REFUS"
+    },
+    "statusHint": {
+      "CONFORME": "L'effacement est prouvé et certifié.",
+      "NON_CONFORME": "Effacement forcé : destruction physique requise.",
+      "REFUS": "L'effacement n'a pas pu être prouvé : destruction physique requise."
+    },
+    "export": "Exporter le certificat PDF signé",
+    "exporting": "Rendu en cours…",
+    "saved": "Enregistré dans",
+    "open": "Ouvrir",
+    "back": "Retour aux disques"
   }
 }

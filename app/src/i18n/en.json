@@ -132,5 +132,44 @@
     "installButton": "Install the license",
     "installed": "License installed.",
     "close": "Close"
+  },
+  "job": {
+    "title": "Erasure in progress",
+    "warning": "Do not disconnect the drive or turn off the computer.",
+    "phase": {
+      "Preparing": "Preparing",
+      "Canaries": "Canaries",
+      "Executing": "Erasing",
+      "Verifying": "Verifying",
+      "Validating": "Validating",
+      "Signing": "Signing",
+      "Done": "Done"
+    },
+    "rate": "{{rate}}/s",
+    "eta": "{{eta}} left",
+    "log": "Audit log",
+    "logCodes": {
+      "samples_selected": "{{count}} sample blocks selected",
+      "verification": "Firmware verification: {{passed}}",
+      "validation": "Validation: {{result}}",
+      "attempt_retry": "Check failed: retrying",
+      "job_failed": "The job failed: {{reason}}"
+    },
+    "finished": "Erasure finished",
+    "status": {
+      "CONFORME": "COMPLIANT",
+      "NON_CONFORME": "NON-COMPLIANT",
+      "REFUS": "REFUSED"
+    },
+    "statusHint": {
+      "CONFORME": "The erasure is proven and certified.",
+      "NON_CONFORME": "Forced erasure: physical destruction required.",
+      "REFUS": "The erasure could not be proven: physical destruction required."
+    },
+    "export": "Export the signed PDF certificate",
+    "exporting": "Rendering…",
+    "saved": "Saved to",
+    "open": "Open",
+    "back": "Back to drives"
   }
 }

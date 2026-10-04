@@ -28,6 +28,7 @@ oblivio-protocol = { path = "crates/oblivio-protocol" }
 oblivio-core = { path = "crates/oblivio-core" }
 oblivio-device = { path = "crates/oblivio-device" }
 oblivio-license = { path = "crates/oblivio-license" }
+oblivio-report = { path = "crates/oblivio-report" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

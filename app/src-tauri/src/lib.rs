@@ -2,6 +2,7 @@
 //! and the root helper. Runs as the normal user; renders, translates and
 //! relays, but never touches a device and never decides.
 
+mod certificate;
 mod helper;
 
 use std::collections::HashMap;
@@ -29,6 +30,40 @@ async fn helper(
     helper.request(command).await?.outcome
 }
 
+/// Renders the PDF certificate of a finished job in `lang` and saves it in
+/// `~/Documents/Oblivio`. Returns the path of the file.
+#[tauri::command]
+async fn render_certificate(
+    job_id: String,
+    lang: String,
+    state: State<'_, HelperState>,
+) -> Result<String, ErrorBody> {
+    let failure = |detail: String| ErrorBody {
+        code: ErrorCode::Internal,
+        detail: Some(detail),
+    };
+    let helper = state.0.as_ref().map_err(|reason| failure(reason.clone()))?;
+    let command = Command::GetJobResult(oblivio_protocol::command::JobArgs {
+        job_id: oblivio_protocol::command::JobId(job_id),
+    });
+    let value = helper.request(command).await?.outcome?;
+    let result: oblivio_protocol::response::JobResult =
+        serde_json::from_value(value).map_err(|error| failure(error.to_string()))?;
+    let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
+    // Typst layout is CPU-bound: keep it off the async runtime.
+    let path = tauri::async_runtime::spawn_blocking(move || certificate::save(&result, lang))
+        .await
+        .map_err(|error| failure(error.to_string()))?
+        .map_err(failure)?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Opens a certificate saved by `render_certificate`.
+#[tauri::command]
+fn open_certificate(path: String) -> Result<(), String> {
+    certificate::open(std::path::Path::new(&path))
+}
+
 /// Labels of the attestation codes in `lang` (`en`, `fr` or `de`).
 #[tauri::command]
 fn code_labels(lang: String) -> HashMap<&'static str, &'static str> {
@@ -53,7 +88,12 @@ pub fn run() {
             app.manage(HelperState(helper));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![helper, code_labels])
+        .invoke_handler(tauri::generate_handler![
+            helper,
+            code_labels,
+            render_certificate,
+            open_certificate
+        ])
         .run(tauri::generate_context!());
     if let Err(error) = result {
         eprintln!("oblivio-app: {error}");

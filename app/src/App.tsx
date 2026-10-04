@@ -7,7 +7,9 @@ import type { InspectResult } from "./bindings/InspectResult";
 import type { ListDevicesResult } from "./bindings/ListDevicesResult";
 import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { JobScreen } from "./components/JobScreen";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { applyEvent, emptyJob, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { Button } from "./components/ui";
@@ -23,6 +25,14 @@ export default function App() {
   const [request, setRequest] = useState<EraseRequest | null>(null);
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
+  const [jobs, setJobs] = useState<Record<string, JobView>>({});
+  const [activeJob, setActiveJob] = useState<{ id: string; model: string } | null>(null);
+
+  // Subscribed before any Sanitize, so no job event is ever missed.
+  useEffect(() => {
+    const unsubscribe = api.onEvent((event) => setJobs((current) => applyEvent(current, event)));
+    return () => void unsubscribe.then((stop) => stop());
+  }, []);
 
   // Every drive is inspected by the helper; the UI only displays verdicts.
   const refresh = useCallback(async () => {
@@ -67,7 +77,10 @@ export default function App() {
       operator: null,
       organization: null,
     });
-    return result.ok ? null : result.error;
+    if (!result.ok) return result.error;
+    setActiveJob({ id: result.value.job_id, model: request.inspection.device.identity.model });
+    setRequest(null);
+    return null;
   };
 
   const connected = hello?.ok ?? false;
@@ -81,6 +94,18 @@ export default function App() {
         onLicense={() => setLicenseOpen(true)}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
+        {activeJob ? (
+          <JobScreen
+            jobId={activeJob.id}
+            model={activeJob.model}
+            job={jobs[activeJob.id] ?? emptyJob()}
+            onBack={() => {
+              setActiveJob(null);
+              void refresh();
+            }}
+          />
+        ) : (
+        <>
         <div className="mb-4 flex items-center">
           <h1 className="text-xl font-bold">{t("drives.title")}</h1>
           <Button className="ml-auto flex items-center gap-2" onClick={() => void refresh()} disabled={!connected}>
@@ -102,6 +127,8 @@ export default function App() {
               />
             ))}
         </div>
+        </>
+        )}
       </main>
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
