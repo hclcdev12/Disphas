@@ -9,6 +9,14 @@
 | `/usr/share/polkit-1/actions/org.oblivio.helper.policy` | `packaging/polkit/` | Administrator authentication (`auth_admin`, never kept, active local session only) |
 | `/usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt` | `packaging/` (generated) | Licenses of third-party components |
 | postinst | `packaging/debian/postinst` | Creates the `oblivio` group; restricts certificates of an earlier version |
+| postrm | `packaging/debian/postrm` | `purge` deletes `/var/lib/oblivio` and the `oblivio` group |
+
+**Uninstalling.** `sudo apt remove oblivio` removes the program and keeps the data
+(workstation key, license, certificates). `sudo apt purge oblivio` deletes every data and
+setting: `/var/lib/oblivio` and the `oblivio` group (Cyber Resilience Act, Annex I, Part I
+(2)(m)). Certificates exported to `~/Documents/Oblivio` belong to the user and are not
+touched. Files are deleted, not sanitized: on an SSD the workstation key may remain in
+unmapped cells; erase the drive itself to destroy it for sure.
 
 At runtime the helper keeps its state in `/var/lib/oblivio` (`keys/`, `license/` root-only;
 `reports/` 0750/0640, group `oblivio`).

@@ -66,7 +66,7 @@ durée de conservation (art. 5(1)(e)).
 | # | Action | Échéance | Statut |
 |---|---|---|---|
 | C1 | Procédure de signalement et contact sécurité (`SECURITY.md`), avant la première vente | Mise sur le marché | **En partie** : `SECURITY.md` rédigé (2026-10-04) ; à compléter : adresse dédiée (`security@<domaine>`, avec le site) et délai définitif (5 jours ouvrés indicatifs). Procédure interne ci-dessous |
-| C2 | Désinstallation complète : clé du poste, licence, certificats, tâches, fichiers de reprise (annexe I (2)(m)) | 11/12/2027 | À faire |
+| C2 | Désinstallation complète : clé du poste, licence, certificats, tâches, fichiers de reprise (annexe I (2)(m)) | 11/12/2027 | **Fait** (2026-10-04) : `apt purge` supprime `/var/lib/oblivio` et le groupe `oblivio` (`packaging/debian/postrm`) ; `apt remove` garde les données (aucune preuve détruite par erreur). Les PDF exportés dans le dossier de l'utilisateur ne sont pas touchés (politique Debian). Limite : suppression de fichiers, pas sanitisation — sur SSD la clé du poste peut subsister dans des cellules non adressées |
 | C3 | Revue des exigences essentielles de l'annexe I et documentation technique simplifiée | 11/12/2027 | À faire (à détailler sur le texte) |
 | C4 | Marquage CE et déclaration UE de conformité (module A) | 11/12/2027 | À faire |
 

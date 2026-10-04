@@ -45,6 +45,7 @@
           "pkexec | policykit-1"
         ],
         "postInstallScript": "../../packaging/debian/postinst",
+        "postRemoveScript": "../../packaging/debian/postrm",
         "files": {
           "/usr/libexec/oblivio/oblivio-helper": "../../target/release/oblivio-helper",
           "/usr/share/polkit-1/actions/org.oblivio.helper.policy": "../../packaging/polkit/org.oblivio.helper.policy",
