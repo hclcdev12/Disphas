@@ -81,6 +81,8 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
   public, pour qu'un vérificateur ancien lise un code nouveau (il l'affichera sans libellé).
 - COSE : en-tête protégé `{alg: EdDSA}` **seul**, en-tête non protégé vide, message étiqueté (tag 18).
   Toute autre forme est rejetée (pas de confusion d'algorithme). Ed25519 en vérification stricte.
+  L'enveloppe doit se **réencoder à l'octet près** (2026-10-04, revue de sécurité) : une même attestation signée
+  n'a qu'un seul fichier possible, donc une seule empreinte SHA-256 ; une variante d'encodage est rejetée.
 - QR : décompression bornée à 64 Kio (bombe zlib). Une attestation type tient sous 1 000 caractères (test).
 - **Cohérence** (2026-10-04, revue de sécurité S7) : une attestation dont les champs se contredisent est
   rejetée au décodage, donc par tout vérificateur, même correctement signée ; le helper fait le même contrôle

@@ -60,6 +60,16 @@ impl Unverified {
         if message.payload.is_none() {
             return Err(CoseError::MissingPayload);
         }
+        // One encoding only: the envelope must re-encode to the same bytes,
+        // so nobody can make a second file of the same signed attestation
+        // (another SHA-256) without the key.
+        let canonical = coset::TaggedCborSerializable::to_tagged_vec(message.clone())
+            .map_err(|error| CoseError::Malformed(format!("{error:?}")))?;
+        if canonical != bytes {
+            return Err(CoseError::Malformed(
+                "not in its single encoding".to_owned(),
+            ));
+        }
         Ok(Self { message })
     }
 
@@ -87,6 +97,27 @@ mod tests {
 
     fn key(seed: u8) -> SigningKey {
         SigningKey::from_bytes(&[seed; 32])
+    }
+
+    #[test]
+    fn a_re_encoded_envelope_is_rejected() {
+        let message = sign(b"payload".to_vec(), &key(1)).expect("signed");
+        // The 64-byte signature ends the message as `58 40 <64 bytes>`:
+        // the same length written on two bytes (`59 00 40`) is valid CBOR.
+        let at = message.len() - 66;
+        assert_eq!(&message[at..at + 2], &[0x58, 0x40]);
+        let mut longer = message[..at].to_vec();
+        longer.extend_from_slice(&[0x59, 0x00, 0x40]);
+        longer.extend_from_slice(&message[at + 2..]);
+        assert!(matches!(
+            Unverified::parse(&longer),
+            Err(CoseError::Malformed(_))
+        ));
+        // Trailing bytes are not part of any encoding either.
+        let mut trailing = message.clone();
+        trailing.push(0);
+        assert!(Unverified::parse(&trailing).is_err());
+        Unverified::parse(&message).expect("the original stays valid");
     }
 
     #[test]
