@@ -7,9 +7,12 @@
 //! oblivio-issuer pubkey ROOT.key
 //! oblivio-issuer issue ROOT.key --customer NAME --offer OFFER (--days N | --perpetual)
 //!                      [--id ID] [--register FILE] 'OBA1:…'
+//! oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] [--list CURRENT.obr]
+//!                       [--register FILE] --out NEW.obr
 //! ```
 
 mod issue;
+mod revoke;
 mod root_key;
 
 use std::path::{Path, PathBuf};
@@ -28,7 +31,9 @@ usage:
   oblivio-issuer keygen ROOT.key
   oblivio-issuer pubkey ROOT.key
   oblivio-issuer issue ROOT.key --customer NAME --offer OFFER (--days N | --perpetual)
-                       [--id ID] [--register FILE] 'OBA1:...'";
+                       [--id ID] [--register FILE] 'OBA1:...'
+  oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] [--list CURRENT.obr]
+                        [--register FILE] --out NEW.obr";
 
 fn now() -> u64 {
     SystemTime::now()
@@ -154,6 +159,79 @@ fn issue_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<
     Ok(())
 }
 
+/// Revokes a license: writes the next revocation list, to ship with the next
+/// version (`OFFICIAL_REVOCATIONS`) and to give to `oblivio-verify --revocations`.
+fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<(), String> {
+    let mut id = None;
+    let mut at = None;
+    let mut list = None;
+    let mut register = None;
+    let mut out = None;
+    while let Some(arg) = args.next() {
+        let mut value = |name: &str| args.next().ok_or_else(|| format!("{name} needs a value"));
+        match arg.as_str() {
+            "--id" => id = Some(value("--id")?),
+            "--at" => {
+                at = Some(
+                    value("--at")?
+                        .parse::<u64>()
+                        .map_err(|_| "--at needs a UTC epoch time in seconds")?,
+                );
+            }
+            "--list" => list = Some(PathBuf::from(value("--list")?)),
+            "--register" => register = Some(PathBuf::from(value("--register")?)),
+            "--out" => out = Some(PathBuf::from(value("--out")?)),
+            other => return Err(format!("unexpected argument {other:?}")),
+        }
+    }
+    let id = id.ok_or("--id is required")?;
+    let out = out.ok_or("--out is required")?;
+    let now = now();
+    // Back-dating (compromise date) rejects every certificate signed since.
+    let at = at.unwrap_or(now);
+    if at > now {
+        return Err("--at is in the future".to_owned());
+    }
+    let register = register.unwrap_or_else(|| {
+        path.parent()
+            .unwrap_or(Path::new("."))
+            .join("issued-licenses.csv")
+    });
+    if !revoke::registered(&register, &id)
+        .map_err(|error| format!("{}: {error}", register.display()))?
+    {
+        return Err(format!("{id} is not in {}", register.display()));
+    }
+
+    let public = root_key::public_key(path).map_err(|error| error.to_string())?;
+    let current = match &list {
+        Some(list) => {
+            let text = std::fs::read_to_string(list)
+                .map_err(|error| format!("{}: {error}", list.display()))?;
+            Some(
+                oblivio_attestation::revocation::RevocationList::decode(&text, &public)
+                    .map_err(|error| format!("{}: {error}", list.display()))?,
+            )
+        }
+        None => None,
+    };
+    let next = revoke::next_list(current.as_ref(), &id, at, now)?;
+
+    let secret = passphrase("root key passphrase: ")?;
+    let root = root_key::unlock(path, &secret).map_err(|error| error.to_string())?;
+    let text = next.sign(&root).map_err(|error| error.to_string())?;
+    revoke::write_new(&out, &text).map_err(|error| format!("{}: {error}", out.display()))?;
+    eprintln!(
+        "revocation list #{} with {} license(s) written to {}",
+        next.seq,
+        next.entries.len(),
+        out.display()
+    );
+    eprintln!("ship it: copy it to public/oblivio-attestation/revocations.obr and set");
+    eprintln!("OFFICIAL_REVOCATIONS = Some(include_str!(\"../revocations.obr\")) in trust.rs");
+    Ok(())
+}
+
 fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let command = args.next().ok_or("")?;
@@ -166,6 +244,7 @@ fn run() -> Result<(), String> {
             Ok(())
         }
         "issue" => issue_command(&path, args),
+        "revoke" => revoke_command(&path, args),
         other => Err(format!("unknown command {other:?}")),
     }
 }

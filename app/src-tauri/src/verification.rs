@@ -4,8 +4,9 @@
 //! trusted root, license validity at the attestation date, journal digest.
 
 use oblivio_attestation::display::uuid;
-use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_attestation::pdf::{ExtractError, attachments};
+
+use crate::trust::Trust;
 use oblivio_attestation::{Verified, VerifyError, from_qr_text, verify};
 use serde::Serialize;
 
@@ -209,8 +210,8 @@ fn details(verified: &Verified) -> Details {
     }
 }
 
-/// Verifies `input` against `roots`, the official root (if any) first.
-pub fn check(input: &[u8], official: Option<VerifyingKey>, roots: &[VerifyingKey]) -> Report {
+/// Verifies `input` against `trust` (roots, official first, and revocations).
+pub fn check(input: &[u8], trust: &Trust) -> Report {
     if input.len() > MAX_INPUT_BYTES {
         return rejected(None, "TooLarge");
     }
@@ -233,8 +234,8 @@ pub fn check(input: &[u8], official: Option<VerifyingKey>, roots: &[VerifyingKey
     };
 
     let mut first_error = None;
-    for root in roots {
-        match verify(&signed, root, &[]) {
+    for root in &trust.roots {
+        match verify(&signed, root, &trust.revocations) {
             Ok(verified) => {
                 let journal = match &journal {
                     None => Journal::Absent,
@@ -245,7 +246,7 @@ pub fn check(input: &[u8], official: Option<VerifyingKey>, roots: &[VerifyingKey
                     source: Some(source),
                     authentic: true,
                     reason: None,
-                    root: Some(if Some(*root) == official {
+                    root: Some(if Some(*root) == trust.official {
                         Root::Official
                     } else {
                         Root::Development
@@ -272,8 +273,35 @@ mod tests {
     use oblivio_report::fixture::{JOURNAL, root, signed};
     use oblivio_report::{RenderOptions, render};
 
-    fn roots() -> Vec<VerifyingKey> {
-        vec![root().verifying_key()]
+    fn trust(
+        official: bool,
+        roots: Vec<oblivio_attestation::ed25519_dalek::VerifyingKey>,
+    ) -> Trust {
+        Trust {
+            official: if official {
+                roots.first().copied()
+            } else {
+                None
+            },
+            roots,
+            revocations: Vec::new(),
+        }
+    }
+
+    fn roots() -> Trust {
+        trust(false, vec![root().verifying_key()])
+    }
+
+    #[test]
+    fn certificate_of_a_revoked_license_is_rejected() {
+        let mut revoked = roots();
+        revoked.revocations.push(oblivio_attestation::Revocation {
+            license_id: "LIC-0001".to_owned(),
+            revoked_at: 0,
+        });
+        let report = check(&signed(Status::Compliant, "x"), &revoked);
+        assert!(!report.authentic);
+        assert_eq!(report.reason.as_deref(), Some("LicenseRevoked"));
     }
 
     #[test]
@@ -289,7 +317,7 @@ mod tests {
             },
         )
         .expect("rendered");
-        let report = check(&pdf, Some(root().verifying_key()), &roots());
+        let report = check(&pdf, &trust(true, vec![root().verifying_key()]));
         assert!(report.authentic, "{report:?}");
         assert_eq!(report.source, Some(Source::Pdf));
         assert_eq!(report.root, Some(Root::Official));
@@ -302,14 +330,14 @@ mod tests {
     #[test]
     fn cose_and_qr_are_verified_without_journal() {
         let cose = signed(Status::Compliant, "x");
-        let report = check(&cose, None, &roots());
+        let report = check(&cose, &roots());
         assert!(report.authentic);
         assert_eq!(report.source, Some(Source::Cose));
         assert_eq!(report.root, Some(Root::Development));
         assert_eq!(report.journal, Journal::Absent);
 
         let qr = to_qr_text(&cose);
-        let report = check(format!("  {qr}\n").as_bytes(), None, &roots());
+        let report = check(format!("  {qr}\n").as_bytes(), &roots());
         assert!(report.authentic);
         assert_eq!(report.source, Some(Source::Qr));
     }
@@ -319,7 +347,7 @@ mod tests {
         let mut cose = signed(Status::Compliant, "x");
         let last = cose.len() - 1;
         cose[last] ^= 1;
-        let report = check(&cose, None, &roots());
+        let report = check(&cose, &roots());
         assert!(!report.authentic);
         assert!(report.details.is_none());
         assert!(report.reason.is_some());
@@ -327,17 +355,16 @@ mod tests {
         let stranger = oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
         let report = check(
             &signed(Status::Compliant, "x"),
-            None,
-            &[stranger.verifying_key()],
+            &trust(false, vec![stranger.verifying_key()]),
         );
         assert_eq!(report.reason.as_deref(), Some("LicenseInvalid"));
 
         assert_eq!(
-            check(b"OBV1:!!!", None, &roots()).reason.as_deref(),
+            check(b"OBV1:!!!", &roots()).reason.as_deref(),
             Some("Corrupted")
         );
         assert_eq!(
-            check(b"%PDF-1.7 broken", None, &roots()).reason.as_deref(),
+            check(b"%PDF-1.7 broken", &roots()).reason.as_deref(),
             Some("PdfUnreadable")
         );
     }

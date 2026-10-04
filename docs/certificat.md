@@ -143,6 +143,23 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
 **Révocation** : liste de licences révoquées signée par la racine, livrée avec les mises à jour.
 Une attestation signée **avant** la date de révocation reste valide (horodatage `iat`).
 
+Implémentation (2026-10-04) :
+- **Format** (`oblivio_attestation::revocation`) : `OBR1:` + Base45 d'un COSE_Sign1 signé par la racine, sur le
+  CBOR déterministe `{v: 1, seq, iat, rev: [[id, date], …]}`, identifiants triés et uniques, 100 000 entrées au plus.
+  Une révocation est **définitive** : les listes ne font que grandir, et l'union de listes valides est toujours juste
+  (pour une même licence, la date la plus ancienne l'emporte).
+- **Émission** : `oblivio-issuer revoke root.key --id ID [--at EPOCH] [--list ACTUELLE.obr] [--register FICHIER]
+  --out NOUVELLE.obr`. L'identifiant doit figurer au registre ; la nouvelle liste reprend l'actuelle (vérifiée) avec
+  `seq + 1` ; fichier jamais écrasé. `--at` permet d'antidater à la date de compromission d'une clé de poste : tout
+  certificat signé depuis devient non authentique. Une date future est refusée.
+- **Livraison** : la liste est copiée dans `public/oblivio-attestation/revocations.obr` et référencée par
+  `trust::OFFICIAL_REVOCATIONS` ; un test vérifie à la compilation qu'elle est signée par la racine officielle.
+- **Application** : le helper refuse de signer avec une licence révoquée (état `Revoked`) ; l'application l'applique à
+  l'historique (état « licence révoquée »), à la vérification et au rendu PDF ; `oblivio-verify` applique la liste
+  intégrée et, avec `--revocations FICHIER`, une liste plus récente signée par la **même** racine, et affiche le numéro
+  de la liste la plus récente utilisée. Si la liste intégrée ne se vérifie pas, tout échoue (**fail closed**) : le helper
+  ne signe plus et rien n'est déclaré authentique.
+
 > ⚠️ Limite assumée : `iat` est déclaré par le poste, sans horodatage tiers (offline-first).
 > Option Grands Comptes à étudier : contre-signature horodatée RFC 3161 lors d'une connexion ultérieure.
 
@@ -175,7 +192,8 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
 - Codes de sortie : **0** authentique (et journal conforme s'il est fourni), **1** non authentique, **2** erreur d'usage.
 - Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
 - Clé racine officielle intégrée depuis le 2026-10-04 ; `--root-key` reste possible et le rapport avertit
-  alors qu'il s'agit d'une clé non officielle. La liste de révocation n'est pas encore lue (format à définir).
+  alors qu'il s'agit d'une clé non officielle (la liste intégrée, signée par la racine officielle, ne s'applique alors pas ;
+  `--revocations` reste possible).
 
 ## 6. Mise en page du PDF
 

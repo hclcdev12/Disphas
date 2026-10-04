@@ -274,3 +274,81 @@ fn pdf_without_attestation_or_truncated_is_rejected() {
         assert!(text.contains("NOT AUTHENTIC"), "{name}: {text}");
     }
 }
+
+fn revocation_list(key: &SigningKey, revoked_at: u64) -> String {
+    use oblivio_attestation::Revocation;
+    use oblivio_attestation::revocation::RevocationList;
+    RevocationList {
+        seq: 7,
+        issued_at: ISSUED_AT + 86_400,
+        entries: vec![Revocation {
+            license_id: "LIC-0001".to_owned(),
+            revoked_at,
+        }],
+    }
+    .sign(key)
+    .expect("signed list")
+}
+
+#[test]
+fn revocation_applies_from_its_date_only() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let cose = write(dir.path(), "cert.cose", &signed_attestation());
+
+    // Revoked before the certificate was issued: not authentic.
+    let before = write(
+        dir.path(),
+        "before.obr",
+        revocation_list(&root(), ISSUED_AT - 1).as_bytes(),
+    );
+    let output = verify_cli(&[
+        "--lang",
+        "en",
+        "--root-key",
+        &root_hex(&root()),
+        "--revocations",
+        &before,
+        &cose,
+    ]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(text.contains("revoked"), "{text}");
+
+    // Revoked after: the certificate stays valid, and the list is named.
+    let after = write(
+        dir.path(),
+        "after.obr",
+        revocation_list(&root(), ISSUED_AT + 1).as_bytes(),
+    );
+    let output = verify_cli(&[
+        "--lang",
+        "en",
+        "--root-key",
+        &root_hex(&root()),
+        "--revocations",
+        &after,
+        &cose,
+    ]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(text.contains("#7"), "{text}");
+}
+
+#[test]
+fn revocation_list_from_another_key_is_refused() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let cose = write(dir.path(), "cert.cose", &signed_attestation());
+    let forged = write(
+        dir.path(),
+        "forged.obr",
+        revocation_list(&SigningKey::from_bytes(&[9; 32]), 0).as_bytes(),
+    );
+    let output = verify_cli(&[
+        "--root-key",
+        &root_hex(&root()),
+        "--revocations",
+        &forged,
+        &cose,
+    ]);
+    assert_eq!(output.status.code(), Some(2));
+}

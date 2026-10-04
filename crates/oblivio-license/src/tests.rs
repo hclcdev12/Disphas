@@ -48,14 +48,19 @@ fn activated(expires: Option<u64>) -> (TempDir, LicenseStore, String) {
 fn full_activation_round_trip() {
     let (_dir, store, text) = activated(Some(NOW + 365 * DAY));
     assert_eq!(
-        store.status(&root().verifying_key(), NOW).expect("status"),
+        store
+            .status(&root().verifying_key(), NOW, &[])
+            .expect("status"),
         LicenseStatus::Missing
     );
     let installed = store
         .install(&text, &root().verifying_key(), NOW)
         .expect("installed");
     assert_eq!(installed.license.customer, "Atelier XYZ");
-    match store.status(&root().verifying_key(), NOW).expect("status") {
+    match store
+        .status(&root().verifying_key(), NOW, &[])
+        .expect("status")
+    {
         LicenseStatus::Valid(valid) => assert_eq!(valid, installed),
         other => panic!("expected Valid, got {other:?}"),
     }
@@ -173,11 +178,11 @@ fn status_follows_time() {
         .expect("installed");
     let root = root().verifying_key();
     assert!(matches!(
-        store.status(&root, NOW - 2 * DAY).expect("status"),
+        store.status(&root, NOW - 2 * DAY, &[]).expect("status"),
         LicenseStatus::NotYetValid(_)
     ));
     assert!(matches!(
-        store.status(&root, NOW + 2 * DAY).expect("status"),
+        store.status(&root, NOW + 2 * DAY, &[]).expect("status"),
         LicenseStatus::Expired(_)
     ));
 }
@@ -195,7 +200,9 @@ fn tampered_license_file_is_invalid() {
     content.push(replaced);
     fs::write(&path, content).expect("tampered");
     assert!(matches!(
-        store.status(&root().verifying_key(), NOW).expect("status"),
+        store
+            .status(&root().verifying_key(), NOW, &[])
+            .expect("status"),
         LicenseStatus::Invalid(_)
     ));
 }
@@ -208,7 +215,9 @@ fn license_from_a_lost_key_is_invalid() {
         .expect("installed");
     fs::remove_file(dir.path().join("keys/workstation.key")).expect("key removed");
     assert!(matches!(
-        store.status(&root().verifying_key(), NOW).expect("status"),
+        store
+            .status(&root().verifying_key(), NOW, &[])
+            .expect("status"),
         LicenseStatus::Invalid(_)
     ));
 }
@@ -240,4 +249,38 @@ fn development_root_issues_installable_licenses() {
         store.install(&text, &root().verifying_key(), NOW),
         Err(LicenseError::Signature)
     ));
+}
+
+#[test]
+fn revoked_license_is_reported_from_its_revocation_time() {
+    let (_dir, store, text) = activated(None);
+    let installed = store
+        .install(&text, &root().verifying_key(), NOW)
+        .expect("installed");
+    let revoked = |at| {
+        vec![oblivio_attestation::Revocation {
+            license_id: installed.license.id.clone(),
+            revoked_at: at,
+        }]
+    };
+    let status = |revocations: &[oblivio_attestation::Revocation]| {
+        store
+            .status(&root().verifying_key(), NOW, revocations)
+            .expect("status")
+    };
+    assert!(
+        matches!(status(&revoked(NOW - DAY)), LicenseStatus::Revoked(_, at) if at == NOW - DAY)
+    );
+    assert!(matches!(status(&revoked(NOW)), LicenseStatus::Revoked(..)));
+    // Revoked in the future (scheduled end): still valid until then.
+    assert!(matches!(
+        status(&revoked(NOW + DAY)),
+        LicenseStatus::Valid(_)
+    ));
+    // Another license revoked: no effect.
+    let other = [oblivio_attestation::Revocation {
+        license_id: "OBL-OTHER".to_owned(),
+        revoked_at: 0,
+    }];
+    assert!(matches!(status(&other), LicenseStatus::Valid(_)));
 }

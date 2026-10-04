@@ -63,6 +63,7 @@ pub enum Msg {
     ErrLicenseRevoked,
     ErrSignature,
     JournalFromPdf,
+    RevocationList,
     ErrPdfNoAttestation,
     ErrPdfUnreadable,
 }
@@ -184,6 +185,7 @@ pub fn msg(message: Msg) -> Text {
             "la licence a été révoquée avant la date de l'attestation",
             "die Lizenz wurde vor dem Datum der Bescheinigung widerrufen",
         ),
+        Msg::RevocationList => t("Revocation list", "Liste de révocation", "Widerrufsliste"),
         Msg::JournalFromPdf => t("attached to the PDF", "joint au PDF", "dem PDF beigefügt"),
         Msg::ErrPdfNoAttestation => t(
             "this PDF carries no Oblivio attestation (not an Oblivio certificate, or reprinted)",

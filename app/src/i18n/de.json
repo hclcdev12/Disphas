@@ -213,7 +213,8 @@
     "check": {
       "Invalid": "Ungültige Signatur: Diese Bescheinigung wird nicht angezeigt",
       "JournalMismatch": "Protokoll geändert oder ersetzt: Diese Bescheinigung wird nicht angezeigt",
-      "Unreadable": "Unlesbare oder unvollständige Bescheinigung"
+      "Unreadable": "Unlesbare oder unvollständige Bescheinigung",
+      "Revoked": "Lizenz zum Datum der Bescheinigung widerrufen: Diese Bescheinigung wird nicht angezeigt"
     }
   },
   "verify": {

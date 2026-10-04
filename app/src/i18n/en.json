@@ -213,7 +213,8 @@
     "check": {
       "Invalid": "Invalid signature: this certificate is not shown",
       "JournalMismatch": "Journal modified or replaced: this certificate is not shown",
-      "Unreadable": "Unreadable or incomplete certificate"
+      "Unreadable": "Unreadable or incomplete certificate",
+      "Revoked": "License revoked at the certificate date: this certificate is not shown"
     }
   },
   "verify": {

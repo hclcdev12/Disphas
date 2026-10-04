@@ -9,6 +9,8 @@ use oblivio_attestation::display::Lang;
 use oblivio_protocol::response::JobResult;
 use oblivio_report::{RenderOptions, ReportError, render};
 
+use crate::trust::Trust;
+
 /// Folder where certificates are saved: `~/Documents/Oblivio`.
 pub fn output_dir() -> Result<PathBuf, String> {
     let home = std::env::var_os("HOME").ok_or("HOME is not set")?;
@@ -20,16 +22,29 @@ pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
     let signed = base64::engine::general_purpose::STANDARD
         .decode(&result.attestation)
         .map_err(|error| format!("attestation: {error}"))?;
-    save_signed(&result.job_id.0, &signed, result.journal.as_bytes(), lang)
+    let trust = Trust::shipped()?;
+    save_signed(
+        &result.job_id.0,
+        &signed,
+        result.journal.as_bytes(),
+        lang,
+        &trust,
+    )
 }
 
 /// Renders report `id` from its signed attestation and journal, and saves it.
-pub fn save_signed(id: &str, signed: &[u8], journal: &[u8], lang: Lang) -> Result<PathBuf, String> {
+pub fn save_signed(
+    id: &str,
+    signed: &[u8],
+    journal: &[u8],
+    lang: Lang,
+    trust: &Trust,
+) -> Result<PathBuf, String> {
     // The certificate is rendered only if it chains to a trusted root.
     let options = RenderOptions { lang, logo: None };
     let mut outcome = Err("this build trusts no root key".to_owned());
-    for root in oblivio_license::trusted_roots() {
-        match render(signed, journal, &root, &[], &options) {
+    for root in &trust.roots {
+        match render(signed, journal, root, &trust.revocations, &options) {
             Ok(pdf) => {
                 outcome = Ok(pdf);
                 break;

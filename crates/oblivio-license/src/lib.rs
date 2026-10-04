@@ -31,6 +31,13 @@ pub fn state_dir() -> std::path::PathBuf {
     std::path::PathBuf::from("/var/lib/oblivio")
 }
 
+/// Licenses revoked by the official list shipped with this version
+/// (`oblivio_attestation::trust::OFFICIAL_REVOCATIONS`). An error means the
+/// shipped list does not verify: callers fail closed.
+pub fn trusted_revocations() -> Result<Vec<Revocation>, String> {
+    oblivio_attestation::trust::official_revocations().map_err(|error| error.to_string())
+}
+
 /// Root keys licenses and certificates may chain to: the official root key;
 /// in development builds also the public development root, so licenses of
 /// both origins work there. Release builds trust the official key alone.
@@ -53,11 +60,11 @@ use std::io::{self, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
-use oblivio_attestation::License;
 use oblivio_attestation::base45;
 use oblivio_attestation::cose::Unverified;
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_attestation::model::ActivationRequest;
+use oblivio_attestation::{License, Revocation};
 
 pub use key::{KeyError, WorkstationKey};
 
@@ -117,6 +124,8 @@ pub enum LicenseStatus {
     NotYetValid(InstalledLicense),
     /// No longer valid.
     Expired(InstalledLicense),
+    /// Revoked by Oblivio at the given time (UTC epoch seconds).
+    Revoked(InstalledLicense, u64),
     /// Installed file unusable: corrupted, wrong root, or wrong workstation.
     Invalid(String),
 }
@@ -196,9 +205,15 @@ impl LicenseStore {
         Ok(installed)
     }
 
-    /// State of the installed license at `now`, checked against `root` and
-    /// the workstation key every time: a tampered file is never trusted.
-    pub fn status(&self, root: &VerifyingKey, now: u64) -> Result<LicenseStatus, LicenseError> {
+    /// State of the installed license at `now`, checked against `root`, the
+    /// workstation key and `revocations` every time: a tampered file is never
+    /// trusted.
+    pub fn status(
+        &self,
+        root: &VerifyingKey,
+        now: u64,
+        revocations: &[Revocation],
+    ) -> Result<LicenseStatus, LicenseError> {
         let text = match fs::read_to_string(self.license_path()) {
             Ok(text) => text,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
@@ -216,7 +231,14 @@ impl LicenseStore {
                 LicenseError::WrongWorkstation.to_string(),
             ));
         }
-        Ok(if now < installed.license.not_before {
+        let revoked = revocations
+            .iter()
+            .filter(|revocation| revocation.license_id == installed.license.id)
+            .map(|revocation| revocation.revoked_at)
+            .min();
+        Ok(if let Some(at) = revoked.filter(|at| *at <= now) {
+            LicenseStatus::Revoked(installed, at)
+        } else if now < installed.license.not_before {
             LicenseStatus::NotYetValid(installed)
         } else if installed.license.is_valid_at(now) {
             LicenseStatus::Valid(installed)

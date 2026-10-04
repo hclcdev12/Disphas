@@ -5,6 +5,7 @@
 mod certificate;
 mod helper;
 mod history;
+mod trust;
 mod verification;
 
 use std::collections::HashMap;
@@ -65,10 +66,11 @@ async fn render_certificate(
 async fn list_reports() -> Result<Vec<history::Entry>, String> {
     // Verifying thousands of signatures: off the async runtime.
     tauri::async_runtime::spawn_blocking(|| {
-        history::list(&history::reports_dir(), &oblivio_license::trusted_roots())
+        let trust = trust::Trust::shipped()?;
+        Ok(history::list(&history::reports_dir(), &trust))
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string())?
 }
 
 /// Renders the PDF certificate of report `id` from the history, in `lang`.
@@ -82,7 +84,8 @@ async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
     let path = tauri::async_runtime::spawn_blocking(move || {
         let (signed, journal) =
             history::read(&history::reports_dir(), &id).ok_or("report not found")?;
-        certificate::save_signed(&id, &signed, &journal, lang)
+        let trust = trust::Trust::shipped()?;
+        certificate::save_signed(&id, &signed, &journal, lang, &trust)
     })
     .await
     .map_err(|error| failure(error.to_string()))?
@@ -102,14 +105,11 @@ async fn verify_certificate(data: String) -> Result<verification::Report, String
         .decode(data.trim())
         .map_err(|error| error.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
-        let official = oblivio_attestation::trust::official_root_key();
-        let mut roots = oblivio_license::trusted_roots();
-        // The official root first, so it is the one reported when both match.
-        roots.sort_by_key(|root| Some(*root) != official);
-        verification::check(&input, official, &roots)
+        let trust = trust::Trust::shipped()?;
+        Ok(verification::check(&input, &trust))
     })
     .await
-    .map_err(|error| error.to_string())
+    .map_err(|error| error.to_string())?
 }
 
 /// Opens a certificate saved by `render_certificate`.

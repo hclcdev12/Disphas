@@ -23,7 +23,7 @@ import previewVerification from "../dev/verification-sample.json";
 /** One report of the certificate history (app/src-tauri/src/history.rs). */
 export type HistoryEntry = {
   id: string;
-  check: "Valid" | "Invalid" | "JournalMismatch" | "Unreadable";
+  check: "Valid" | "Invalid" | "Revoked" | "JournalMismatch" | "Unreadable";
   summary: {
     issued_at: number;
     status: "CONFORME" | "NON_CONFORME" | "REFUS";

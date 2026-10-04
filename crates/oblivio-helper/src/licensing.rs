@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use oblivio_attestation::Revocation;
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_license::{InstalledLicense, LicenseStatus, LicenseStore, WorkstationKey};
 use oblivio_protocol::response::{ErrorBody, ErrorCode, LicenseState, LicenseStatusResult};
@@ -42,21 +43,41 @@ pub fn state_dir() -> PathBuf {
 pub struct StoreLicensing {
     store: LicenseStore,
     roots: Vec<VerifyingKey>,
+    /// Revoked licenses, or why the shipped list does not verify.
+    revocations: Result<Vec<Revocation>, String>,
 }
 
 impl StoreLicensing {
     /// Licensing over `store`, accepting licenses signed by any of `roots`
     /// (see `oblivio_license::trusted_roots`).
+    /// Revocations come from the official list shipped with this version.
     pub fn new(store: LicenseStore, roots: Vec<VerifyingKey>) -> Self {
-        Self { store, roots }
+        Self {
+            store,
+            roots,
+            revocations: oblivio_license::trusted_revocations(),
+        }
+    }
+
+    /// Replaces the revocation list (tests).
+    pub fn with_revocations(mut self, revocations: Result<Vec<Revocation>, String>) -> Self {
+        self.revocations = revocations;
+        self
     }
 
     /// Status of the installed license under the first root that verifies it.
     /// `None` when no root does (or this build trusts none).
     fn installed(&self) -> Option<LicenseStatus> {
+        // A shipped list that does not verify: fail closed, never sign.
+        let revocations = match &self.revocations {
+            Ok(revocations) => revocations,
+            Err(error) => {
+                return Some(LicenseStatus::Invalid(format!("revocation list: {error}")));
+            }
+        };
         self.roots
             .iter()
-            .find_map(|root| match self.store.status(root, now()) {
+            .find_map(|root| match self.store.status(root, now(), revocations) {
                 Ok(LicenseStatus::Invalid(_)) | Err(_) => None,
                 Ok(status) => Some(status),
             })
@@ -98,6 +119,9 @@ impl Licensing for StoreLicensing {
             }
             Some(LicenseStatus::Expired(installed)) => {
                 result(LicenseState::Expired, Some(&installed))
+            }
+            Some(LicenseStatus::Revoked(installed, _)) => {
+                result(LicenseState::Revoked, Some(&installed))
             }
         }
     }
@@ -169,6 +193,38 @@ mod tests {
         assert_eq!(status.state, LicenseState::Valid);
         assert_eq!(status.offer.as_deref(), Some("Dev"));
         assert_eq!(licensing.status(), status);
+    }
+
+    #[test]
+    fn revoked_license_cannot_sign() {
+        let (_dir, licensing) = licensing();
+        let request = licensing.activation_request().expect("request");
+        let license = oblivio_license::dev_root::issue(&request, now(), 30).expect("issued");
+        let id = licensing
+            .install(&license)
+            .expect("installed")
+            .license_id
+            .expect("id");
+        let licensing = licensing.with_revocations(Ok(vec![Revocation {
+            license_id: id,
+            revoked_at: now() - 60,
+        }]));
+        assert_eq!(licensing.status().state, LicenseState::Revoked);
+        assert_eq!(
+            licensing.signer().expect_err("refused").code,
+            ErrorCode::LicenseRequired
+        );
+    }
+
+    #[test]
+    fn unverifiable_revocation_list_fails_closed() {
+        let (_dir, licensing) = licensing();
+        let request = licensing.activation_request().expect("request");
+        let license = oblivio_license::dev_root::issue(&request, now(), 30).expect("issued");
+        licensing.install(&license).expect("installed");
+        let licensing = licensing.with_revocations(Err("bad signature".to_owned()));
+        assert_eq!(licensing.status().state, LicenseState::Invalid);
+        assert!(licensing.signer().is_err());
     }
 
     #[test]

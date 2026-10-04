@@ -1,7 +1,8 @@
 //! `oblivio-verify`: offline verification of Oblivio erasure certificates.
 //!
 //! ```text
-//! oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
+//! oblivio-verify [--lang en|fr|de] [--journal FILE] [--revocations FILE] [--root-key HEX]
+//!                (FILE | --qr TEXT)
 //! ```
 //!
 //! FILE holds a certificate PDF, the QR text (`OBV1:…`) or the binary COSE
@@ -15,6 +16,7 @@ mod render;
 use std::process::ExitCode;
 
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
+use oblivio_attestation::revocation::{RevocationList, merge};
 use oblivio_attestation::{VerifyError, from_qr_text, pdf, verify};
 
 use crate::labels::Lang;
@@ -25,11 +27,13 @@ const MAX_INPUT_BYTES: u64 = 32 << 20;
 const MAX_JOURNAL_BYTES: u64 = 16 << 20;
 
 const USAGE: &str = "\
-usage: oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
+usage: oblivio-verify [--lang en|fr|de] [--journal FILE] [--revocations FILE] [--root-key HEX]
+                      (FILE | --qr TEXT)
 
   FILE            certificate PDF, QR text (OBV1:...) or binary COSE attestation
   --qr TEXT       QR text given directly
   --journal FILE  detailed journal to check (default for a PDF: the attached one)
+  --revocations FILE  newer revocation list (OBR1:...), added to the one built in
   --root-key HEX  root public key (64 hex digits) instead of the official one
   --lang LANG     report language (default: system language, else English)
 
@@ -40,6 +44,7 @@ exit status: 0 authentic, 1 not authentic, 2 usage or input error";
 struct Args {
     lang: Option<Lang>,
     journal: Option<String>,
+    revocations: Option<String>,
     root_key: Option<String>,
     qr: Option<String>,
     file: Option<String>,
@@ -56,6 +61,7 @@ fn parse_args(mut args: impl Iterator<Item = String>) -> Result<Args, String> {
                     Some(Lang::from_tag(&tag).ok_or(format!("unknown language {tag:?}"))?);
             }
             "--journal" => parsed.journal = Some(value("--journal")?),
+            "--revocations" => parsed.revocations = Some(value("--revocations")?),
             "--root-key" => parsed.root_key = Some(value("--root-key")?),
             "--qr" => parsed.qr = Some(value("--qr")?),
             "-h" | "--help" => return Err(String::new()),
@@ -147,14 +153,36 @@ fn run(args: Args) -> Result<bool, String> {
         (None, None) => None,
     };
 
-    let result = attestation_bytes(input).and_then(|signed| verify(&signed, &root, &[]));
+    // Revocations: the list built into this version (official root only),
+    // plus a newer one given by the user, signed by the same root.
+    let mut lists = Vec::new();
+    if !unofficial && let Some(text) = oblivio_attestation::trust::OFFICIAL_REVOCATIONS {
+        lists.push(
+            RevocationList::decode(text, &root)
+                .map_err(|error| format!("built-in revocation list: {error}"))?,
+        );
+    }
+    if let Some(path) = &args.revocations {
+        let text = String::from_utf8(read_bounded(path, MAX_JOURNAL_BYTES)?)
+            .map_err(|_| format!("{path}: not a revocation list"))?;
+        lists.push(
+            RevocationList::decode(&text, &root).map_err(|error| format!("{path}: {error}"))?,
+        );
+    }
+    let revocations = merge(&lists);
+    let newest = lists.iter().map(|list| (list.seq, list.issued_at)).max();
+
+    let result = attestation_bytes(input).and_then(|signed| verify(&signed, &root, &revocations));
     match result {
         Ok(verified) => {
             let check = journal.map(|(journal, from_pdf)| render::JournalCheck {
                 matches: verified.matches_journal(&journal),
                 from_pdf,
             });
-            print!("{}", render::authentic(&verified, check, unofficial, lang));
+            print!(
+                "{}",
+                render::authentic(&verified, check, newest, unofficial, lang)
+            );
             Ok(check.is_none_or(|check| check.matches))
         }
         Err(error) => {

@@ -2,9 +2,13 @@
 //! certificates and licenses ultimately chain to (`docs/certificat.md` §4).
 //!
 //! Generated offline with `oblivio-issuer keygen`; only the public half is
-//! published here.
+//! published here. The official revocation list, signed by that key, ships
+//! with every version.
 
 use ed25519_dalek::VerifyingKey;
+
+use crate::revocation::{RevocationError, RevocationList};
+use crate::verify::Revocation;
 
 /// The official root public key, generated offline on 2026-10-04.
 pub const OFFICIAL_ROOT_KEY: Option<[u8; 32]> = Some([
@@ -17,9 +21,31 @@ pub fn official_root_key() -> Option<VerifyingKey> {
     OFFICIAL_ROOT_KEY.and_then(|bytes| VerifyingKey::from_bytes(&bytes).ok())
 }
 
+/// The official revocation list shipped with this version (`OBR1:` text,
+/// produced by `oblivio-issuer revoke`), or `None` while no license has ever
+/// been revoked. To ship a new list: save it as `revocations.obr` next to
+/// `Cargo.toml` and set `Some(include_str!("../revocations.obr"))`.
+pub const OFFICIAL_REVOCATIONS: Option<&str> = None;
+
+/// Licenses revoked by the official list of this version. An error means the
+/// shipped list does not verify: callers must fail closed (never sign, never
+/// call a certificate authentic) rather than ignore revocations.
+pub fn official_revocations() -> Result<Vec<Revocation>, RevocationError> {
+    let Some(text) = OFFICIAL_REVOCATIONS else {
+        return Ok(Vec::new());
+    };
+    let root = official_root_key().ok_or(RevocationError::Format)?;
+    Ok(RevocationList::decode(text, &root)?.entries)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shipped_revocation_list_verifies() {
+        assert!(official_revocations().is_ok());
+    }
 
     #[test]
     fn official_root_key_is_a_valid_ed25519_point() {

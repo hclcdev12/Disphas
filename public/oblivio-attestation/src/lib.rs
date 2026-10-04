@@ -14,6 +14,7 @@ pub mod display;
 pub mod model;
 #[cfg(feature = "pdf")]
 pub mod pdf;
+pub mod revocation;
 pub mod trust;
 pub mod verify;
 

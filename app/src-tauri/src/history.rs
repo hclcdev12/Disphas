@@ -6,8 +6,9 @@
 use std::path::{Path, PathBuf};
 
 use oblivio_attestation::display::uuid;
-use oblivio_attestation::ed25519_dalek::VerifyingKey;
-use oblivio_attestation::verify;
+use oblivio_attestation::{VerifyError, verify};
+
+use crate::trust::Trust;
 use serde::Serialize;
 
 /// Largest signed attestation read.
@@ -29,6 +30,8 @@ pub enum Check {
     Valid,
     /// Signature, license chain or format rejected.
     Invalid,
+    /// The license was revoked at or before the certificate date.
+    Revoked,
     /// The journal next to it is not the one the attestation covers.
     JournalMismatch,
     /// Files missing, too large or unreadable.
@@ -96,12 +99,22 @@ pub fn read(dir: &Path, id: &str) -> Option<(Vec<u8>, Vec<u8>)> {
     Some((signed, journal))
 }
 
-/// Checks one report against `roots`.
-pub fn check(id: &str, signed: &[u8], journal: &[u8], roots: &[VerifyingKey]) -> Entry {
-    let Some(verified) = roots.iter().find_map(|root| verify(signed, root, &[]).ok()) else {
+/// Checks one report against `trust`.
+pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
+    let mut revoked = false;
+    let verified = trust.roots.iter().find_map(|root| {
+        verify(signed, root, &trust.revocations)
+            .map_err(|error| revoked |= error == VerifyError::LicenseRevoked)
+            .ok()
+    });
+    let Some(verified) = verified else {
         return Entry {
             id: id.to_owned(),
-            check: Check::Invalid,
+            check: if revoked {
+                Check::Revoked
+            } else {
+                Check::Invalid
+            },
             summary: None,
         };
     };
@@ -135,7 +148,7 @@ pub fn check(id: &str, signed: &[u8], journal: &[u8], roots: &[VerifyingKey]) ->
 }
 
 /// Reports in `dir`, newest first (identifiers are UUID v7, ordered by time).
-pub fn list(dir: &Path, roots: &[VerifyingKey]) -> Vec<Entry> {
+pub fn list(dir: &Path, trust: &Trust) -> Vec<Entry> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
@@ -151,7 +164,7 @@ pub fn list(dir: &Path, roots: &[VerifyingKey]) -> Vec<Entry> {
     ids.truncate(MAX_ENTRIES);
     ids.into_iter()
         .map(|id| match read(dir, &id) {
-            Some((signed, journal)) => check(&id, &signed, &journal, roots),
+            Some((signed, journal)) => check(&id, &signed, &journal, trust),
             None => Entry {
                 id,
                 check: Check::Unreadable,
@@ -166,6 +179,37 @@ mod tests {
     use super::*;
     use oblivio_attestation::model::Status;
     use oblivio_report::fixture::{JOURNAL, root, signed};
+
+    fn trust_in(
+        roots: Vec<oblivio_attestation::ed25519_dalek::VerifyingKey>,
+        revocations: Vec<oblivio_attestation::Revocation>,
+    ) -> Trust {
+        Trust {
+            official: roots.first().copied(),
+            roots,
+            revocations,
+        }
+    }
+
+    fn fixture_trust() -> Trust {
+        trust_in(vec![root().verifying_key()], vec![])
+    }
+
+    #[test]
+    fn report_of_a_revoked_license_is_flagged() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        store(dir.path(), &signed(Status::Compliant, "x"), JOURNAL);
+        let revoked = oblivio_attestation::Revocation {
+            license_id: "LIC-0001".to_owned(),
+            revoked_at: 0,
+        };
+        let listed = list(
+            dir.path(),
+            &trust_in(vec![root().verifying_key()], vec![revoked]),
+        );
+        assert_eq!(listed[0].check, Check::Revoked);
+        assert!(listed[0].summary.is_none());
+    }
 
     fn store(dir: &Path, signed: &[u8], journal: &[u8]) -> String {
         let id = uuid(
@@ -187,7 +231,7 @@ mod tests {
             &signed(Status::Compliant, "Atelier XYZ"),
             JOURNAL,
         );
-        let listed = list(dir.path(), &[root().verifying_key()]);
+        let listed = list(dir.path(), &fixture_trust());
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].id, id);
         assert_eq!(listed[0].check, Check::Valid);
@@ -202,13 +246,13 @@ mod tests {
         store(dir.path(), &signed(Status::Compliant, "x"), JOURNAL);
         let stranger =
             oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]).verifying_key();
-        let listed = list(dir.path(), &[stranger]);
+        let listed = list(dir.path(), &trust_in(vec![stranger], vec![]));
         assert_eq!(listed[0].check, Check::Invalid);
         assert!(listed[0].summary.is_none());
 
         let id = listed[0].id.clone();
         std::fs::write(dir.path().join(format!("{id}.json")), b"{}").expect("tamper");
-        let listed = list(dir.path(), &[root().verifying_key()]);
+        let listed = list(dir.path(), &fixture_trust());
         assert_eq!(listed[0].check, Check::JournalMismatch);
         assert!(listed[0].summary.is_none());
     }
@@ -219,7 +263,7 @@ mod tests {
         let id = store(dir.path(), &signed(Status::Refused, "x"), JOURNAL);
         std::fs::remove_file(dir.path().join(format!("{id}.json"))).expect("removed");
         std::fs::write(dir.path().join("notes.cose"), b"x").expect("foreign");
-        let listed = list(dir.path(), &[root().verifying_key()]);
+        let listed = list(dir.path(), &fixture_trust());
         assert_eq!(listed.len(), 1, "only report-shaped names");
         assert_eq!(listed[0].check, Check::Unreadable);
     }

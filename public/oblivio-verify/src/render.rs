@@ -24,6 +24,7 @@ pub struct JournalCheck {
 pub fn authentic(
     verified: &Verified,
     journal: Option<JournalCheck>,
+    revocation_list: Option<(u64, u64)>,
     unofficial_root: bool,
     lang: Lang,
 ) -> String {
@@ -174,6 +175,14 @@ pub fn authentic(
             line(Msg::Journal, verdict);
         }
     }
+
+    line(
+        Msg::RevocationList,
+        &match revocation_list {
+            Some((seq, issued_at)) => format!("#{seq} ({})", utc(issued_at)),
+            None => m(Msg::None).to_owned(),
+        },
+    );
 
     let mut header = format!("✔ {}\n", m(Msg::Authentic));
     if unofficial_root {
