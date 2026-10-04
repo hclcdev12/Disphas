@@ -16,6 +16,16 @@ pub trait ErasureTarget: Send {
     /// `progress` receives percentages.
     fn firmware(&mut self, method: Method, progress: &mut dyn FnMut(u8)) -> Result<bool, String>;
 
+    /// Waits for a firmware Sanitize started by a helper that crashed, and
+    /// returns whether the firmware reports success. Refuses by default.
+    fn resume_firmware(
+        &mut self,
+        _method: Method,
+        _progress: &mut dyn FnMut(u8),
+    ) -> Result<bool, String> {
+        Err("this drive cannot resume an erasure".to_owned())
+    }
+
     /// SMART data read again after the operation, for ATA drives.
     fn smart_after(&mut self) -> Option<AtaSmart>;
 

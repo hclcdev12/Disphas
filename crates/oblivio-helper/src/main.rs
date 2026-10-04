@@ -28,6 +28,7 @@ fn main() -> ExitCode {
         rules: RuleSet::baseline(),
         binary_sha256: own_sha256(),
         reports_dir: licensing::state_dir().join("reports"),
+        jobs_dir: Some(licensing::state_dir().join("jobs")),
         licensing: Box::new(StoreLicensing::new(
             LicenseStore::new(licensing::state_dir()),
             oblivio_license::trusted_roots(),

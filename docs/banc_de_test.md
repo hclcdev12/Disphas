@@ -33,4 +33,6 @@
   comme hdparm), désactivation de la sécurité après l'effacement, et **coupure volontaire pendant
   l'effacement** puis redémarrage du helper : le disque doit être déverrouillé et libéré au démarrage.
 - `Unlock` sur un disque verrouillé avec un mot de passe connu, puis effacement.
+- Reprise d'un Sanitize après une **coupure de courant** (NVMe et ATA) : le disque doit reprendre seul,
+  l'inspection (IDENTIFY) doit répondre pendant le Sanitize, et la tâche doit finir CONFORME au redémarrage.
 - Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.

@@ -43,6 +43,8 @@ pub enum ErrorCode {
     NotCancellable,
     /// The drive could not be unlocked.
     UnlockFailed,
+    /// The job was interrupted by a helper crash: no attestation (§10).
+    JobInterrupted,
     /// Unexpected helper failure.
     Internal,
 }
@@ -165,6 +167,8 @@ pub enum JobPhase {
     Signing,
     /// Finished.
     Done,
+    /// Interrupted by a helper crash and not resumable: no attestation (§10).
+    Interrupted,
 }
 
 /// Final status of a job, as in the attestation (`docs/certificat.md` §3).

@@ -5,6 +5,7 @@
 /// *Destruct* is deliberately absent: Oblivio never executes it, it only
 /// prescribes or recommends it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Category {
     /// Logical techniques against simple, non-invasive recovery.
     Clear,
@@ -14,6 +15,7 @@ pub enum Category {
 
 /// A sanitization method Oblivio can execute.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Method {
     /// NVMe Sanitize, Block Erase action.
     NvmeSanitizeBlockErase,
@@ -64,6 +66,7 @@ impl Method {
 
 /// A method together with the category it would be certified under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MethodOption {
     /// The method.
     pub method: Method,

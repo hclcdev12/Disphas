@@ -155,6 +155,7 @@ mod tests {
                 rules: RuleSet::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
+                jobs_dir: None,
                 licensing: Box::new(crate::licensing::StoreLicensing::new(
                     oblivio_license::LicenseStore::new("/nonexistent/oblivio-test"),
                     Vec::new(),

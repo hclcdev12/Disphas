@@ -6,6 +6,7 @@
 
 /// Everything the engine needs to know about one drive.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceProfile {
     /// Hardware identity of the drive.
     pub identity: DeviceIdentity,
@@ -21,6 +22,7 @@ pub struct DeviceProfile {
 
 /// Identity of a drive. The helper never identifies a drive by its `/dev` path.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeviceIdentity {
     /// Model string.
     pub model: String,
@@ -38,6 +40,7 @@ pub struct DeviceIdentity {
 
 /// System state checked by the helper before anything else (§1).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProtectionFacts {
     /// P1: hosts `/`, `/boot`, `/boot/efi` or the boot medium.
     pub hosts_system: bool,
@@ -53,6 +56,7 @@ pub struct ProtectionFacts {
 
 /// Outcome of the firmware inspection.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Inspection {
     /// IDENTIFY failed or admin commands returned I/O errors (N1).
     Failed,
@@ -64,6 +68,7 @@ pub enum Inspection {
 
 /// State of the sanitize engine, read from the sanitize status log.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SanitizeState {
     /// No operation in progress, last one (if any) succeeded.
     #[default]
@@ -76,6 +81,7 @@ pub enum SanitizeState {
 
 /// NVMe drive facts.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NvmeProfile {
     /// Sanitize capabilities (Identify Controller `SANICAP`).
     pub sanitize: NvmeSanitizeCaps,
@@ -89,6 +95,7 @@ pub struct NvmeProfile {
 
 /// NVMe `SANICAP` bits.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NvmeSanitizeCaps {
     /// `SANICAP.BES`: Block Erase supported.
     pub block_erase: bool,
@@ -98,6 +105,7 @@ pub struct NvmeSanitizeCaps {
 
 /// NVMe Format NVM support.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NvmeFormatCaps {
     /// Format NVM command supported (`OACS` bit 1).
     pub supported: bool,
@@ -107,6 +115,7 @@ pub struct NvmeFormatCaps {
 
 /// NVMe SMART / Health Information log fields used by the engine.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NvmeHealth {
     /// Critical Warning byte.
     pub critical_warning: CriticalWarning,
@@ -118,6 +127,7 @@ pub struct NvmeHealth {
 
 /// NVMe Critical Warning byte.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CriticalWarning(pub u8);
 
 impl CriticalWarning {
@@ -138,6 +148,7 @@ impl CriticalWarning {
 
 /// SATA drive facts.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AtaProfile {
     /// Non-rotational medium (IDENTIFY word 217 = 1).
     pub solid_state: bool,
@@ -155,6 +166,7 @@ pub struct AtaProfile {
 
 /// ATA Sanitize capabilities (IDENTIFY word 59).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AtaSanitizeCaps {
     /// Bit 15: Block Erase supported.
     pub block_erase: bool,
@@ -166,6 +178,7 @@ pub struct AtaSanitizeCaps {
 
 /// ATA Security feature set (IDENTIFY word 128).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AtaSecurity {
     /// Bit 0: Security feature set supported.
     pub supported: bool,
@@ -183,6 +196,7 @@ pub struct AtaSecurity {
 
 /// ATA SMART data used by the engine. Attributes are `None` when not reported.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AtaSmart {
     /// SMART RETURN STATUS reports a threshold exceeded (D3).
     pub failing: bool,
@@ -198,6 +212,7 @@ pub struct AtaSmart {
 
 /// Matches in the Oblivio quirk base for this model and firmware.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QuirkFlags {
     /// Listed with a known issue (R8).
     pub known_issue: bool,

@@ -116,6 +116,7 @@
     "BUSY": "Another erasure is running",
     "NOT_CANCELLABLE": "This phase cannot be cancelled",
     "UNLOCK_FAILED": "The drive could not be unlocked",
+    "JOB_INTERRUPTED": "The job was interrupted by a helper stop: no attestation",
     "INTERNAL": "Internal helper error",
     "UNAVAILABLE": "The helper is not available",
     "LICENSE_INVALID": "The license was rejected"
@@ -145,7 +146,8 @@
       "Verifying": "Verifying",
       "Validating": "Validating",
       "Signing": "Signing",
-      "Done": "Done"
+      "Done": "Done",
+      "Interrupted": "Interrupted"
     },
     "rate": "{{rate}}/s",
     "eta": "{{eta}} left",

@@ -116,6 +116,7 @@
     "BUSY": "Eine andere Löschung läuft",
     "NOT_CANCELLABLE": "Diese Phase kann nicht abgebrochen werden",
     "UNLOCK_FAILED": "Das Laufwerk konnte nicht entsperrt werden",
+    "JOB_INTERRUPTED": "Der Auftrag wurde durch einen Abbruch des Helpers unterbrochen: keine Bescheinigung",
     "INTERNAL": "Interner Helper-Fehler",
     "UNAVAILABLE": "Der Helper ist nicht verfügbar",
     "LICENSE_INVALID": "Die Lizenz wurde abgelehnt"
@@ -145,7 +146,8 @@
       "Verifying": "Verifizierung",
       "Validating": "Validierung",
       "Signing": "Signatur",
-      "Done": "Fertig"
+      "Done": "Fertig",
+      "Interrupted": "Unterbrochen"
     },
     "rate": "{{rate}}/s",
     "eta": "noch {{eta}}",

@@ -3,4 +3,4 @@
 /**
  * Phases of a job, in order (§8).
  */
-export type JobPhase = "Preparing" | "Canaries" | "Executing" | "Verifying" | "Validating" | "Signing" | "Done";
+export type JobPhase = "Preparing" | "Canaries" | "Executing" | "Verifying" | "Validating" | "Signing" | "Done" | "Interrupted";

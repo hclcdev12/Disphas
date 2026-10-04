@@ -45,6 +45,9 @@ enum Firmware {
     Honest,
     /// Reports success without erasing anything.
     Lying,
+    /// The helper dies while the command runs; the drive carries on and
+    /// erases the image (as a real Sanitize does after a power cycle).
+    Crash,
 }
 
 struct TestTarget {
@@ -58,7 +61,23 @@ impl ErasureTarget for TestTarget {
     }
 
     fn firmware(&mut self, _: CoreMethod, progress: &mut dyn FnMut(u8)) -> Result<bool, String> {
-        if self.firmware == Firmware::Honest {
+        match self.firmware {
+            Firmware::Honest => {
+                erasure::host_overwrite(&mut self.image, &mut |_| {}).map_err(|e| e.to_string())?;
+            }
+            Firmware::Lying => {}
+            Firmware::Crash => panic!("simulated helper crash"),
+        }
+        progress(100);
+        Ok(true)
+    }
+
+    fn resume_firmware(
+        &mut self,
+        _: CoreMethod,
+        progress: &mut dyn FnMut(u8),
+    ) -> Result<bool, String> {
+        if self.firmware != Firmware::Lying {
             erasure::host_overwrite(&mut self.image, &mut |_| {}).map_err(|e| e.to_string())?;
         }
         progress(100);
@@ -94,6 +113,14 @@ impl DeviceBackend for ImageBackend {
 
     fn open(&mut self, identity: &WireIdentity) -> Result<Box<dyn ErasureTarget>, String> {
         let path = self.dir.join(format!("{}.img", identity.serial));
+        if path.exists() {
+            // Reopened after a crash: the drive keeps its content.
+            let image = FileImage::open(&path, 512).map_err(|e| e.to_string())?;
+            return Ok(Box::new(TestTarget {
+                image,
+                firmware: self.firmware,
+            }));
+        }
         let mut image = FileImage::create(&path, 512, BLOCKS).map_err(|e| e.to_string())?;
         // Data to destroy.
         image
@@ -127,6 +154,17 @@ fn drive(serial: &str, inspection: Inspection) -> Device {
     }
 }
 
+/// An NVMe drive with Format NVM only, whose erasure cannot be resumed.
+fn nvme_format_only() -> Inspection {
+    Inspection::Nvme(NvmeProfile {
+        format: oblivio_core::profile::NvmeFormatCaps {
+            supported: true,
+            crypto_erase: false,
+        },
+        ..NvmeProfile::default()
+    })
+}
+
 fn nvme() -> Inspection {
     Inspection::Nvme(NvmeProfile {
         sanitize: NvmeSanitizeCaps {
@@ -150,6 +188,19 @@ impl Bench {
         let dir = tempfile::tempdir().expect("temporary directory");
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
             .expect("chmod");
+        let mut bench = Self::open(dir, devices, firmware);
+        let request: ActivationRequestResult = bench.ok(Command::CreateActivationRequest);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_secs());
+        let license = oblivio_license::dev_root::issue(&request.request, now, 30).expect("issued");
+        let _: serde_json::Value =
+            bench.ok(Command::InstallLicense(InstallLicenseArgs { license }));
+        bench
+    }
+
+    /// A new session over the state directory `dir`, as after a restart.
+    fn open(dir: tempfile::TempDir, devices: Vec<Device>, firmware: Firmware) -> Self {
         let licensing = StoreLicensing::new(
             LicenseStore::new(dir.path().join("state")),
             oblivio_license::trusted_roots(),
@@ -166,6 +217,7 @@ impl Bench {
                 binary_sha256: [0xb1; 32],
                 reports_dir: dir.path().join("reports"),
                 licensing: Box::new(licensing),
+                jobs_dir: Some(dir.path().join("jobs")),
             },
         );
         let (sender, events) = mpsc::channel();
@@ -180,14 +232,27 @@ impl Bench {
             protocol_version: PROTOCOL_VERSION,
             app_version: "test".to_owned(),
         }));
-        let request: ActivationRequestResult = bench.ok(Command::CreateActivationRequest);
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_or(0, |elapsed| elapsed.as_secs());
-        let license = oblivio_license::dev_root::issue(&request.request, now, 30).expect("issued");
-        let _: serde_json::Value =
-            bench.ok(Command::InstallLicense(InstallLicenseArgs { license }));
         bench
+    }
+
+    /// Simulates a restart: a new session over the same state and drives.
+    fn restart(self, firmware: Firmware) -> Self {
+        let devices = self.session.backend_mut_devices();
+        Self::open(self.dir, devices, firmware)
+    }
+
+    /// Files left in `jobs/`.
+    fn job_files(&self) -> Vec<String> {
+        let mut names: Vec<String> = std::fs::read_dir(self.dir.path().join("jobs"))
+            .map(|entries| {
+                entries
+                    .filter_map(|e| e.ok())
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        names
     }
 
     fn send(
@@ -455,4 +520,125 @@ fn started_job_cannot_be_cancelled() {
         .expect_err("not cancellable");
     assert_eq!(error.code, ErrorCode::NotCancellable);
     bench.session.wait_for_jobs();
+}
+
+impl Session<ImageBackend> {
+    fn backend_mut_devices(mut self) -> Vec<Device> {
+        self.backend_mut().devices.clone()
+    }
+}
+
+#[test]
+fn finished_job_leaves_no_job_file() {
+    let mut bench = Bench::new(vec![drive("SN-J001", nvme())], Firmware::Honest);
+    let inspection = bench.inspect("SN-J001");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    let (_, result) = bench.erase(args);
+    assert_eq!(result.status, FinalStatus::Compliant);
+    assert!(bench.job_files().is_empty(), "{:?}", bench.job_files());
+}
+
+#[test]
+fn sanitize_interrupted_by_a_crash_is_finished_and_certified() {
+    let mut bench = Bench::new(vec![drive("SN-C001", nvme())], Firmware::Crash);
+    let inspection = bench.inspect("SN-C001");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    let started: SanitizeResult = bench.ok(Command::Sanitize(args));
+    bench.session.wait_for_jobs();
+    let left = bench.job_files();
+    assert_eq!(
+        left.len(),
+        2,
+        "state and lock stay after the crash: {left:?}"
+    );
+    let state: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(
+            bench
+                .dir
+                .path()
+                .join("jobs")
+                .join(format!("{}.json", started.job_id.0)),
+        )
+        .expect("job file"),
+    )
+    .expect("json");
+    assert_eq!(state["phase"], "Executing");
+    assert!(
+        !bench
+            .reports()
+            .iter()
+            .any(|path| path.extension().is_some_and(|e| e == "cose"))
+    );
+
+    let mut bench = bench.restart(Firmware::Honest);
+    let _: serde_json::Value = bench.ok(Command::ListJobs);
+    bench.session.wait_for_jobs();
+    let result: JobResult = bench.ok(Command::GetJobResult(JobArgs {
+        job_id: started.job_id.clone(),
+    }));
+    assert_eq!(result.status, FinalStatus::Compliant);
+    let signed = base64::engine::general_purpose::STANDARD
+        .decode(&result.attestation)
+        .expect("base64");
+    let verified = verify(&signed, &oblivio_license::dev_root::verifying_key(), &[])
+        .expect("attestation verifies");
+    assert_eq!(verified.attestation.sanitization.category, Category::Purge);
+    assert!(verified.attestation.validation.is_some_and(|v| v.passed));
+    assert!(result.journal.contains("\"resumed\""));
+    assert!(image_is_zero(&bench.dir.path().join("SN-C001.img")));
+    assert!(bench.job_files().is_empty(), "{:?}", bench.job_files());
+}
+
+#[test]
+fn resumed_sanitize_that_did_not_erase_is_not_certified() {
+    let mut bench = Bench::new(vec![drive("SN-C002", nvme())], Firmware::Crash);
+    let inspection = bench.inspect("SN-C002");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    let started: SanitizeResult = bench.ok(Command::Sanitize(args));
+    bench.session.wait_for_jobs();
+
+    // After the restart the drive says the Sanitize succeeded, but the
+    // canaries are still there: retried, then refused, never CONFORME.
+    let mut bench = bench.restart(Firmware::Lying);
+    let _: serde_json::Value = bench.ok(Command::ListJobs);
+    bench.session.wait_for_jobs();
+    let result: JobResult = bench.ok(Command::GetJobResult(JobArgs {
+        job_id: started.job_id,
+    }));
+    assert_eq!(result.status, FinalStatus::Refused);
+}
+
+#[test]
+fn crash_during_a_non_resumable_method_is_interrupted() {
+    let mut bench = Bench::new(vec![drive("SN-C003", nvme_format_only())], Firmware::Crash);
+    let inspection = bench.inspect("SN-C003");
+    let started: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&inspection, None, vec![])));
+    bench.session.wait_for_jobs();
+    assert_eq!(bench.job_files().len(), 2);
+
+    let mut bench = bench.restart(Firmware::Honest);
+    let jobs: oblivio_protocol::response::ListJobsResult = bench.ok(Command::ListJobs);
+    assert_eq!(jobs.jobs.len(), 1);
+    assert_eq!(jobs.jobs[0].phase, JobPhase::Interrupted);
+    assert_eq!(jobs.jobs[0].status, None);
+    let error = bench
+        .send(Command::GetJobResult(JobArgs {
+            job_id: started.job_id,
+        }))
+        .expect_err("no attestation");
+    assert_eq!(error.code, ErrorCode::JobInterrupted);
+    assert!(bench.job_files().is_empty());
+    assert!(bench.reports().is_empty());
 }

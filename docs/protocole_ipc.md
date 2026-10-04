@@ -134,7 +134,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 |---|---|
 | `DeviceAdded` / `DeviceRemoved` | Identité, indice de chemin (surveillance udev) |
 | `DeviceChanged` | Identité ; **invalide** les verdicts en cours sur ce disque |
-| `JobPhase` | `Preparing` → `Canaries` → `Executing` → `Verifying` → `Validating` → `Signing` → `Done` |
+| `JobPhase` | `Preparing` → `Canaries` → `Executing` → `Verifying` → `Validating` → `Signing` → `Done` ; ou `Interrupted` (tâche perdue dans un plantage, sans attestation, §10) |
 | `JobProgress` | Pourcentage ; pour une réécriture : octets traités, débit, temps restant ; source (`firmware` / `host`) |
 | `JobLog` | Niveau + **code de message** + paramètres (traduit côté app, jamais de texte en dur) |
 | `JobFinished` | `job_id`, statut final (CONFORME / NON CONFORME / REFUS) |
@@ -143,7 +143,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 
 `PROTOCOL_MISMATCH`, `BAD_REQUEST`, `UNKNOWN_COMMAND`, `DEVICE_NOT_FOUND`, `DEVICE_CHANGED`, `PROTECTED`,
 `VERDICT_EXPIRED`, `VERDICT_MISMATCH`, `CONFIRMATION_MISMATCH`, `ACK_MISSING`, `FORCE_NOT_ALLOWED`,
-`LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `INTERNAL`.
+`LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `JOB_INTERRUPTED` (`GetJobResult` d'une tâche interrompue, ajouté le 2026-10-04), `INTERNAL`.
 
 ## 10. Persistance et reprise
 
@@ -160,6 +160,28 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 - Si le helper plante en cours de tâche, le lancement suivant reprend depuis `jobs/` :
   - **Sanitize firmware** : lecture du journal de statut du disque, puis vérification, validation et signature ;
   - **réécriture hôte** : la tâche est marquée *interrompue*, sans attestation ; l'opérateur relance (nouvelle inspection).
+
+**Implémentation** (2026-10-04) :
+
+- `jobs/<id>.json` (0600, dossier 0700) contient tout ce qu'il faut pour finir la tâche : identité, profil
+  et plan (verdict READY ou forçage) tels qu'à l'inspection, `rules_version`, graine et blocs échantillons,
+  tentatives déjà faites, chronologie. Il est écrit **avant** toute écriture sur le disque (sinon la tâche ne
+  démarre pas), réécrit de façon atomique à chaque phase et après chaque tentative, supprimé une fois
+  l'attestation stockée.
+- `jobs/<id>.lock` est verrouillé (`flock`) par le processus qui exécute la tâche : un second helper lancé
+  en parallèle ne reprend ni n'écarte une tâche vivante. Les accès disque de la reprise (`O_EXCL`) le
+  confirment.
+- La reprise a lieu à la première commande qui suit un `Hello`, pour que l'app connaisse déjà le helper
+  quand arrivent les événements.
+- **Reprise** seulement si : méthode **Sanitize** (NVMe ou ATA), phase atteinte `Executing` ou au-delà, même
+  `rules_version`. Le helper n'envoie **pas** de nouvelle commande : il lit le journal de statut jusqu'à la
+  fin, puis valide par les canaris d'origine, évalue et signe (CONFORME seulement si les canaris ont disparu ;
+  sinon nouvelle tentative ou REFUS, comme d'habitude). Le journal porte un événement `resumed`.
+- **Interrompue** (`JobPhase::Interrupted`, `GetJobResult` → `JOB_INTERRUPTED`), fichiers supprimés : écriture
+  hôte, Format NVM et Security Erase (aucun état fiable après une coupure ; un mot de passe Security Erase
+  resté sur le disque est retiré par la reprise de `moteur_decision.md` §4), tâche arrêtée avant `Executing`,
+  autre `rules_version`. Elle n'apparaît que dans la session qui suit le plantage.
+- Disque absent, licence invalide ou disque occupé : la tâche est **gardée** pour un lancement ultérieur.
 
 ## 11. Règles d'implémentation du helper
 
@@ -232,7 +254,7 @@ UI                                   helper
   (B6) ; `UNLOCK_FAILED` sans jamais reprendre le mot de passe dans `detail`. Refusé pendant une tâche.
 - `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
   `binary_sha256` est vide et la licence est `Missing` (donc tout `Sanitize` s'arrête au contrôle 8).
-- Non encore fait : vérification `PKEXEC_UID` et purge de l'environnement (§3), événements, persistance (§10).
+- Non encore fait : purge de l'environnement (§3).
 
 ### Licence (branchée le 2026-10-04)
 

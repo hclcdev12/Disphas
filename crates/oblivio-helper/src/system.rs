@@ -12,7 +12,7 @@ use oblivio_core::profile::{AtaSmart, SanitizeState};
 use oblivio_device::ata::{AtaDevice, Identifier, SanitizeOperation};
 use oblivio_device::block::BlockIo;
 use oblivio_device::drive::ErasableDrive;
-use oblivio_device::inspect::{inspect, open_read_only};
+use oblivio_device::inspect::{inspect, open_exclusive};
 use oblivio_device::nvme::{NvmeDevice, SanitizeAction, SecureErase};
 use oblivio_device::security::{self, Password, SecurityDrive, SecurityState};
 use oblivio_device::{SystemPaths, scan};
@@ -57,7 +57,7 @@ impl SystemBackend {
                 else {
                     return format!("drive {} absent, recovery record kept", pending.serial);
                 };
-                let outcome = open_read_only(&self.paths, name).and_then(|file| {
+                let outcome = open_exclusive(&self.paths, name).and_then(|file| {
                     let mut drive = AtaSecurity {
                         ata: AtaDevice::new(&file),
                     };
@@ -149,7 +149,7 @@ impl DeviceBackend for SystemBackend {
         if !name.starts_with("sd") {
             return Err("only SATA drives have ATA passwords".to_owned());
         }
-        let file = open_read_only(&self.paths, &name).map_err(|error| error.to_string())?;
+        let file = open_exclusive(&self.paths, &name).map_err(|error| error.to_string())?;
         let ata = AtaDevice::new(&file);
         // Each failed attempt counts towards the drive's limit (B6).
         ata.unlock(Identifier::User, password)
@@ -301,6 +301,37 @@ impl ErasureTarget for DriveTarget {
                 Ok(erased)
             }
             Method::HostOverwrite => Err("a host overwrite is not a firmware method".to_owned()),
+        }
+    }
+
+    fn resume_firmware(
+        &mut self,
+        method: Method,
+        progress: &mut dyn FnMut(u8),
+    ) -> Result<bool, String> {
+        // The drive carries a Sanitize on across resets and power cycles:
+        // only wait for its outcome, never start it again here.
+        let file = self.drive.file();
+        let text = |error: oblivio_device::DeviceError| error.to_string();
+        match method {
+            Method::NvmeSanitizeBlockErase | Method::NvmeSanitizeCryptoErase => {
+                let nvme = NvmeDevice::new(file).map_err(text)?;
+                wait_for_sanitize(|| nvme.sanitize_status().map_err(text), progress)
+            }
+            Method::AtaSanitizeBlockErase
+            | Method::AtaSanitizeCryptoScramble
+            | Method::AtaSanitizeOverwrite => {
+                let ata = AtaDevice::new(file);
+                wait_for_sanitize(
+                    || {
+                        ata.sanitize_status()
+                            .map(|(status, done)| (status.state, done))
+                            .map_err(text)
+                    },
+                    progress,
+                )
+            }
+            _ => Err(format!("{method:?} cannot be resumed")),
         }
     }
 

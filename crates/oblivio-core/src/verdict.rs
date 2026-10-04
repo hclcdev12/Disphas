@@ -43,6 +43,7 @@ impl Verdict {
 
 /// Content of a READY verdict.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Ready {
     /// Preferred method, executed when the operator does not pick another one.
     pub recommended: MethodOption,
@@ -87,6 +88,7 @@ impl Ready {
 
 /// Recommended future of the drive once its erasure is certified.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Disposition {
     /// The drive can be reused.
     Reuse,

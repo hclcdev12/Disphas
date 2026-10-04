@@ -72,6 +72,15 @@ impl ErasureTarget for DemoTarget {
         .map_err(|error| error.to_string())
     }
 
+    fn resume_firmware(
+        &mut self,
+        method: Method,
+        progress: &mut dyn FnMut(u8),
+    ) -> Result<bool, String> {
+        // Simulation: the interrupted firmware erasure completes.
+        self.firmware(method, progress)
+    }
+
     fn smart_after(&mut self) -> Option<AtaSmart> {
         self.smart
     }

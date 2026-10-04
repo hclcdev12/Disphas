@@ -116,6 +116,7 @@
     "BUSY": "Un autre effacement est en cours",
     "NOT_CANCELLABLE": "Cette phase ne peut pas être annulée",
     "UNLOCK_FAILED": "Le disque n'a pas pu être déverrouillé",
+    "JOB_INTERRUPTED": "La tâche a été interrompue par un arrêt du helper : aucune attestation",
     "INTERNAL": "Erreur interne du helper",
     "UNAVAILABLE": "Le helper n'est pas disponible",
     "LICENSE_INVALID": "La licence a été refusée"
@@ -145,7 +146,8 @@
       "Verifying": "Vérification",
       "Validating": "Validation",
       "Signing": "Signature",
-      "Done": "Terminé"
+      "Done": "Terminé",
+      "Interrupted": "Interrompue"
     },
     "rate": "{{rate}}/s",
     "eta": "{{eta}} restantes",

@@ -5,6 +5,9 @@
 //! Validating → Signing → Done. A failed check is retried as the rule set
 //! allows (`evaluate_attempt`); whatever happens, the job ends with a signed
 //! attestation (CONFORME, NON CONFORME or REFUS).
+//!
+//! With a jobs directory, the state is kept on disk at every phase so a
+//! firmware Sanitize can be finished after a crash ([`crate::jobfile`]).
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -37,10 +40,12 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 
 use crate::erasure::{self, Check, ErasureTarget, HostProgress};
+use crate::jobfile::{AttemptFile, JobFile, JobHandle, Left};
 use crate::licensing::Signer;
 
 /// What the job executes: a READY method, or a forced SAY NO.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub enum Plan {
     /// A method allowed by a READY verdict.
     Ready {
@@ -88,6 +93,8 @@ pub struct JobSpec {
     pub binary_sha256: [u8; 32],
     /// Where signed reports are stored.
     pub reports_dir: PathBuf,
+    /// Where job state is kept for crash recovery; `None` keeps nothing.
+    pub jobs_dir: Option<PathBuf>,
 }
 
 /// State of a job, as listed by `ListJobs` and `GetJobResult`.
@@ -128,19 +135,24 @@ pub fn uuid_v7() -> Result<[u8; 16], String> {
     Ok(id)
 }
 
-/// Starts the job on its own thread.
+/// Starts the job on its own thread; `resumed` is the state left by a
+/// crashed helper, whose firmware Sanitize is to be finished.
 pub fn spawn(
     spec: JobSpec,
     jobs: JobTable,
     events: Option<Sender<ServerMessage>>,
+    resumed: Option<Left>,
 ) -> JoinHandle<()> {
     let job_id = JobId(uuid(&spec.id));
+    let phase = resumed
+        .as_ref()
+        .map_or(JobPhase::Preparing, |left| left.file.phase);
     if let Ok(mut table) = jobs.lock() {
         table.insert(
             job_id.clone(),
             JobRecord {
                 device: spec.device.clone(),
-                phase: JobPhase::Preparing,
+                phase,
                 status: None,
                 result: None,
                 failure: None,
@@ -153,8 +165,16 @@ pub fn spawn(
             jobs: Arc::clone(&jobs),
             events,
             timeline: Vec::new(),
+            persist: None,
         };
-        let outcome = runner.run(spec);
+        let outcome = runner.run(spec, resumed);
+        // Files of a job without attestation stay for the next start (§10).
+        if outcome.is_ok()
+            && let Some((handle, _)) = runner.persist.take()
+            && let Err(error) = handle.finish()
+        {
+            eprintln!("oblivio-helper: job {}: {error}", job_id.0);
+        }
         let mut table = match jobs.lock() {
             Ok(table) => table,
             Err(_) => return,
@@ -189,13 +209,12 @@ struct Runner {
     jobs: JobTable,
     events: Option<Sender<ServerMessage>>,
     timeline: Vec<serde_json::Value>,
+    /// The job's files and their last content.
+    persist: Option<(JobHandle, JobFile)>,
 }
 
 /// One attempt, kept for the journal.
-struct Attempt {
-    report: AttemptReport,
-    error: Option<String>,
-}
+type Attempt = AttemptFile;
 
 impl Runner {
     fn emit(&self, event: Event) {
@@ -224,10 +243,28 @@ impl Runner {
         }
         self.timeline
             .push(json!({ "phase": format!("{phase:?}"), "at": now() }));
+        let timeline = self.timeline.clone();
+        self.save(|file| {
+            file.phase = phase;
+            file.timeline = timeline;
+        });
         self.emit(Event::JobPhase(JobPhaseData {
             job_id: self.job_id.clone(),
             phase,
         }));
+    }
+
+    /// Updates the job file. A failure is logged: the job goes on, but may
+    /// not be recoverable after a crash.
+    fn save(&mut self, update: impl FnOnce(&mut JobFile)) {
+        let Some((handle, file)) = &mut self.persist else {
+            return;
+        };
+        update(file);
+        if let Err(error) = handle.save(file) {
+            eprintln!("oblivio-helper: job {}: {error}", self.job_id.0);
+            self.log(LogLevel::Warning, "job_state_not_saved", &[]);
+        }
     }
 
     fn progress(&self, percent: u8, source: ProgressSource, host: Option<(HostProgress, f64)>) {
@@ -246,32 +283,58 @@ impl Runner {
         }));
     }
 
-    fn run(&mut self, mut spec: JobSpec) -> Result<(FinalStatus, Vec<u8>, Vec<u8>), String> {
-        self.phase(JobPhase::Preparing);
+    fn run(
+        &mut self,
+        mut spec: JobSpec,
+        resumed: Option<Left>,
+    ) -> Result<(FinalStatus, Vec<u8>, Vec<u8>), String> {
         let option = spec.plan.option();
         let method = option.method;
         let host = method.is_host_write();
         let check = if host { Check::Zeros } else { Check::NoCanary };
-        let seed = erasure::random_seed()?;
-        let random = spec
-            .rules
-            .validation_samples
-            .max(spec.rules.min_validation_samples);
         let geometry = {
             let io = spec.target.io();
             (io.block_size(), io.block_count())
         };
-        let lbas = erasure::samples(&seed, geometry.1, random);
+        let (seed, lbas, mut attempts, mut resuming) = match resumed {
+            Some(Left { file, handle }) => {
+                let seed = unhex(&file.seed).ok_or("jobs: invalid seed")?;
+                let lbas = file.samples.clone();
+                let attempts = file.attempts.clone();
+                self.timeline = file.timeline.clone();
+                self.timeline
+                    .push(json!({ "event": "resumed", "at": now() }));
+                self.persist = Some((handle, file));
+                self.log(LogLevel::Warning, "job_resumed", &[]);
+                (seed, lbas, attempts, true)
+            }
+            None => {
+                self.phase(JobPhase::Preparing);
+                let seed = erasure::random_seed()?;
+                let random = spec
+                    .rules
+                    .validation_samples
+                    .max(spec.rules.min_validation_samples);
+                let lbas = erasure::samples(&seed, geometry.1, random);
+                if let Some(dir) = &spec.jobs_dir {
+                    // Recorded before anything is written to the drive.
+                    let file = job_file(&spec, &seed, &lbas, &self.timeline);
+                    let handle = JobHandle::create(dir, &file)?;
+                    self.persist = Some((handle, file));
+                }
+                (seed, lbas, Vec::new(), false)
+            }
+        };
         self.log(
             LogLevel::Info,
             "samples_selected",
             &[("count", lbas.len().to_string())],
         );
 
-        let mut attempts: Vec<Attempt> = Vec::new();
         let evaluation = loop {
             let retries_used = u8::try_from(attempts.len()).unwrap_or(u8::MAX);
-            let attempt = self.attempt(&mut spec, method, check, &seed, &lbas);
+            let attempt = self.attempt(&mut spec, method, check, &seed, &lbas, resuming);
+            resuming = false;
             let evaluation = match &spec.plan {
                 Plan::Ready { ready, .. } => evaluate_attempt(
                     &spec.profile,
@@ -287,6 +350,8 @@ impl Runner {
                 }
             };
             attempts.push(attempt);
+            let recorded = attempts.clone();
+            self.save(|file| file.attempts = recorded);
             if evaluation == Evaluation::Retry {
                 self.log(LogLevel::Warning, "attempt_retry", &[]);
                 continue;
@@ -323,11 +388,13 @@ impl Runner {
         check: Check,
         seed: &[u8; 32],
         lbas: &[u64],
+        resuming: bool,
     ) -> Attempt {
         let host = method.is_host_write();
         let mut error = None;
 
-        if !host {
+        // A resumed Sanitize already has its canaries, and is running or done.
+        if !host && !resuming {
             self.phase(JobPhase::Canaries);
             if let Err(failure) = erasure::write_canaries(spec.target.io(), seed, lbas) {
                 return Attempt {
@@ -372,7 +439,12 @@ impl Runner {
                         })));
                 }
             };
-            match spec.target.firmware(method, &mut report) {
+            let outcome = if resuming {
+                spec.target.resume_firmware(method, &mut report)
+            } else {
+                spec.target.firmware(method, &mut report)
+            };
+            match outcome {
                 Ok(passed) => passed,
                 Err(failure) => {
                     error = Some(format!("firmware: {failure}"));
@@ -461,6 +533,78 @@ fn now() -> u64 {
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn unhex(text: &str) -> Option<[u8; 32]> {
+    if text.len() != 64 || !text.is_ascii() {
+        return None;
+    }
+    let mut bytes = [0u8; 32];
+    for (index, byte) in bytes.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).ok()?;
+    }
+    Some(bytes)
+}
+
+/// The job file of a job about to start.
+fn job_file(
+    spec: &JobSpec,
+    seed: &[u8; 32],
+    lbas: &[u64],
+    timeline: &[serde_json::Value],
+) -> JobFile {
+    JobFile {
+        format: crate::jobfile::FORMAT,
+        id: uuid(&spec.id),
+        device: spec.device.clone(),
+        profile: spec.profile.clone(),
+        capacity_bytes: spec.capacity_bytes,
+        plan: spec.plan.clone(),
+        rules_version: spec.rules.version.to_string(),
+        operator: spec.operator.clone(),
+        organization: spec.organization.clone(),
+        phase: JobPhase::Preparing,
+        seed: hex(seed),
+        samples: lbas.to_vec(),
+        attempts: Vec::new(),
+        timeline: timeline.to_vec(),
+    }
+}
+
+/// The spec of a job left by a crashed helper, or `None` if its identifier
+/// is not one Oblivio issues.
+pub fn resumed_spec(
+    file: &JobFile,
+    rules: RuleSet,
+    signer: Signer,
+    target: Box<dyn ErasureTarget>,
+    binary_sha256: [u8; 32],
+    reports_dir: PathBuf,
+    jobs_dir: Option<PathBuf>,
+) -> Option<JobSpec> {
+    let digits: String = file.id.chars().filter(|c| *c != '-').collect();
+    if digits.len() != 32 {
+        return None;
+    }
+    let mut id = [0u8; 16];
+    for (index, byte) in id.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(digits.get(index * 2..index * 2 + 2)?, 16).ok()?;
+    }
+    Some(JobSpec {
+        id,
+        device: file.device.clone(),
+        profile: file.profile.clone(),
+        capacity_bytes: file.capacity_bytes,
+        plan: file.plan.clone(),
+        rules,
+        signer,
+        target,
+        operator: file.operator.clone(),
+        organization: file.organization.clone(),
+        binary_sha256,
+        reports_dir,
+        jobs_dir,
+    })
 }
 
 fn code(text: &str) -> Result<Code, String> {

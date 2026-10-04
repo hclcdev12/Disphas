@@ -10,6 +10,7 @@ pub mod convert;
 pub mod demo;
 pub mod erasure;
 pub mod job;
+pub mod jobfile;
 pub mod licensing;
 pub mod recovery;
 pub mod serve;

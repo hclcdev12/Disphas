@@ -24,11 +24,12 @@ use std::thread::JoinHandle;
 
 use oblivio_protocol::ServerMessage;
 use oblivio_protocol::command::JobId;
-use oblivio_protocol::response::{JobResult, JobSummary, SanitizeResult};
+use oblivio_protocol::response::{JobPhase, JobResult, JobSummary, SanitizeResult};
 
 use crate::backend::DeviceBackend;
 use crate::convert;
 use crate::job::{self, JobRecord, JobSpec, JobTable, Plan};
+use crate::jobfile;
 use crate::licensing::Licensing;
 
 /// How long a verdict can be quoted by `Sanitize` (§6).
@@ -45,6 +46,9 @@ pub struct SessionConfig {
     pub reports_dir: std::path::PathBuf,
     /// License status, activation and installation.
     pub licensing: Box<dyn Licensing + Send>,
+    /// Where job state is kept for crash recovery (`jobs/` of the state
+    /// directory); `None` keeps nothing.
+    pub jobs_dir: Option<std::path::PathBuf>,
 }
 
 /// A verdict issued by `Inspect`, kept until it expires.
@@ -94,6 +98,8 @@ pub struct Session<B> {
     threads: Vec<JoinHandle<()>>,
     events: Option<Sender<ServerMessage>>,
     shut_down: bool,
+    /// Whether jobs left by a crashed helper were looked for.
+    recovered: bool,
 }
 
 impl<B: DeviceBackend> Session<B> {
@@ -109,6 +115,7 @@ impl<B: DeviceBackend> Session<B> {
             threads: Vec::new(),
             events: None,
             shut_down: false,
+            recovered: false,
         }
     }
 
@@ -158,6 +165,12 @@ impl<B: DeviceBackend> Session<B> {
         }
         if !self.greeted {
             return Err(Failure::new(ErrorCode::BadRequest, "Hello expected first"));
+        }
+        // After the Hello response, so that the app knows the helper before
+        // it receives events of a resumed job.
+        if !self.recovered {
+            self.recovered = true;
+            self.recover_jobs();
         }
         match command {
             Command::Hello(_) => Err(Failure::new(ErrorCode::Internal, "unreachable")),
@@ -446,15 +459,89 @@ impl<B: DeviceBackend> Session<B> {
             organization: args.organization.clone(),
             binary_sha256: self.config.binary_sha256,
             reports_dir: self.config.reports_dir.clone(),
+            jobs_dir: self.config.jobs_dir.clone(),
         };
         self.threads.push(job::spawn(
             spec,
             Arc::clone(&self.jobs),
             self.events.clone(),
+            None,
         ));
         to_value(&SanitizeResult {
             job_id: JobId(oblivio_attestation::display::uuid(&id)),
         })
+    }
+
+    /// Finishes the firmware Sanitize jobs a crashed helper left, and lists
+    /// the other ones as interrupted, without attestation (§10). A job whose
+    /// drive is absent or that cannot be signed now stays for a later start.
+    fn recover_jobs(&mut self) {
+        let Some(dir) = self.config.jobs_dir.clone() else {
+            return;
+        };
+        let rules_version = self.config.rules.version.to_string();
+        for left in jobfile::left(&dir) {
+            let id = left.file.id.clone();
+            let device = left.file.device.clone();
+            if !left.file.resumable(&rules_version) {
+                eprintln!(
+                    "oblivio-helper: job {id} interrupted during {:?}, no attestation",
+                    left.file.phase
+                );
+                if let Ok(mut jobs) = self.jobs.lock() {
+                    jobs.insert(
+                        JobId(id.clone()),
+                        JobRecord {
+                            device,
+                            phase: JobPhase::Interrupted,
+                            status: None,
+                            result: None,
+                            failure: Some(format!("interrupted during {:?}", left.file.phase)),
+                        },
+                    );
+                }
+                if let Err(error) = left.handle.finish() {
+                    eprintln!("oblivio-helper: job {id}: {error}");
+                }
+                continue;
+            }
+            let signer = match self.config.licensing.signer() {
+                Ok(signer) => signer,
+                Err(error) => {
+                    eprintln!(
+                        "oblivio-helper: job {id} not resumed, cannot sign: {:?}",
+                        error.detail
+                    );
+                    continue;
+                }
+            };
+            let target = match self.backend.open(&device.identity) {
+                Ok(target) => target,
+                Err(error) => {
+                    eprintln!("oblivio-helper: job {id} not resumed: {error}");
+                    continue;
+                }
+            };
+            let Some(spec) = job::resumed_spec(
+                &left.file,
+                self.config.rules.clone(),
+                signer,
+                target,
+                self.config.binary_sha256,
+                self.config.reports_dir.clone(),
+                Some(dir.clone()),
+            ) else {
+                eprintln!("oblivio-helper: job {id}: invalid identifier, kept");
+                continue;
+            };
+            eprintln!("oblivio-helper: resuming job {id}");
+            self.threads.push(job::spawn(
+                spec,
+                Arc::clone(&self.jobs),
+                self.events.clone(),
+                Some(left),
+            ));
+        }
     }
 
     fn list_jobs(&self) -> Handled {
@@ -483,7 +570,12 @@ impl<B: DeviceBackend> Session<B> {
             .get(job_id)
             .ok_or_else(|| Failure::new(ErrorCode::BadRequest, "unknown job"))?;
         if let Some(failure) = &record.failure {
-            return Err(Failure::new(ErrorCode::Internal, failure.clone()));
+            let code = if record.phase == JobPhase::Interrupted {
+                ErrorCode::JobInterrupted
+            } else {
+                ErrorCode::Internal
+            };
+            return Err(Failure::new(code, failure.clone()));
         }
         match (&record.status, &record.result) {
             (Some(status), Some((signed, journal))) => to_value(&JobResult {
@@ -694,6 +786,7 @@ mod tests {
                 rules: RuleSet::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
+                jobs_dir: None,
                 licensing: Box::new(FixedLicensing(license(license_state))),
             };
             Self {
@@ -1094,6 +1187,7 @@ mod licensing_commands {
                 rules: RuleSet::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
+                jobs_dir: None,
                 licensing: Box::new(licensing),
             },
         );

@@ -46,6 +46,22 @@ pub fn open_read_only(paths: &SystemPaths, name: &str) -> Result<File, DeviceErr
         .open(path)?)
 }
 
+/// Like [`open_read_only`], but exclusive (`O_EXCL`): refused while the drive
+/// is mounted or opened for erasure, by this helper or another one. Used for
+/// security state changes (unlock, Security Erase recovery).
+pub fn open_exclusive(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
+    // Checks that the node is a block device.
+    drop(open_read_only(paths, name)?);
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NONBLOCK | libc::O_EXCL)
+        .open(paths.dev.join(name))
+        .map_err(|error| match error.raw_os_error() {
+            Some(libc::EBUSY) => DeviceError::Refused(format!("{name} is in use (O_EXCL)")),
+            _ => DeviceError::Io(error),
+        })
+}
+
 fn nvme_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
     let device = NvmeDevice::new(file)?;
     let controller = device.identify_controller()?;

@@ -13,6 +13,7 @@ use crate::verdict::Verdict;
 
 /// An accepted request to force a SAY NO verdict.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Forced {
     /// Method to execute, certified Clear at most.
     pub option: MethodOption,

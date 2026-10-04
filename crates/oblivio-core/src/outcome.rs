@@ -16,6 +16,7 @@ use crate::verdict::{Disposition, Ready};
 
 /// What the helper observed after one execution of the method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AttemptReport {
     /// The firmware reported success (command completion, sanitize status log).
     /// Always `true` for a host write that completed.
@@ -28,6 +29,7 @@ pub struct AttemptReport {
 
 /// Result of the sample validation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Validation {
     /// Every sample matches: expected pattern, or no canary left.
     Passed,
