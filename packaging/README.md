@@ -27,3 +27,18 @@ Operators who use the application must be in that group:
 A release helper refuses to start unless it runs as root and was started by pkexec.
 Release builds contain neither the demo drives nor the development root key: until the
 official root key exists, no license can be valid and no drive can be erased.
+
+## Dependencies (checked 2026-10-04)
+
+`Depends` lists every shared library the two binaries load, as computed by
+`dpkg-shlibdeps` on the built binaries, plus the programs called at run time:
+`pkexec` (helper launch), `xdg-utils` (`xdg-open`, opening certificates) and `passwd`
+(`groupadd`/`groupdel` in the maintainer scripts). The app needs **glibc 2.39**:
+Ubuntu 24.04 / Pop!_OS 24.04, Debian 13 or newer; the package refuses to install on
+older systems instead of failing at launch. After a dependency or toolchain change:
+
+```
+dpkg-deb -x target/release/bundle/deb/*.deb /tmp/deb
+mkdir -p /tmp/shlib/debian && printf 'Source: oblivio\n\nPackage: oblivio\nArchitecture: amd64\n' > /tmp/shlib/debian/control
+cd /tmp/shlib && dpkg-shlibdeps -O /tmp/deb/usr/bin/oblivio-app /tmp/deb/usr/libexec/oblivio/oblivio-helper
+```
