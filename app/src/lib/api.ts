@@ -34,6 +34,8 @@ export type HistoryEntry = {
     capacity_bytes: number;
     operator: string | null;
     organization: string | null;
+    batch_id: string | null;
+    batch_label: string | null;
   } | null;
 };
 
@@ -65,6 +67,8 @@ export type VerificationReport = {
     hardware_id: string | null;
     operator: string | null;
     organization: string | null;
+    batch_id: string | null;
+    batch_label: string | null;
     tool_version: string;
     rules_version: string;
     binary_sha256: string;

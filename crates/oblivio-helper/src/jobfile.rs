@@ -55,6 +55,9 @@ pub struct JobFile {
     pub operator: Option<String>,
     /// Declarative organization.
     pub organization: Option<String>,
+    /// Batch identifier and label.
+    #[serde(default)]
+    pub batch: Option<(String, Option<String>)>,
     /// Last phase entered.
     pub phase: JobPhase,
     /// Validation seed, hex.

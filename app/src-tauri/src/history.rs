@@ -59,6 +59,10 @@ pub struct Summary {
     pub operator: Option<String>,
     /// Declarative organization.
     pub organization: Option<String>,
+    /// Batch identifier, if any.
+    pub batch_id: Option<String>,
+    /// Batch label.
+    pub batch_label: Option<String>,
 }
 
 /// One report of the history.
@@ -143,6 +147,11 @@ pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
             capacity_bytes: attestation.device.capacity_bytes,
             operator: attestation.operator.clone(),
             organization: attestation.organization.clone(),
+            batch_id: attestation.batch.as_ref().map(|batch| batch.id.clone()),
+            batch_label: attestation
+                .batch
+                .as_ref()
+                .and_then(|batch| batch.label.clone()),
         }),
     }
 }

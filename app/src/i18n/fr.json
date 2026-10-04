@@ -266,7 +266,8 @@
       "license": "Licence",
       "tool": "Outil",
       "binary": "Empreinte du binaire",
-      "id": "Identifiant"
+      "id": "Identifiant",
+      "batch": "Lot"
     },
     "reason": {
       "NotOblivio": "Ce n'est pas un QR code Oblivio.",

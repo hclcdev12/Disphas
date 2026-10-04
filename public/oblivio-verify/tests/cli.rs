@@ -77,6 +77,7 @@ fn signed_attestation() -> Vec<u8> {
         justification: None,
         organization: Some("Atelier XYZ".to_owned()),
         operator: Some("J. Martin".to_owned()),
+        batch: None,
         tool: Tool {
             version: "0.1.0".to_owned(),
             rules_version: "1.0.0".to_owned(),

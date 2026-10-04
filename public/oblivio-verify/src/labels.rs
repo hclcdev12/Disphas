@@ -64,6 +64,7 @@ pub enum Msg {
     ErrSignature,
     JournalFromPdf,
     RevocationList,
+    Batch,
     ErrPdfNoAttestation,
     ErrPdfUnreadable,
 }
@@ -185,6 +186,7 @@ pub fn msg(message: Msg) -> Text {
             "la licence a été révoquée avant la date de l'attestation",
             "die Lizenz wurde vor dem Datum der Bescheinigung widerrufen",
         ),
+        Msg::Batch => t("Batch", "Lot", "Los"),
         Msg::RevocationList => t("Revocation list", "Liste de révocation", "Widerrufsliste"),
         Msg::JournalFromPdf => t("attached to the PDF", "joint au PDF", "dem PDF beigefügt"),
         Msg::ErrPdfNoAttestation => t(

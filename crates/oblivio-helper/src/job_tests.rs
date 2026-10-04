@@ -376,6 +376,7 @@ fn sanitize(
         force: None,
         operator: Some("J. Martin".to_owned()),
         organization: Some("Atelier XYZ".to_owned()),
+        batch: None,
     }
 }
 
@@ -717,4 +718,41 @@ fn different_drives_are_erased_in_parallel_but_a_drive_only_once() {
     }
     assert!(image_is_erased(&bench.dir.path().join("SN-P001.img")));
     assert!(image_is_erased(&bench.dir.path().join("SN-P002.img")));
+}
+
+#[test]
+fn batch_is_certified_in_the_attestation() {
+    let mut bench = Bench::new(
+        vec![drive("SN-L001", nvme()), drive("SN-L002", nvme())],
+        Firmware::Honest,
+    );
+    let inspection = bench.inspect("SN-L001");
+    let mut args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    args.batch = Some(oblivio_protocol::command::BatchArgs {
+        id: "LOT-2026-001".to_owned(),
+        label: Some("PO 4512".to_owned()),
+    });
+    let (verified, _) = bench.erase(args);
+    let batch = verified.attestation.batch.expect("batch certified");
+    assert_eq!(batch.id, "LOT-2026-001");
+    assert_eq!(batch.label.as_deref(), Some("PO 4512"));
+
+    let other = bench.inspect("SN-L002");
+    let mut invalid = sanitize(
+        &other,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    invalid.batch = Some(oblivio_protocol::command::BatchArgs {
+        id: "not a valid id".to_owned(),
+        label: None,
+    });
+    let error = bench
+        .send(Command::Sanitize(invalid))
+        .expect_err("invalid batch refused");
+    assert_eq!(error.code, ErrorCode::BadRequest);
 }

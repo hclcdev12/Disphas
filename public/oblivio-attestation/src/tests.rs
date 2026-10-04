@@ -81,6 +81,7 @@ fn attestation(license: Vec<u8>) -> Attestation {
         justification: None,
         organization: Some("Atelier XYZ".to_owned()),
         operator: Some("J. Martin".to_owned()),
+        batch: None,
         tool: Tool {
             version: "0.1.0".to_owned(),
             rules_version: "1.0.0".to_owned(),
@@ -271,4 +272,35 @@ fn decompression_is_bounded() {
     let qr = to_qr_text(&bomb);
     assert!(qr.len() < 1000, "a bomb is small once compressed");
     assert_eq!(from_qr_text(&qr), Err(VerifyError::Corrupted));
+}
+
+#[test]
+fn batch_round_trips_and_is_bounded() {
+    use crate::model::Batch;
+    let mut with_batch = attestation(vec![1, 2, 3]);
+    with_batch.batch = Some(Batch {
+        id: "LOT-2026_001".to_owned(),
+        label: Some("Commande 4512 — Atelier Œuvre".to_owned()),
+    });
+    assert_eq!(
+        Attestation::from_cbor(&with_batch.to_cbor()),
+        Ok(with_batch.clone())
+    );
+
+    for (id, label) in [
+        ("", None),
+        ("lot with spaces", None),
+        (&"x".repeat(65)[..], None),
+        ("LOT-1", Some("y".repeat(129))),
+    ] {
+        let mut invalid = with_batch.clone();
+        invalid.batch = Some(Batch {
+            id: id.to_owned(),
+            label,
+        });
+        assert!(
+            Attestation::from_cbor(&invalid.to_cbor()).is_err(),
+            "{id:?} accepted"
+        );
+    }
 }

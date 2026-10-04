@@ -13,7 +13,9 @@
         "serial": "DEMO-NVME-4567",
         "capacity_bytes": 2000398934016,
         "operator": "J. Martin",
-        "organization": "Atelier XYZ"
+        "organization": "Atelier XYZ",
+        "batch_id": "LOT-2026-001",
+        "batch_label": "PO 4512"
       }
     },
     {
@@ -28,7 +30,9 @@
         "serial": "DEMO-MUTE-0N1X",
         "capacity_bytes": 1000204886016,
         "operator": "J. Martin",
-        "organization": null
+        "organization": null,
+        "batch_id": null,
+        "batch_label": null
       }
     },
     {

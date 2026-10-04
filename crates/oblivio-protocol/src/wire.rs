@@ -384,6 +384,10 @@ mod tests {
                 }),
                 operator: Some("J. Martin".to_owned()),
                 organization: None,
+                batch: Some(crate::command::BatchArgs {
+                    id: "LOT-2026-001".to_owned(),
+                    label: Some("PO 4512".to_owned()),
+                }),
             }),
             Command::Cancel(job.clone()),
             Command::ListJobs,

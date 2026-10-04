@@ -151,6 +151,12 @@ pub fn authentic(
     if let Some(operator) = &a.operator {
         line(Msg::Operator, operator);
     }
+    if let Some(batch) = &a.batch {
+        match &batch.label {
+            Some(label) => line(Msg::Batch, &format!("{} — {label}", batch.id)),
+            None => line(Msg::Batch, &batch.id),
+        }
+    }
     line(
         Msg::Tool,
         &format!("Oblivio {}, rules {}", a.tool.version, a.tool.rules_version),

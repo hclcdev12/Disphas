@@ -178,6 +178,38 @@ pub struct Disposition {
     pub codes: Vec<Code>,
 }
 
+/// The batch a drive was erased in (`lot`): lets a batch certificate prove
+/// that each drive belongs to it. Declarative, chosen by the operator.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Batch {
+    /// Identifier, 1 to 64 ASCII letters, digits, `-` or `_` (`id`).
+    pub id: String,
+    /// Label, such as a customer order number, at most 128 characters (`lbl`).
+    pub label: Option<String>,
+}
+
+impl Batch {
+    /// Largest label, in characters.
+    pub const MAX_LABEL_CHARS: usize = 128;
+
+    /// Whether `id` is a valid batch identifier.
+    pub fn valid_id(id: &str) -> bool {
+        (1..=64).contains(&id.len())
+            && id
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+    }
+
+    /// Whether the identifier and label are within bounds.
+    pub fn is_valid(&self) -> bool {
+        Self::valid_id(&self.id)
+            && self
+                .label
+                .as_ref()
+                .is_none_or(|label| label.chars().count() <= Self::MAX_LABEL_CHARS)
+    }
+}
+
 /// The tool that produced the attestation (`tool`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tool {
@@ -218,6 +250,8 @@ pub struct Attestation {
     pub organization: Option<String>,
     /// Operator, as typed (`op`).
     pub operator: Option<String>,
+    /// Batch the drive was erased in (`lot`).
+    pub batch: Option<Batch>,
     /// Producing tool (`tool`).
     pub tool: Tool,
     /// SHA-256 of the detailed journal (`jh`).
@@ -394,6 +428,15 @@ impl Attestation {
                 .optional("frc", self.justification.as_deref().map(text))
                 .optional("org", self.organization.as_deref().map(text))
                 .optional("op", self.operator.as_deref().map(text))
+                .optional(
+                    "lot",
+                    self.batch.as_ref().map(|batch| {
+                        MapBuilder::default()
+                            .field("id", text(&batch.id))
+                            .optional("lbl", batch.label.as_deref().map(text))
+                            .build()
+                    }),
+                )
                 .field("tool", tool)
                 .field("jh", Value::Bytes(self.journal_sha256.to_vec()))
                 .field("lic", Value::Bytes(self.license.clone()))
@@ -487,6 +530,21 @@ impl Attestation {
         let justification = optional_text(&mut fields, "frc")?;
         let organization = optional_text(&mut fields, "org")?;
         let operator = optional_text(&mut fields, "op")?;
+        let batch = fields
+            .optional("lot")
+            .map(|value| {
+                let mut lot = Fields::of(value, "lot")?;
+                let batch = Batch {
+                    id: cbor::text(lot.required("id")?, "id")?,
+                    label: optional_text(&mut lot, "lbl")?,
+                };
+                lot.finish()?;
+                if !batch.is_valid() {
+                    return Err(CborError::Invalid("lot"));
+                }
+                Ok(batch)
+            })
+            .transpose()?;
 
         let mut tool_fields = Fields::of(fields.required("tool")?, "tool")?;
         let tool = Tool {
@@ -510,6 +568,7 @@ impl Attestation {
             justification,
             organization,
             operator,
+            batch,
             tool,
             journal_sha256: cbor::fixed_bytes(fields.required("jh")?, "jh")?,
             license: cbor::bytes(fields.required("lic")?, "lic")?,

@@ -99,6 +99,10 @@ pub struct Details {
     pub operator: Option<String>,
     /// Declarative organization.
     pub organization: Option<String>,
+    /// Batch identifier, if the drive was erased in a batch.
+    pub batch_id: Option<String>,
+    /// Batch label.
+    pub batch_label: Option<String>,
     /// Oblivio version.
     pub tool_version: String,
     /// Rule set version.
@@ -202,6 +206,8 @@ fn details(verified: &Verified) -> Details {
             .or_else(|| a.device.nguid.clone()),
         operator: a.operator.clone(),
         organization: a.organization.clone(),
+        batch_id: a.batch.as_ref().map(|batch| batch.id.clone()),
+        batch_label: a.batch.as_ref().and_then(|batch| batch.label.clone()),
         tool_version: a.tool.version.clone(),
         rules_version: a.tool.rules_version.clone(),
         binary_sha256: hex(&a.tool.binary_sha256),

@@ -89,6 +89,8 @@ pub struct JobSpec {
     pub operator: Option<String>,
     /// Declarative organization.
     pub organization: Option<String>,
+    /// Batch the drive is erased in.
+    pub batch: Option<oblivio_attestation::model::Batch>,
     /// SHA-256 of the helper binary.
     pub binary_sha256: [u8; 32],
     /// Where signed reports are stored.
@@ -567,6 +569,10 @@ fn job_file(
         rules_version: spec.rules.version.to_string(),
         operator: spec.operator.clone(),
         organization: spec.organization.clone(),
+        batch: spec
+            .batch
+            .as_ref()
+            .map(|batch| (batch.id.clone(), batch.label.clone())),
         phase: JobPhase::Preparing,
         seed: hex(seed),
         samples: lbas.to_vec(),
@@ -605,6 +611,13 @@ pub fn resumed_spec(
         target,
         operator: file.operator.clone(),
         organization: file.organization.clone(),
+        batch: file
+            .batch
+            .as_ref()
+            .map(|(id, label)| oblivio_attestation::model::Batch {
+                id: id.clone(),
+                label: label.clone(),
+            }),
         binary_sha256,
         reports_dir,
         jobs_dir,
@@ -732,6 +745,7 @@ fn attestation(
         },
         organization: spec.organization.clone(),
         operator: spec.operator.clone(),
+        batch: spec.batch.clone(),
         tool: Tool {
             version: env!("CARGO_PKG_VERSION").to_owned(),
             rules_version: spec.rules.version.to_string(),

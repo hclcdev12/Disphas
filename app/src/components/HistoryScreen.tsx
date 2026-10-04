@@ -104,6 +104,13 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
               <p className="mt-1.5 text-sm text-ash">
                 S/N <Mono>{summary.serial}</Mono>
                 {summary.method && <> · {label(summary.method)}</>}
+                {summary.batch_id && (
+                  <>
+                    {" · "}
+                    {t("verify.field.batch")} <Mono>{summary.batch_id}</Mono>
+                    {summary.batch_label && <> ({summary.batch_label})</>}
+                  </>
+                )}
                 {(summary.operator || summary.organization) && (
                   <> · {[summary.operator, summary.organization].filter(Boolean).join(", ")}</>
                 )}

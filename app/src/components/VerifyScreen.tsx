@@ -215,6 +215,12 @@ function Result({
         <Row label={t("verify.field.operator")}>
           {[d.operator, d.organization].filter(Boolean).join(", ") || "—"}
         </Row>
+        {d.batch_id && (
+          <Row label={t("verify.field.batch")}>
+            <Mono>{d.batch_id}</Mono>
+            {d.batch_label && <> — {d.batch_label}</>}
+          </Row>
+        )}
         <Row label={t("verify.field.license")}>
           {d.customer} · <Mono>{d.license_id}</Mono>
         </Row>

@@ -266,7 +266,8 @@
       "license": "License",
       "tool": "Tool",
       "binary": "Binary fingerprint",
-      "id": "Identifier"
+      "id": "Identifier",
+      "batch": "Batch"
     },
     "reason": {
       "NotOblivio": "This is not an Oblivio QR code.",

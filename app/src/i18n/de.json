@@ -266,7 +266,8 @@
       "license": "Lizenz",
       "tool": "Werkzeug",
       "binary": "Fingerabdruck der Binärdatei",
-      "id": "Kennung"
+      "id": "Kennung",
+      "batch": "Los"
     },
     "reason": {
       "NotOblivio": "Dies ist kein Oblivio-QR-Code.",

@@ -429,6 +429,21 @@ impl<B: DeviceBackend> Session<B> {
             ));
         }
 
+        // Batch, certified in the attestation: bounded, never free-form.
+        let batch = match &args.batch {
+            Some(batch) => {
+                let batch = oblivio_attestation::model::Batch {
+                    id: batch.id.clone(),
+                    label: batch.label.clone(),
+                };
+                if !batch.is_valid() {
+                    return Err(Failure::new(ErrorCode::BadRequest, "invalid batch"));
+                }
+                Some(batch)
+            }
+            None => None,
+        };
+
         // Every check passed: plan, sign and run.
         let wanted = choice.map(|(choice, _)| choice.method);
         let plan = match (forced, &issued.verdict) {
@@ -477,6 +492,7 @@ impl<B: DeviceBackend> Session<B> {
             target,
             operator: args.operator.clone(),
             organization: args.organization.clone(),
+            batch,
             binary_sha256: self.config.binary_sha256,
             reports_dir: self.config.reports_dir.clone(),
             jobs_dir: self.config.jobs_dir.clone(),
@@ -869,6 +885,7 @@ mod tests {
             force: None,
             operator: None,
             organization: None,
+            batch: None,
         }
     }
 

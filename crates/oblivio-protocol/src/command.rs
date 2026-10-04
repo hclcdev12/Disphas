@@ -122,6 +122,20 @@ pub struct SanitizeArgs {
     pub operator: Option<String>,
     /// Organization, declarative, certified as typed.
     pub organization: Option<String>,
+    /// Batch the drive is erased in, certified in its attestation.
+    #[serde(default)]
+    pub batch: Option<BatchArgs>,
+}
+
+/// Batch of a `Sanitize`, chosen by the operator.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct BatchArgs {
+    /// Identifier: 1 to 64 ASCII letters, digits, `-` or `_`.
+    pub id: String,
+    /// Label, such as a customer order number: at most 128 characters.
+    pub label: Option<String>,
 }
 
 /// Request to force a SAY NO verdict.

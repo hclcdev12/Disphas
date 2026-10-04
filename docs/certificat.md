@@ -48,6 +48,7 @@ Taille visée : < 1 000 caractères (QR version ~20, lisible imprimé en 4 × 4 
 | `rsn` | Codes de refus (N1…N10) pour REFUS et NON CONFORME *(ajouté le 2026-10-04 : le statut REFUS doit porter ses raisons)* | `["N1"]` |
 | `frc` | Si forcé : justification saisie par l'opérateur | — |
 | `org` / `op` | Organisation, opérateur | — |
+| `lot` | Lot d'effacement (identifiant, libellé) | `LOT-2026-001`, `Commande 4512` |
 | `tool` | Version d'Oblivio, `rules_version`, SHA-256 du binaire | — |
 | `jh` | SHA-256 du journal détaillé | — |
 | `lic` | Licence du poste (elle-même signée par la racine Oblivio, §4) | — |
@@ -68,6 +69,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 | `ver` | — | booléen, absent si rien n'a été exécuté |
 | `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |
 | `dis` | `k` (`Reuse` / `DestroyRecommended`), `c` (codes D) | absent sur un refus |
+| `lot`? | `id` (1 à 64 caractères ASCII : lettres, chiffres, `-`, `_`), `lbl`? (≤ 128 caractères) | lot d'effacement choisi par l'opérateur (déclaratif) ; prouve l'appartenance du disque au lot. Ajouté le 2026-10-04 (avant toute mise sur le marché, d'où pas de nouvelle version de schéma) ; hors bornes → attestation rejetée |
 | `tool` | `ver`, `rules`, `bin` (SHA-256, 32 octets) | |
 | `jh` | — | SHA-256 du journal, 32 octets |
 | `lic` | — | la licence entière (COSE_Sign1 signé par la racine) |
