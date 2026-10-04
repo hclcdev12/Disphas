@@ -304,3 +304,80 @@ fn batch_round_trips_and_is_bounded() {
         );
     }
 }
+
+mod batch_verification {
+    use super::*;
+    use crate::batch::{DriveError, is_batch, verify_batch};
+    use crate::display::uuid;
+    use crate::model::Batch;
+
+    fn drive(number: u8, batch: Option<&str>) -> (String, Vec<u8>) {
+        let mut attestation = attestation(signed_license(&license(None), &root()));
+        attestation.id[15] = number;
+        attestation.batch = batch.map(|id| Batch {
+            id: id.to_owned(),
+            label: None,
+        });
+        let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+        (uuid(&attestation.id), signed)
+    }
+
+    fn files(drives: &[(String, Vec<u8>)]) -> Vec<(String, Vec<u8>)> {
+        drives
+            .iter()
+            .flat_map(|(report, signed)| {
+                [
+                    (format!("{report}.cose"), signed.clone()),
+                    (format!("{report}.json"), JOURNAL.to_vec()),
+                ]
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_consistent_batch_is_authentic() {
+        let all = files(&[drive(1, Some("LOT-A")), drive(2, Some("LOT-A"))]);
+        assert!(is_batch(&all));
+        let result = verify_batch(&all, &root().verifying_key(), &[]);
+        assert!(result.authentic());
+        assert_eq!(result.drives.len(), 2);
+        assert_eq!(result.batch.map(|batch| batch.id).as_deref(), Some("LOT-A"));
+    }
+
+    #[test]
+    fn any_bad_drive_fails_the_batch() {
+        // Another batch, no batch, a renamed file, a replaced journal.
+        let mixed = files(&[drive(1, Some("LOT-A")), drive(2, Some("LOT-B"))]);
+        let result = verify_batch(&mixed, &root().verifying_key(), &[]);
+        assert!(!result.authentic());
+        assert!(matches!(
+            result.drives[1].outcome,
+            Err(DriveError::OtherBatch)
+        ));
+
+        let missing = files(&[drive(1, Some("LOT-A")), drive(2, None)]);
+        assert!(!verify_batch(&missing, &root().verifying_key(), &[]).authentic());
+
+        let (report, signed) = drive(1, Some("LOT-A"));
+        let (other, _) = drive(9, Some("LOT-A"));
+        let renamed = vec![
+            (format!("{other}.cose"), signed.clone()),
+            (format!("{other}.json"), JOURNAL.to_vec()),
+        ];
+        let result = verify_batch(&renamed, &root().verifying_key(), &[]);
+        assert!(matches!(
+            result.drives[0].outcome,
+            Err(DriveError::NameMismatch)
+        ));
+
+        let tampered = vec![
+            (format!("{report}.cose"), signed),
+            (format!("{report}.json"), b"{}".to_vec()),
+        ];
+        let result = verify_batch(&tampered, &root().verifying_key(), &[]);
+        assert_eq!(result.drives[0].journal_matches, Some(false));
+        assert!(!result.authentic());
+
+        assert!(!verify_batch(&[], &root().verifying_key(), &[]).authentic());
+    }
+}

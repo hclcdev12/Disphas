@@ -3,8 +3,9 @@
 //! (`OBV1:…`). Same checks as `oblivio-verify`: signature, license chain to a
 //! trusted root, license validity at the attestation date, journal digest.
 
+use oblivio_attestation::batch::{BatchVerification, DriveError, is_batch, verify_batch};
 use oblivio_attestation::display::uuid;
-use oblivio_attestation::pdf::{ExtractError, attachments};
+use oblivio_attestation::pdf::{ExtractError, all_attachments, attachments};
 
 use crate::trust::Trust;
 use oblivio_attestation::{Verified, VerifyError, from_qr_text, verify};
@@ -115,6 +116,36 @@ pub struct Details {
     pub customer: String,
 }
 
+/// One drive of a batch certificate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BatchDrive {
+    /// Report identifier.
+    pub report: String,
+    /// Authentic with a matching journal.
+    pub accepted: bool,
+    /// Why not, as a code the interface translates.
+    pub reason: Option<String>,
+    /// Content, only when authentic.
+    pub serial: Option<String>,
+    /// Drive model.
+    pub model: Option<String>,
+    /// `CONFORME`, `NON_CONFORME` or `REFUS`.
+    pub status: Option<String>,
+    /// `Clear`, `Purge` or `None`.
+    pub category: Option<String>,
+}
+
+/// Result of a batch certificate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BatchReport {
+    /// Batch identifier, from the authentic drives.
+    pub id: Option<String>,
+    /// Batch label.
+    pub label: Option<String>,
+    /// Every drive, in report order.
+    pub drives: Vec<BatchDrive>,
+}
+
 /// Outcome of a verification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Report {
@@ -130,6 +161,8 @@ pub struct Report {
     pub journal: Journal,
     /// Content, only when authentic.
     pub details: Option<Details>,
+    /// Drive by drive, for a batch certificate.
+    pub batch: Option<BatchReport>,
 }
 
 fn reason(error: &VerifyError) -> &'static str {
@@ -156,6 +189,7 @@ fn rejected(source: Option<Source>, reason: &str) -> Report {
         root: None,
         journal: Journal::Absent,
         details: None,
+        batch: None,
     }
 }
 
@@ -221,6 +255,12 @@ pub fn check(input: &[u8], trust: &Trust) -> Report {
     if input.len() > MAX_INPUT_BYTES {
         return rejected(None, "TooLarge");
     }
+    if input.starts_with(b"%PDF-")
+        && let Ok(files) = all_attachments(input)
+        && is_batch(&files)
+    {
+        return check_batch(&files, trust);
+    }
     let (source, signed, journal) = if input.starts_with(b"%PDF-") {
         match attachments(input) {
             Ok(attached) => (Source::Pdf, attached.attestation, attached.journal),
@@ -259,6 +299,7 @@ pub fn check(input: &[u8], trust: &Trust) -> Report {
                     }),
                     journal,
                     details: Some(details(&verified)),
+                    batch: None,
                 };
             }
             Err(error) => {
@@ -268,6 +309,76 @@ pub fn check(input: &[u8], trust: &Trust) -> Report {
     }
     let reason = first_error.as_ref().map_or("NoTrustedRoot", reason);
     rejected(Some(source), reason)
+}
+
+/// A batch certificate: every drive verified against the first root under
+/// which the whole batch is authentic (official first), else the official one.
+fn check_batch(files: &[(String, Vec<u8>)], trust: &Trust) -> Report {
+    let mut chosen: Option<(BatchVerification, Root)> = None;
+    for root in &trust.roots {
+        let verification = verify_batch(files, root, &trust.revocations);
+        let kind = if Some(*root) == trust.official {
+            Root::Official
+        } else {
+            Root::Development
+        };
+        let authentic = verification.authentic();
+        if authentic || chosen.is_none() {
+            chosen = Some((verification, kind));
+        }
+        if authentic {
+            break;
+        }
+    }
+    let Some((verification, root)) = chosen else {
+        return rejected(Some(Source::Pdf), "NoTrustedRoot");
+    };
+    let authentic = verification.authentic();
+    let drives = verification
+        .drives
+        .iter()
+        .map(|drive| {
+            let (reason, a) = match &drive.outcome {
+                Ok(verified) => (
+                    match drive.journal_matches {
+                        Some(true) => None,
+                        Some(false) => Some("JournalMismatch".to_owned()),
+                        None => Some("JournalMissing".to_owned()),
+                    },
+                    Some(&verified.attestation),
+                ),
+                Err(DriveError::Verify(error)) => (Some(reason(error).to_owned()), None),
+                Err(DriveError::NameMismatch) => (Some("NameMismatch".to_owned()), None),
+                Err(DriveError::NoBatch) => (Some("NoBatch".to_owned()), None),
+                Err(DriveError::OtherBatch) => (Some("OtherBatch".to_owned()), None),
+            };
+            BatchDrive {
+                report: drive.report.clone(),
+                accepted: drive.accepted(),
+                reason,
+                serial: a.map(|a| a.device.serial.clone()),
+                model: a.map(|a| a.device.model.clone()),
+                status: a.map(|a| a.status.as_str().to_owned()),
+                category: a.map(|a| a.sanitization.category.as_str().to_owned()),
+            }
+        })
+        .collect();
+    Report {
+        source: Some(Source::Pdf),
+        authentic,
+        reason: (!authentic).then(|| "BatchRejected".to_owned()),
+        root: authentic.then_some(root),
+        journal: Journal::Absent,
+        details: None,
+        batch: Some(BatchReport {
+            id: verification.batch.as_ref().map(|batch| batch.id.clone()),
+            label: verification
+                .batch
+                .as_ref()
+                .and_then(|batch| batch.label.clone()),
+            drives,
+        }),
+    }
 }
 
 #[cfg(test)]
@@ -331,6 +442,56 @@ mod tests {
         let details = report.details.expect("details");
         assert_eq!(details.status, "NON_CONFORME");
         assert_eq!(details.organization.as_deref(), Some("Atelier XYZ"));
+    }
+
+    #[test]
+    fn batch_pdf_is_verified_drive_by_drive() {
+        use oblivio_attestation::model::Batch;
+        use oblivio_report::batch::{BatchEntry, render_batch};
+        use oblivio_report::fixture::signed_in_batch;
+        let lot = Some(Batch {
+            id: "LOT-T".to_owned(),
+            label: None,
+        });
+        let signed = [
+            signed_in_batch(Status::Compliant, 1, lot.clone()),
+            signed_in_batch(Status::Refused, 2, lot),
+        ];
+        let entries: Vec<BatchEntry<'_>> = signed
+            .iter()
+            .map(|signed| BatchEntry {
+                signed,
+                journal: JOURNAL,
+            })
+            .collect();
+        let pdf = render_batch(
+            &entries,
+            &root().verifying_key(),
+            &[],
+            &RenderOptions {
+                lang: Lang::Fr,
+                logo: None,
+            },
+        )
+        .expect("rendered");
+        let report = check(&pdf, &roots());
+        assert!(report.authentic, "{report:?}");
+        let batch = report.batch.expect("batch");
+        assert_eq!(batch.id.as_deref(), Some("LOT-T"));
+        assert_eq!(batch.drives.len(), 2);
+        assert!(batch.drives.iter().all(|drive| drive.accepted));
+
+        let stranger = oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
+        let report = check(&pdf, &trust(false, vec![stranger.verifying_key()]));
+        assert!(!report.authentic);
+        assert!(
+            report
+                .batch
+                .expect("batch")
+                .drives
+                .iter()
+                .all(|drive| !drive.accepted)
+        );
     }
 
     #[test]

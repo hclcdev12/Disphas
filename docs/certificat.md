@@ -249,6 +249,11 @@ reste prouvé par sa propre attestation signée).
 - **Refus de rendu** si une attestation ne se vérifie pas, si un journal ne correspond pas, si un disque n'a pas
   de lot ou appartient à un autre lot, ou s'il est fourni deux fois ; 1 à 2 000 disques par lot.
 - PDF/A-3b, rendu déterministe (`oblivio-report::batch`).
+- **Vérification** (`oblivio_attestation::batch`, partagée par l'application et `oblivio-verify`) : un PDF sans
+  `attestation.cose` mais avec des `<rapport>.cose` est traité comme un lot ; chaque disque est vérifié
+  (signature, licence, révocation), son journal comparé, son nom de fichier rapproché de son identifiant, et
+  tous doivent porter le **même** lot. Le lot n'est authentique que si **chaque** disque l'est ; le résultat est
+  donné disque par disque (code de sortie 0 seulement si tout est accepté).
 - ⚠️ Limite assumée (option B) : le lot prouve l'**appartenance**, pas la **complétude** — retirer un disque du
   PDF n'est pas détectable. Preuve de complétude = option C (clôture signée par le helper), qui exigerait
   d'amender la règle invariante n° 5 de `CLAUDE.md`.

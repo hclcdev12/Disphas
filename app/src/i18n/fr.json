@@ -283,12 +283,22 @@
       "NoAttestation": "Ce PDF ne contient pas d'attestation Oblivio : ce n'est pas un certificat Oblivio, ou il a été réimprimé.",
       "PdfUnreadable": "Ce PDF est illisible.",
       "TooLarge": "Fichier trop volumineux (32 Mio au plus).",
-      "Unknown": "Certificat non vérifiable."
+      "Unknown": "Certificat non vérifiable.",
+      "BatchRejected": "Au moins un support du lot est rejeté.",
+      "JournalMismatch": "Le journal joint ne correspond pas à l'attestation.",
+      "JournalMissing": "Journal absent du PDF.",
+      "NameMismatch": "Le nom du fichier ne correspond pas à l'identifiant du rapport.",
+      "NoBatch": "Ce support n'a pas été effacé dans un lot.",
+      "OtherBatch": "Ce support appartient à un autre lot."
     },
     "validationMethod": {
       "canaris": "canaris",
       "motif": "motif relu"
-    }
+    },
+    "batchAuthentic": "Lot authentique",
+    "batchRejected": "Lot NON authentique",
+    "batchDrives_one": "{{count}} support",
+    "batchDrives_other": "{{count}} supports"
   },
   "batch": {
     "current": "Lot en cours :",

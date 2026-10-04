@@ -283,12 +283,22 @@
       "NoAttestation": "This PDF holds no Oblivio attestation: it is not an Oblivio certificate, or it was reprinted.",
       "PdfUnreadable": "This PDF is unreadable.",
       "TooLarge": "File too large (32 MiB at most).",
-      "Unknown": "Certificate cannot be verified."
+      "Unknown": "Certificate cannot be verified.",
+      "BatchRejected": "At least one drive of the batch is rejected.",
+      "JournalMismatch": "The attached journal does not match the attestation.",
+      "JournalMissing": "Journal missing from the PDF.",
+      "NameMismatch": "The file name does not match the report identifier.",
+      "NoBatch": "This drive was not erased in a batch.",
+      "OtherBatch": "This drive belongs to another batch."
     },
     "validationMethod": {
       "canaris": "canaries",
       "motif": "pattern read back"
-    }
+    },
+    "batchAuthentic": "Authentic batch",
+    "batchRejected": "Batch NOT authentic",
+    "batchDrives_one": "{{count}} drive",
+    "batchDrives_other": "{{count}} drives"
   },
   "batch": {
     "current": "Current batch:",

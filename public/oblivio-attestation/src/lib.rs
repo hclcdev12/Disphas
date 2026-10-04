@@ -8,6 +8,7 @@
 //! published as is, together with `oblivio-verify`.
 
 pub mod base45;
+pub mod batch;
 pub mod cbor;
 pub mod cose;
 pub mod display;

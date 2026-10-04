@@ -137,6 +137,10 @@ function Result({
   const list = (codes: string[]) => (codes.length === 0 ? t("verdict.none") : codes.map(label).join(" · "));
   const yesNo = (value: boolean | null) => (value === null ? "—" : value ? t("verify.yes") : t("verify.no"));
 
+  if (report.batch) {
+    return <BatchResult report={report} batch={report.batch} name={name} />;
+  }
+
   if (!report.authentic || !report.details) {
     return (
       <div className="mt-6 rounded-lg border border-sayno/40 bg-sayno/10 p-5">
@@ -234,6 +238,63 @@ function Result({
           <Mono>{d.id}</Mono>
         </Row>
       </dl>
+    </div>
+  );
+}
+
+function BatchResult({
+  report,
+  batch,
+  name,
+}: {
+  report: VerificationReport;
+  batch: NonNullable<VerificationReport["batch"]>;
+  name: string | null;
+}) {
+  const { t } = useTranslation();
+  const ok = report.authentic;
+  return (
+    <div className={`mt-6 rounded-lg border p-5 ${ok ? "border-ready/40 bg-card" : "border-sayno/40 bg-sayno/10"}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        {ok ? <BadgeCheck className="text-ready" /> : <ShieldX className="text-sayno" />}
+        <h2 className={`text-lg font-bold ${ok ? "text-ready" : "text-sayno"}`}>
+          {ok ? t("verify.batchAuthentic") : t("verify.batchRejected")}
+        </h2>
+        {name && <span className="text-sm text-ash">{name}</span>}
+      </div>
+      {ok && report.root === "Development" && <Notice tone="blocked">{t("verify.developmentRoot")}</Notice>}
+      <p className="mt-3 text-sm">
+        {t("verify.field.batch")} <Mono>{batch.id ?? "—"}</Mono>
+        {batch.label && <> — {batch.label}</>} · {t("verify.batchDrives", { count: batch.drives.length })}
+      </p>
+      <ul className="mt-3 divide-y divide-edge/60 rounded-md border border-edge text-sm">
+        {batch.drives.map((drive) => (
+          <li key={drive.report} className="flex flex-wrap items-center gap-3 px-3 py-2">
+            {drive.accepted ? (
+              <BadgeCheck size={16} className="text-ready" />
+            ) : (
+              <ShieldX size={16} className="text-sayno" />
+            )}
+            {drive.serial ? (
+              <>
+                <Mono>{drive.serial}</Mono>
+                <span className="text-ash">{drive.model}</span>
+              </>
+            ) : (
+              <Mono>{drive.report}</Mono>
+            )}
+            <span className="ml-auto flex items-center gap-2">
+              {drive.status && (
+                <Badge tone={drive.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${drive.status}`)}</Badge>
+              )}
+              {drive.category && drive.category !== "None" && <Badge tone="neutral">{drive.category}</Badge>}
+            </span>
+            {drive.reason && (
+              <span className="w-full text-xs text-sayno">{t(`verify.reason.${drive.reason}`, { defaultValue: drive.reason })}</span>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

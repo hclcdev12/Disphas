@@ -65,6 +65,13 @@ pub enum Msg {
     JournalFromPdf,
     RevocationList,
     Batch,
+    BatchAuthentic,
+    BatchNotAuthentic,
+    Drives,
+    ErrNameMismatch,
+    ErrNoBatch,
+    ErrOtherBatch,
+    NoJournal,
     ErrPdfNoAttestation,
     ErrPdfUnreadable,
 }
@@ -187,6 +194,33 @@ pub fn msg(message: Msg) -> Text {
             "die Lizenz wurde vor dem Datum der Bescheinigung widerrufen",
         ),
         Msg::Batch => t("Batch", "Lot", "Los"),
+        Msg::BatchAuthentic => t(
+            "AUTHENTIC BATCH: every drive is signed by a licensed Oblivio workstation",
+            "LOT AUTHENTIQUE : chaque support est signé par un poste Oblivio sous licence",
+            "ECHTES LOS: Jeder Datenträger ist von einem lizenzierten Oblivio-Arbeitsplatz signiert",
+        ),
+        Msg::BatchNotAuthentic => t(
+            "BATCH NOT AUTHENTIC: at least one drive is rejected",
+            "LOT NON AUTHENTIQUE : au moins un support est rejeté",
+            "LOS NICHT ECHT: mindestens ein Datenträger wird abgelehnt",
+        ),
+        Msg::Drives => t("Drives", "Supports", "Datenträger"),
+        Msg::ErrNameMismatch => t(
+            "the file name is not its report identifier",
+            "le nom du fichier n'est pas l'identifiant de son rapport",
+            "der Dateiname ist nicht die Berichtskennung",
+        ),
+        Msg::ErrNoBatch => t(
+            "not erased in a batch",
+            "pas effacé dans un lot",
+            "nicht in einem Los gelöscht",
+        ),
+        Msg::ErrOtherBatch => t(
+            "belongs to another batch",
+            "appartient à un autre lot",
+            "gehört zu einem anderen Los",
+        ),
+        Msg::NoJournal => t("journal missing", "journal absent", "Protokoll fehlt"),
         Msg::RevocationList => t("Revocation list", "Liste de révocation", "Widerrufsliste"),
         Msg::JournalFromPdf => t("attached to the PDF", "joint au PDF", "dem PDF beigefügt"),
         Msg::ErrPdfNoAttestation => t(

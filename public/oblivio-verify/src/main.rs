@@ -17,7 +17,7 @@ use std::process::ExitCode;
 
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_attestation::revocation::{RevocationList, merge};
-use oblivio_attestation::{VerifyError, from_qr_text, pdf, verify};
+use oblivio_attestation::{VerifyError, batch, from_qr_text, pdf, verify};
 
 use crate::labels::Lang;
 
@@ -135,24 +135,6 @@ fn run(args: Args) -> Result<bool, String> {
         .map(|path| read_bounded(path, MAX_JOURNAL_BYTES))
         .transpose()?;
 
-    // A PDF only carries the proof: its attachments are what is verified.
-    let (input, attached) = if input.starts_with(b"%PDF-") {
-        match pdf::attachments(&input) {
-            Ok(found) => (found.attestation, found.journal),
-            Err(error) => {
-                print!("{}", render::rejected_pdf(&error, lang));
-                return Ok(false);
-            }
-        }
-    } else {
-        (input, None)
-    };
-    let journal = match (given, attached) {
-        (Some(given), _) => Some((given, false)),
-        (None, Some(attached)) => Some((attached, true)),
-        (None, None) => None,
-    };
-
     // Revocations: the list built into this version (official root only),
     // plus a newer one given by the user, signed by the same root.
     let mut lists = Vec::new();
@@ -171,6 +153,32 @@ fn run(args: Args) -> Result<bool, String> {
     }
     let revocations = merge(&lists);
     let newest = lists.iter().map(|list| (list.seq, list.issued_at)).max();
+
+    // A PDF only carries the proof: its attachments are what is verified.
+    if input.starts_with(b"%PDF-")
+        && let Ok(files) = pdf::all_attachments(&input)
+        && batch::is_batch(&files)
+    {
+        let verification = batch::verify_batch(&files, &root, &revocations);
+        print!("{}", render::batch(&verification, newest, unofficial, lang));
+        return Ok(verification.authentic());
+    }
+    let (input, attached) = if input.starts_with(b"%PDF-") {
+        match pdf::attachments(&input) {
+            Ok(found) => (found.attestation, found.journal),
+            Err(error) => {
+                print!("{}", render::rejected_pdf(&error, lang));
+                return Ok(false);
+            }
+        }
+    } else {
+        (input, None)
+    };
+    let journal = match (given, attached) {
+        (Some(given), _) => Some((given, false)),
+        (None, Some(attached)) => Some((attached, true)),
+        (None, None) => None,
+    };
 
     let result = attestation_bytes(input).and_then(|signed| verify(&signed, &root, &revocations));
     match result {

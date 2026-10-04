@@ -283,12 +283,22 @@
       "NoAttestation": "Dieses PDF enthält keine Oblivio-Attestierung: Es ist keine Oblivio-Bescheinigung oder wurde neu gedruckt.",
       "PdfUnreadable": "Dieses PDF ist unlesbar.",
       "TooLarge": "Datei zu groß (höchstens 32 MiB).",
-      "Unknown": "Bescheinigung nicht überprüfbar."
+      "Unknown": "Bescheinigung nicht überprüfbar.",
+      "BatchRejected": "Mindestens ein Datenträger des Loses wird abgelehnt.",
+      "JournalMismatch": "Das angehängte Protokoll passt nicht zur Bescheinigung.",
+      "JournalMissing": "Protokoll fehlt im PDF.",
+      "NameMismatch": "Der Dateiname passt nicht zur Berichtskennung.",
+      "NoBatch": "Dieser Datenträger wurde nicht in einem Los gelöscht.",
+      "OtherBatch": "Dieser Datenträger gehört zu einem anderen Los."
     },
     "validationMethod": {
       "canaris": "Kanarienblöcke",
       "motif": "Muster zurückgelesen"
-    }
+    },
+    "batchAuthentic": "Echtes Los",
+    "batchRejected": "Los NICHT echt",
+    "batchDrives_one": "{{count}} Datenträger",
+    "batchDrives_other": "{{count}} Datenträger"
   },
   "batch": {
     "current": "Aktuelles Los:",

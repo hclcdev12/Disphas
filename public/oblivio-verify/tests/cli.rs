@@ -353,3 +353,24 @@ fn revocation_list_from_another_key_is_refused() {
     ]);
     assert_eq!(output.status.code(), Some(2));
 }
+
+/// Batch certificate of six fictional drives, same test keys.
+const BATCH_PDF: &[u8] = include_bytes!("fixtures/batch.pdf");
+
+#[test]
+fn batch_pdf_is_verified_drive_by_drive() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let pdf = write(dir.path(), "batch.pdf", BATCH_PDF);
+    let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&root()), &pdf]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(text.contains("AUTHENTIC BATCH"), "{text}");
+    assert!(text.contains("LOT-2026-001"));
+    assert_eq!(text.matches("  ✔ ").count(), 6, "{text}");
+
+    // Another root: every drive is rejected, so is the batch.
+    let stranger = SigningKey::from_bytes(&[9; 32]);
+    let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&stranger), &pdf]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stdout(&output).contains("BATCH NOT AUTHENTIC"));
+}

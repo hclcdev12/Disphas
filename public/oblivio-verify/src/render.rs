@@ -2,6 +2,7 @@
 
 use std::fmt::Write;
 
+use oblivio_attestation::batch::{BatchVerification, DriveError};
 use oblivio_attestation::model::{Category, Code, DispositionKind, Status, ValidationMethod};
 use oblivio_attestation::pdf::ExtractError as PdfError;
 use oblivio_attestation::{Verified, VerifyError};
@@ -195,6 +196,81 @@ pub fn authentic(
         header.push_str(&format!("⚠ {}\n", m(Msg::UnofficialRoot)));
     }
     header + "\n" + &out
+}
+
+/// Report of a batch certificate: one line per drive.
+pub fn batch(
+    verification: &BatchVerification,
+    revocation_list: Option<(u64, u64)>,
+    unofficial_root: bool,
+    lang: Lang,
+) -> String {
+    let m = |message| labels::msg(message).get(lang);
+    let mut out = String::new();
+    if verification.authentic() {
+        let _ = writeln!(out, "✔ {}", m(Msg::BatchAuthentic));
+    } else {
+        let _ = writeln!(out, "✘ {}", m(Msg::BatchNotAuthentic));
+    }
+    if unofficial_root {
+        let _ = writeln!(out, "⚠ {}", m(Msg::UnofficialRoot));
+    }
+    let _ = writeln!(out);
+    if let Some(batch) = &verification.batch {
+        let value = match &batch.label {
+            Some(label) => format!("{} — {label}", batch.id),
+            None => batch.id.clone(),
+        };
+        let _ = writeln!(out, "  {:<22} {value}", format!("{}:", m(Msg::Batch)));
+    }
+    let _ = writeln!(
+        out,
+        "  {:<22} {}",
+        format!("{}:", m(Msg::Drives)),
+        verification.drives.len()
+    );
+    let _ = writeln!(
+        out,
+        "  {:<22} {}",
+        format!("{}:", m(Msg::RevocationList)),
+        match revocation_list {
+            Some((seq, issued_at)) => format!("#{seq} ({})", utc(issued_at)),
+            None => m(Msg::None).to_owned(),
+        }
+    );
+    let _ = writeln!(out);
+    for drive in &verification.drives {
+        match &drive.outcome {
+            Ok(verified) => {
+                let a = &verified.attestation;
+                let journal = match drive.journal_matches {
+                    Some(true) => String::new(),
+                    Some(false) => format!(" — {}", m(Msg::JournalMismatch)),
+                    None => format!(" — {}", m(Msg::NoJournal)),
+                };
+                let _ = writeln!(
+                    out,
+                    "  {} {}  {}  {}  {}  {}{journal}",
+                    if drive.accepted() { "✔" } else { "✘" },
+                    drive.report,
+                    a.device.serial,
+                    a.device.model,
+                    status(a.status, lang),
+                    category(a.sanitization.category),
+                );
+            }
+            Err(error) => {
+                let reason = match error {
+                    DriveError::Verify(error) => rejected(error, lang).trim().to_owned(),
+                    DriveError::NameMismatch => m(Msg::ErrNameMismatch).to_owned(),
+                    DriveError::NoBatch => m(Msg::ErrNoBatch).to_owned(),
+                    DriveError::OtherBatch => m(Msg::ErrOtherBatch).to_owned(),
+                };
+                let _ = writeln!(out, "  ✘ {}  {reason}", drive.report);
+            }
+        }
+    }
+    out
 }
 
 /// Report of a PDF whose attestation cannot be read.

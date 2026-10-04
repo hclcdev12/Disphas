@@ -38,6 +38,7 @@
       "customer": "Atelier XYZ",
       "batch_id": "LOT-2026-001",
       "batch_label": "PO 4512"
-    }
+    },
+    "batch": null
   }
 }

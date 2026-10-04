@@ -40,7 +40,19 @@ export type HistoryEntry = {
 };
 
 /** Outcome of a certificate verification (app/src-tauri/src/verification.rs). */
+/** One drive of a verified batch certificate. */
+export type BatchDrive = {
+  report: string;
+  accepted: boolean;
+  reason: string | null;
+  serial: string | null;
+  model: string | null;
+  status: "CONFORME" | "NON_CONFORME" | "REFUS" | null;
+  category: "Clear" | "Purge" | "None" | null;
+};
+
 export type VerificationReport = {
+  batch: { id: string | null; label: string | null; drives: BatchDrive[] } | null;
   source: "Pdf" | "Cose" | "Qr" | null;
   authentic: boolean;
   reason: string | null;
