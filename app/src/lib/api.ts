@@ -90,6 +90,9 @@ export type VerificationReport = {
   } | null;
 };
 
+/** Operator settings (app/src-tauri/src/settings.rs). */
+export type Settings = { organization: string | null; operator: string | null; logo: string | null };
+
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
 export type HelperError = { code: string; detail: string | null };
 
@@ -122,6 +125,10 @@ export interface OblivioApi {
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
   /** Deletes stored reports through the helper (retention), returns how many. */
   deleteReports(ids: string[]): Promise<Outcome<{ deleted: number }>>;
+  getSettings(): Promise<Settings>;
+  saveSettings(organization: string, operator: string): Promise<Outcome<Settings>>;
+  setLogo(data: string): Promise<Outcome<Settings>>;
+  clearLogo(): Promise<Outcome<Settings>>;
   /** Renders and saves the batch certificate of a batch from the history. */
   renderBatch(batchId: string, lang: Language): Promise<Outcome<string | null>>;
   /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
@@ -143,6 +150,14 @@ async function call<T>(command: Command): Promise<Outcome<T>> {
     return { ok: true, value: await invoke<T>("helper", { command }) };
   } catch (error) {
     return { ok: false, error: asHelperError(error) };
+  }
+}
+
+async function settingsCall(command: string, args: Record<string, unknown>): Promise<Outcome<Settings>> {
+  try {
+    return { ok: true, value: await invoke<Settings>(command, args) };
+  } catch (error) {
+    return { ok: false, error: { code: "INVALID", detail: String(error) } };
   }
 }
 
@@ -174,6 +189,11 @@ const tauriApi: OblivioApi = {
       return { ok: false, error: asHelperError(error) };
     }
   },
+  getSettings: () =>
+    invoke<Settings>("get_settings").catch(() => ({ organization: null, operator: null, logo: null })),
+  saveSettings: (organization, operator) => settingsCall("save_settings", { organization, operator }),
+  setLogo: (data) => settingsCall("set_logo", { data }),
+  clearLogo: () => settingsCall("clear_logo", {}),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
   renderBatch: async (batchId, lang) => {
     try {
@@ -217,6 +237,10 @@ const previewApi: OblivioApi = {
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
   deleteReports: async () => unavailable,
+  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null }),
+  saveSettings: async () => unavailable,
+  setLogo: async () => unavailable,
+  clearLogo: async () => unavailable,
   // The browser cannot verify: shows a fictional verified report, for layout only.
   verifyCertificate: async () => previewVerification.report as VerificationReport,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],

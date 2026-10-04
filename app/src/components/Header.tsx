@@ -3,6 +3,7 @@ import wordmark from "../../../assets/logo/oblivio-wordmark-dark.svg";
 import type { HelloResult } from "../bindings/HelloResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import { LANGUAGES, type Language } from "../i18n";
+import { Settings } from "lucide-react";
 import { Badge, Dot } from "./ui";
 
 export function Header({
@@ -11,12 +12,14 @@ export function Header({
   connected,
   license,
   onLicense,
+  onSettings,
 }: {
   hello: HelloResult | null;
   mode: "tauri" | "preview";
   connected: boolean;
   license: LicenseStatusResult | null;
   onLicense: () => void;
+  onSettings: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const helper = mode === "preview" ? "preview" : connected ? "connected" : "disconnected";
@@ -40,6 +43,15 @@ export function Header({
             </Badge>
           </button>
         )}
+        <button
+          type="button"
+          aria-label={t("settings.title")}
+          title={t("settings.title")}
+          onClick={onSettings}
+          className="rounded-md border border-edge p-1.5 text-ash hover:text-soft"
+        >
+          <Settings size={14} />
+        </button>
         <select
           aria-label="Language"
           className="rounded-md border border-edge bg-card px-2 py-1 text-xs text-ash"

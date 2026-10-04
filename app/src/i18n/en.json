@@ -100,7 +100,9 @@
     "refused": "The helper refused the request:",
     "zeroPass": "Finish with a pass of zeros",
     "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so.",
-    "justificationPrivacy": "This text is signed as typed into the certificate, which can no longer be changed: do not enter personal data (an employee's name, the drive's contents…)."
+    "justificationPrivacy": "This text is signed as typed into the certificate, which can no longer be changed: do not enter personal data (an employee's name, the drive's contents…).",
+    "signedAs": "Signed on behalf of: operator {{operator}} · organization {{organization}} (change in Settings)",
+    "notSet": "not set"
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"
@@ -329,5 +331,25 @@
     "closedEmpty": "Batch {{batch}} closed without any erasure: no batch certificate.",
     "pdfFailed": "The certificate of batch {{batch}} could not be produced; the batch stays open.",
     "empty": "No verified certificate in this batch."
+  },
+  "settings": {
+    "title": "Settings",
+    "intro": "This information is signed into every certificate, as typed. It applies to this user account.",
+    "organization": "Organization",
+    "organizationPlaceholder": "Atelier XYZ",
+    "operator": "Operator",
+    "operatorPlaceholder": "OP-042",
+    "operatorHint": "An identifier is enough (e.g. OP-042): no need to write a name into a certificate that can never be changed.",
+    "tooLong": "Organization: 128 characters at most; operator: 64.",
+    "logo": "Logo on certificates",
+    "logoHint": "PNG or SVG, 1 MB at most. Replaces the Oblivio logo at the top of the PDFs.",
+    "logoNone": "Oblivio logo",
+    "logoSet": "Custom logo ({{format}})",
+    "logoChoose": "Choose…",
+    "logoRemove": "Remove",
+    "logoTooLarge": "Logo: 1 MB at most.",
+    "saved": "Settings saved.",
+    "save": "Save",
+    "close": "Close"
   }
 }

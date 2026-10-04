@@ -10,6 +10,7 @@ import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { JobScreen } from "./components/JobScreen";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
 import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
@@ -21,7 +22,7 @@ import type { BatchArgs } from "./bindings/BatchArgs";
 import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
 import { Button, Mono } from "./components/ui";
-import { api, type HelperError, type Outcome } from "./lib/api";
+import { api, type HelperError, type Outcome, type Settings } from "./lib/api";
 import type { Language } from "./i18n";
 
 export default function App() {
@@ -33,6 +34,11 @@ export default function App() {
   const [request, setRequest] = useState<EraseRequest | null>(null);
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings>({ organization: null, operator: null, logo: null });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => {
+    void api.getSettings().then(setSettings);
+  }, []);
   const [jobs, setJobs] = useState<Record<string, JobView>>({});
   // Several drives erase in parallel: every job of the session, and the one opened in detail.
   const [jobInfo, setJobInfo] = useState<Record<string, JobInfo>>({});
@@ -170,8 +176,8 @@ export default function App() {
       confirmation: input.confirmation,
       acknowledged: input.acknowledged,
       force: input.justification === null ? null : { justification: input.justification },
-      operator: null,
-      organization: null,
+      operator: settings.operator,
+      organization: settings.organization,
       batch,
       zero_pass: input.zeroPass,
     });
@@ -206,6 +212,7 @@ export default function App() {
         connected={connected}
         license={license}
         onLicense={() => setLicenseOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
         <>
@@ -310,6 +317,9 @@ export default function App() {
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}
+      {settingsOpen && (
+        <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} onChanged={setSettings} />
+      )}
       {unlocking && (
         <UnlockDialog
           device={unlocking.device}
@@ -325,6 +335,7 @@ export default function App() {
           key={request.inspection.verdict_id + request.choice.method}
           request={request}
           labels={labels}
+          signer={{ operator: settings.operator, organization: settings.organization }}
           onCancel={() => setRequest(null)}
           onConfirm={confirm}
         />

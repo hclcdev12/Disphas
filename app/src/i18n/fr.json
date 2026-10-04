@@ -100,7 +100,9 @@
     "refused": "Le helper a refusé la demande :",
     "zeroPass": "Terminer par une passe de zéros",
     "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique.",
-    "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…)."
+    "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…).",
+    "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (modifiable dans Réglages)",
+    "notSet": "non renseigné"
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
@@ -329,5 +331,25 @@
     "closedEmpty": "Lot {{batch}} clos, sans effacement : aucun certificat de lot.",
     "pdfFailed": "Le certificat du lot {{batch}} n'a pas pu être produit ; le lot reste ouvert.",
     "empty": "Aucun certificat vérifié dans ce lot."
+  },
+  "settings": {
+    "title": "Réglages",
+    "intro": "Ces informations sont signées dans chaque certificat, telles quelles. Elles valent pour ce compte utilisateur.",
+    "organization": "Organisation",
+    "organizationPlaceholder": "Atelier XYZ",
+    "operator": "Opérateur",
+    "operatorPlaceholder": "OP-042",
+    "operatorHint": "Un identifiant suffit (ex. OP-042) : inutile d'inscrire un nom dans un certificat qui ne pourra plus être modifié.",
+    "tooLong": "Organisation : 128 caractères au plus ; opérateur : 64.",
+    "logo": "Logo sur les certificats",
+    "logoHint": "PNG ou SVG, 1 Mo au plus. Remplace le logo Oblivio en tête des PDF.",
+    "logoNone": "Logo Oblivio",
+    "logoSet": "Logo personnalisé ({{format}})",
+    "logoChoose": "Choisir…",
+    "logoRemove": "Retirer",
+    "logoTooLarge": "Logo : 1 Mo au plus.",
+    "saved": "Réglages enregistrés.",
+    "save": "Enregistrer",
+    "close": "Fermer"
   }
 }

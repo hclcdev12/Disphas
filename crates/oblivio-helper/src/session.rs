@@ -432,6 +432,12 @@ impl<B: DeviceBackend> Session<B> {
             ));
         }
 
+        // Operator and organization, certified as typed: bounded, printable.
+        let operator = declarative(&args.operator, MAX_OPERATOR_CHARS)
+            .ok_or_else(|| Failure::new(ErrorCode::BadRequest, "invalid operator"))?;
+        let organization = declarative(&args.organization, MAX_ORGANIZATION_CHARS)
+            .ok_or_else(|| Failure::new(ErrorCode::BadRequest, "invalid organization"))?;
+
         // Batch, certified in the attestation: bounded, never free-form.
         let batch = match &args.batch {
             Some(batch) => {
@@ -501,8 +507,8 @@ impl<B: DeviceBackend> Session<B> {
             rules: self.config.rules.clone(),
             signer,
             target,
-            operator: args.operator.clone(),
-            organization: args.organization.clone(),
+            operator,
+            organization,
             batch,
             zero_pass: args.zero_pass,
             binary_sha256: self.config.binary_sha256,
@@ -726,6 +732,24 @@ fn last_chars(text: &str, count: usize) -> &str {
         .nth(count - 1)
         .map_or(0, |(index, _)| index);
     &text[start..]
+}
+
+/// Longest operator name or identifier, in characters.
+pub const MAX_OPERATOR_CHARS: usize = 64;
+/// Longest organization name, in characters.
+pub const MAX_ORGANIZATION_CHARS: usize = 128;
+
+/// A declarative field as it will be signed: trimmed, empty means absent.
+/// `None` when it is too long or holds control characters.
+fn declarative(text: &Option<String>, max_chars: usize) -> Option<Option<String>> {
+    let Some(text) = text else {
+        return Some(None);
+    };
+    let text = text.trim();
+    if text.chars().count() > max_chars || text.chars().any(char::is_control) {
+        return None;
+    }
+    Some((!text.is_empty()).then(|| text.to_owned()))
 }
 
 /// Whether `id` is a report identifier: a lowercase UUID, as in file names.

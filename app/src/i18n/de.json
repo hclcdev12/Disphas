@@ -100,7 +100,9 @@
     "refused": "Der Helper hat die Anfrage abgelehnt:",
     "zeroPass": "Mit einem Durchgang mit Nullen abschließen",
     "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es.",
-    "justificationPrivacy": "Dieser Text wird unverändert in die Bescheinigung signiert, die danach nicht mehr geändert werden kann: Geben Sie keine personenbezogenen Daten ein (Name eines Mitarbeiters, Inhalt des Laufwerks…)."
+    "justificationPrivacy": "Dieser Text wird unverändert in die Bescheinigung signiert, die danach nicht mehr geändert werden kann: Geben Sie keine personenbezogenen Daten ein (Name eines Mitarbeiters, Inhalt des Laufwerks…).",
+    "signedAs": "Signiert im Namen von: Bediener {{operator}} · Organisation {{organization}} (änderbar in den Einstellungen)",
+    "notSet": "nicht angegeben"
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
@@ -329,5 +331,25 @@
     "closedEmpty": "Los {{batch}} ohne Löschung geschlossen: kein Loszertifikat.",
     "pdfFailed": "Das Zertifikat des Loses {{batch}} konnte nicht erstellt werden; das Los bleibt offen.",
     "empty": "Keine geprüfte Bescheinigung in diesem Los."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "intro": "Diese Angaben werden unverändert in jede Bescheinigung signiert. Sie gelten für dieses Benutzerkonto.",
+    "organization": "Organisation",
+    "organizationPlaceholder": "Atelier XYZ",
+    "operator": "Bediener",
+    "operatorPlaceholder": "OP-042",
+    "operatorHint": "Eine Kennung genügt (z. B. OP-042): Ein Name muss nicht in eine Bescheinigung, die nie mehr geändert werden kann.",
+    "tooLong": "Organisation: höchstens 128 Zeichen; Bediener: 64.",
+    "logo": "Logo auf den Bescheinigungen",
+    "logoHint": "PNG oder SVG, höchstens 1 MB. Ersetzt das Oblivio-Logo oben in den PDFs.",
+    "logoNone": "Oblivio-Logo",
+    "logoSet": "Eigenes Logo ({{format}})",
+    "logoChoose": "Auswählen…",
+    "logoRemove": "Entfernen",
+    "logoTooLarge": "Logo: höchstens 1 MB.",
+    "saved": "Einstellungen gespeichert.",
+    "save": "Speichern",
+    "close": "Schließen"
   }
 }

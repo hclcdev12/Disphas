@@ -235,3 +235,32 @@ mod batch {
         ));
     }
 }
+
+#[test]
+fn custom_logos_render_in_pdf_a() {
+    let png = include_bytes!("test-logo.png");
+    let svg = br##"<svg xmlns="http://www.w3.org/2000/svg" width="40" height="10"><rect width="40" height="10" fill="#6366F1"/></svg>"##;
+    for logo in [
+        Logo {
+            data: png,
+            format: LogoFormat::Png,
+        },
+        Logo {
+            data: svg,
+            format: LogoFormat::Svg,
+        },
+    ] {
+        let pdf = render(
+            &signed(Status::Compliant, "Atelier XYZ"),
+            JOURNAL,
+            &root().verifying_key(),
+            &[],
+            &RenderOptions {
+                lang: Lang::Fr,
+                logo: Some(logo),
+            },
+        )
+        .unwrap_or_else(|error| panic!("{:?}: {error}", logo.format));
+        assert!(pdf.starts_with(b"%PDF-"));
+    }
+}

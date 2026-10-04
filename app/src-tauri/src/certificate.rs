@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use base64::Engine;
 use oblivio_attestation::display::Lang;
 use oblivio_protocol::response::JobResult;
-use oblivio_report::{RenderOptions, ReportError, render};
+use oblivio_report::{Logo, LogoFormat, RenderOptions, ReportError, render};
 
 use crate::trust::Trust;
 
@@ -17,8 +17,21 @@ pub fn output_dir() -> Result<PathBuf, String> {
     Ok(PathBuf::from(home).join("Documents/Oblivio"))
 }
 
+/// A customer logo, as loaded from the settings.
+pub type CustomLogo = Option<(Vec<u8>, LogoFormat)>;
+
+fn options(lang: Lang, logo: &CustomLogo) -> RenderOptions<'_> {
+    RenderOptions {
+        lang,
+        logo: logo.as_ref().map(|(data, format)| Logo {
+            data,
+            format: *format,
+        }),
+    }
+}
+
 /// Renders the certificate of a finished job in `lang` and saves it.
-pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
+pub fn save(result: &JobResult, lang: Lang, logo: &CustomLogo) -> Result<PathBuf, String> {
     let signed = base64::engine::general_purpose::STANDARD
         .decode(&result.attestation)
         .map_err(|error| format!("attestation: {error}"))?;
@@ -29,6 +42,7 @@ pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
         result.journal.as_bytes(),
         lang,
         &trust,
+        logo,
     )
 }
 
@@ -39,9 +53,10 @@ pub fn save_signed(
     journal: &[u8],
     lang: Lang,
     trust: &Trust,
+    logo: &CustomLogo,
 ) -> Result<PathBuf, String> {
     // The certificate is rendered only if it chains to a trusted root.
-    let options = RenderOptions { lang, logo: None };
+    let options = options(lang, logo);
     let mut outcome = Err("this build trusts no root key".to_owned());
     for root in &trust.roots {
         match render(signed, journal, root, &trust.revocations, &options) {
@@ -70,7 +85,12 @@ pub fn save_signed(
 /// report of that batch, each verified again by the renderer. Saved as
 /// `oblivio-lot-<batch>-<lang>.pdf`. `None` when the history holds no
 /// verified certificate of that batch (an empty batch).
-pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<Option<PathBuf>, String> {
+pub fn save_batch(
+    batch_id: &str,
+    lang: Lang,
+    trust: &Trust,
+    logo: &CustomLogo,
+) -> Result<Option<PathBuf>, String> {
     use oblivio_attestation::model::Batch;
     use oblivio_report::batch::{BatchEntry, BatchError, render_batch};
     if !Batch::valid_id(batch_id) {
@@ -95,7 +115,7 @@ pub fn save_batch(batch_id: &str, lang: Lang, trust: &Trust) -> Result<Option<Pa
         .iter()
         .map(|(signed, journal)| BatchEntry { signed, journal })
         .collect();
-    let options = RenderOptions { lang, logo: None };
+    let options = options(lang, logo);
     let mut outcome = Err("this build trusts no root key".to_owned());
     for root in &trust.roots {
         match render_batch(&entries, root, &trust.revocations, &options) {

@@ -830,3 +830,35 @@ fn zero_finish_proves_both_passes_and_leaves_a_blank_drive() {
         .expect_err("refused");
     assert_eq!(error.code, ErrorCode::BadRequest);
 }
+
+#[test]
+fn operator_and_organization_are_bounded_and_trimmed() {
+    let mut bench = Bench::new(
+        vec![drive("SN-O001", nvme()), drive("SN-O002", nvme())],
+        Firmware::Honest,
+    );
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+    let inspection = bench.inspect("SN-O001");
+    let mut args = sanitize(&inspection, None, ack());
+    args.operator = Some("  OP-042  ".to_owned());
+    args.organization = Some("   ".to_owned());
+    let (verified, _) = bench.erase(args);
+    assert_eq!(verified.attestation.operator.as_deref(), Some("OP-042"));
+    assert_eq!(
+        verified.attestation.organization, None,
+        "blank means absent"
+    );
+
+    let other = bench.inspect("SN-O002");
+    for (operator, organization) in [
+        (Some("x".repeat(65)), None),
+        (None, Some("y".repeat(129))),
+        (Some("line\nbreak".to_owned()), None),
+    ] {
+        let mut args = sanitize(&other, None, ack());
+        args.operator = operator;
+        args.organization = organization;
+        let error = bench.send(Command::Sanitize(args)).expect_err("refused");
+        assert_eq!(error.code, ErrorCode::BadRequest);
+    }
+}

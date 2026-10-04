@@ -18,11 +18,14 @@ const REUSE: Disposition = { kind: "Reuse" };
 export function ConfirmDialog({
   request,
   labels,
+  signer,
   onCancel,
   onConfirm,
 }: {
   request: EraseRequest;
   labels: Record<string, string>;
+  /** Operator and organization signed into the certificate (Settings). */
+  signer: { operator: string | null; organization: string | null };
   onCancel: () => void;
   onConfirm: (input: {
     confirmation: string;
@@ -98,6 +101,12 @@ export function ConfirmDialog({
       <p className="mt-4 text-sm">
         {t("confirm.method")} <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
         {label(choice.method)}
+      </p>
+      <p className="mt-2 text-xs text-ash">
+        {t("confirm.signedAs", {
+          operator: signer.operator ?? t("confirm.notSet"),
+          organization: signer.organization ?? t("confirm.notSet"),
+        })}
       </p>
       {choice.method === "HostOverwrite" && (
         <label className="mt-2 flex cursor-pointer items-start gap-2 text-sm text-ash">

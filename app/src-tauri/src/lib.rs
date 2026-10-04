@@ -5,6 +5,7 @@
 mod certificate;
 mod helper;
 mod history;
+mod settings;
 mod trust;
 mod verification;
 
@@ -40,6 +41,7 @@ async fn render_certificate(
     job_id: String,
     lang: String,
     state: State<'_, HelperState>,
+    app: tauri::AppHandle,
 ) -> Result<String, ErrorBody> {
     let failure = |detail: String| ErrorBody {
         code: ErrorCode::Internal,
@@ -54,10 +56,12 @@ async fn render_certificate(
         serde_json::from_value(value).map_err(|error| failure(error.to_string()))?;
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
     // Typst layout is CPU-bound: keep it off the async runtime.
-    let path = tauri::async_runtime::spawn_blocking(move || certificate::save(&result, lang))
-        .await
-        .map_err(|error| failure(error.to_string()))?
-        .map_err(failure)?;
+    let logo = custom_logo(&app);
+    let path =
+        tauri::async_runtime::spawn_blocking(move || certificate::save(&result, lang, &logo))
+            .await
+            .map_err(|error| failure(error.to_string()))?
+            .map_err(failure)?;
     Ok(path.to_string_lossy().into_owned())
 }
 
@@ -75,17 +79,22 @@ async fn list_reports() -> Result<Vec<history::Entry>, String> {
 
 /// Renders the PDF certificate of report `id` from the history, in `lang`.
 #[tauri::command]
-async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
+async fn render_report(
+    id: String,
+    lang: String,
+    app: tauri::AppHandle,
+) -> Result<String, ErrorBody> {
     let failure = |detail: String| ErrorBody {
         code: ErrorCode::Internal,
         detail: Some(detail),
     };
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
+    let logo = custom_logo(&app);
     let path = tauri::async_runtime::spawn_blocking(move || {
         let (signed, journal) =
             history::read(&history::reports_dir(), &id).ok_or("report not found")?;
         let trust = trust::Trust::shipped()?;
-        certificate::save_signed(&id, &signed, &journal, lang, &trust)
+        certificate::save_signed(&id, &signed, &journal, lang, &trust, &logo)
     })
     .await
     .map_err(|error| failure(error.to_string()))?
@@ -96,20 +105,72 @@ async fn render_report(id: String, lang: String) -> Result<String, ErrorBody> {
 /// Renders the batch certificate of `batch_id` from the history; `None` for
 /// a batch without any certificate.
 #[tauri::command]
-async fn render_batch(batch_id: String, lang: String) -> Result<Option<String>, ErrorBody> {
+async fn render_batch(
+    batch_id: String,
+    lang: String,
+    app: tauri::AppHandle,
+) -> Result<Option<String>, ErrorBody> {
     let failure = |detail: String| ErrorBody {
         code: ErrorCode::Internal,
         detail: Some(detail),
     };
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
+    let logo = custom_logo(&app);
     let path = tauri::async_runtime::spawn_blocking(move || {
         let trust = trust::Trust::shipped()?;
-        certificate::save_batch(&batch_id, lang, &trust)
+        certificate::save_batch(&batch_id, lang, &trust, &logo)
     })
     .await
     .map_err(|error| failure(error.to_string()))?
     .map_err(failure)?;
     Ok(path.map(|path| path.to_string_lossy().into_owned()))
+}
+
+/// Folder of this account's settings (`~/.config/org.oblivio.app`).
+fn config_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .app_config_dir()
+        .map_err(|error| error.to_string())
+}
+
+/// The customer's logo from the settings, if any.
+fn custom_logo(app: &tauri::AppHandle) -> certificate::CustomLogo {
+    config_dir(app).ok().and_then(|dir| settings::logo(&dir))
+}
+
+/// The operator settings.
+#[tauri::command]
+fn get_settings(app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    Ok(settings::load(&config_dir(&app)?))
+}
+
+/// Saves the organization and the operator written into certificates.
+#[tauri::command]
+fn save_settings(
+    organization: Option<String>,
+    operator: Option<String>,
+    app: tauri::AppHandle,
+) -> Result<settings::Settings, String> {
+    settings::save(&config_dir(&app)?, organization, operator)
+}
+
+/// Stores the customer's logo (PNG or SVG, base64).
+#[tauri::command]
+fn set_logo(data: String, app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    use base64::Engine;
+    if data.len() > settings::MAX_LOGO_BYTES / 3 * 4 + 4 {
+        return Err("logo: 1 MiB at most".to_owned());
+    }
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.trim())
+        .map_err(|error| error.to_string())?;
+    settings::set_logo(&config_dir(&app)?, &bytes)
+}
+
+/// Removes the customer's logo.
+#[tauri::command]
+fn clear_logo(app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::clear_logo(&config_dir(&app)?)
 }
 
 /// Verifies a certificate given by the user (PDF, COSE or QR text, base64).
@@ -169,7 +230,11 @@ pub fn run() {
             list_reports,
             render_report,
             render_batch,
-            verify_certificate
+            verify_certificate,
+            get_settings,
+            save_settings,
+            set_logo,
+            clear_logo
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {
