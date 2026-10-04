@@ -133,6 +133,7 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
   (base de la future liste de révocation).
 - La clé publique officielle n'existe qu'en un seul endroit : `oblivio_attestation::trust::OFFICIAL_ROOT_KEY`,
   lue par le helper, l'application et `oblivio-verify`.
+  **Générée le 2026-10-04** : `90241925111469b68676f8041578355a9f3e0bf14d84afd825f24782c3508a0b`.
 - ⚠️ Recommandation : générer et conserver `root.key` sur une machine hors ligne ; deux sauvegardes sur supports
   distincts ; la phrase secrète conservée séparément. Perdre l'une ou l'autre interdit toute nouvelle licence.
 

@@ -157,7 +157,7 @@ mod tests {
                 reports_dir: std::env::temp_dir().join("oblivio-unused-reports"),
                 licensing: Box::new(crate::licensing::StoreLicensing::new(
                     oblivio_license::LicenseStore::new("/nonexistent/oblivio-test"),
-                    None,
+                    Vec::new(),
                 )),
             },
         )

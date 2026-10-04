@@ -1061,8 +1061,10 @@ mod licensing_commands {
         let dir = tempfile::tempdir().expect("temporary directory");
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
             .expect("chmod");
-        let licensing =
-            StoreLicensing::new(LicenseStore::new(dir.path()), crate::licensing::root_key());
+        let licensing = StoreLicensing::new(
+            LicenseStore::new(dir.path()),
+            oblivio_license::trusted_roots(),
+        );
         let mut session = Session::new(
             NoDevices,
             SessionConfig {

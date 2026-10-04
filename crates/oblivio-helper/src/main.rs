@@ -29,7 +29,7 @@ fn main() -> ExitCode {
         reports_dir: licensing::state_dir().join("reports"),
         licensing: Box::new(StoreLicensing::new(
             LicenseStore::new(licensing::state_dir()),
-            licensing::root_key(),
+            oblivio_license::trusted_roots(),
         )),
     };
     #[cfg(feature = "demo")]

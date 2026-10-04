@@ -6,25 +6,8 @@ use std::path::{Path, PathBuf};
 
 use base64::Engine;
 use oblivio_attestation::display::Lang;
-use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_protocol::response::JobResult;
-use oblivio_report::{RenderOptions, render};
-
-/// Root key certificates must chain to: the official one; in development
-/// builds only, the public development root as a fallback.
-pub fn root_key() -> Option<VerifyingKey> {
-    if let Some(official) = oblivio_attestation::trust::official_root_key() {
-        return Some(official);
-    }
-    #[cfg(debug_assertions)]
-    {
-        Some(oblivio_license::dev_root::verifying_key())
-    }
-    #[cfg(not(debug_assertions))]
-    {
-        None
-    }
-}
+use oblivio_report::{RenderOptions, ReportError, render};
 
 /// Folder where certificates are saved: `~/Documents/Oblivio`.
 pub fn output_dir() -> Result<PathBuf, String> {
@@ -37,15 +20,20 @@ pub fn save(result: &JobResult, lang: Lang) -> Result<PathBuf, String> {
     let signed = base64::engine::general_purpose::STANDARD
         .decode(&result.attestation)
         .map_err(|error| format!("attestation: {error}"))?;
-    let root = root_key().ok_or("this build has no root key to verify certificates")?;
-    let pdf = render(
-        &signed,
-        result.journal.as_bytes(),
-        &root,
-        &[],
-        &RenderOptions { lang, logo: None },
-    )
-    .map_err(|error| error.to_string())?;
+    // The certificate is rendered only if it chains to a trusted root.
+    let options = RenderOptions { lang, logo: None };
+    let mut outcome = Err("this build trusts no root key".to_owned());
+    for root in oblivio_license::trusted_roots() {
+        match render(&signed, result.journal.as_bytes(), &root, &[], &options) {
+            Ok(pdf) => {
+                outcome = Ok(pdf);
+                break;
+            }
+            Err(ReportError::Verify(error)) => outcome = Err(error.to_string()),
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    let pdf = outcome?;
     let dir = output_dir()?;
     std::fs::create_dir_all(&dir).map_err(|error| format!("{}: {error}", dir.display()))?;
     let tag = match lang {

@@ -32,7 +32,7 @@ use oblivio_protocol::{PROTOCOL_VERSION, Request, ServerMessage};
 use crate::backend::{Device, DeviceBackend};
 use crate::convert;
 use crate::erasure::{self, ErasureTarget};
-use crate::licensing::{self, StoreLicensing};
+use crate::licensing::StoreLicensing;
 use crate::session::{Session, SessionConfig};
 
 /// Image size: 4096 blocks of 512 bytes (2 MiB), so tests stay fast.
@@ -152,7 +152,7 @@ impl Bench {
             .expect("chmod");
         let licensing = StoreLicensing::new(
             LicenseStore::new(dir.path().join("state")),
-            licensing::root_key(),
+            oblivio_license::trusted_roots(),
         );
         let backend = ImageBackend {
             devices,

@@ -11,6 +11,19 @@
 
 pub mod key;
 
+/// Root keys licenses and certificates may chain to: the official root key;
+/// in development builds also the public development root, so licenses of
+/// both origins work there. Release builds trust the official key alone.
+pub fn trusted_roots() -> Vec<VerifyingKey> {
+    #[allow(unused_mut)]
+    let mut roots: Vec<VerifyingKey> = oblivio_attestation::trust::official_root_key()
+        .into_iter()
+        .collect();
+    #[cfg(debug_assertions)]
+    roots.push(dev_root::verifying_key());
+    roots
+}
+
 /// Public development root key: debug builds only, never in a release.
 #[cfg(debug_assertions)]
 pub mod dev_root;

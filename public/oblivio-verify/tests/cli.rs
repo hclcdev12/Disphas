@@ -203,11 +203,24 @@ fn mismatched_journal_fails() {
 #[test]
 fn usage_errors_exit_with_2() {
     assert_eq!(verify_cli(&[]).status.code(), Some(2));
-    assert_eq!(verify_cli(&["--qr", "OBV1:"]).status.code(), Some(2)); // no root key
     assert_eq!(
         verify_cli(&["--root-key", "zz", "--qr", "OBV1:"])
             .status
             .code(),
         Some(2)
     );
+}
+
+#[test]
+fn official_root_is_used_by_default_and_rejects_test_certificates() {
+    // Without --root-key, the official Oblivio root applies: a certificate
+    // chaining to a test root is not authentic, and no "unofficial" warning.
+    let qr = to_qr_text(&signed_attestation());
+    let output = verify_cli(&["--lang", "en", "--qr", &qr]);
+    assert_eq!(output.status.code(), Some(1));
+    let text = stdout(&output);
+    assert!(text.contains("NOT AUTHENTIC"));
+    assert!(text.contains("not signed by Oblivio"));
+    assert!(!text.contains("root key given on the command line"));
+    assert_eq!(verify_cli(&["--qr", "OBV1:"]).status.code(), Some(1));
 }

@@ -235,10 +235,11 @@ UI                                   helper
 - États sur le fil : `Missing`, `Valid`, `Expired`, `Revoked`, plus `NotYetValid` et `Invalid`
   (fichier altéré, mauvaise racine ou mauvais poste), que la licence distinguait déjà.
 - L'état est relu et revérifié à chaque `Hello`, `LicenseStatus` et contrôle 8 de `Sanitize`.
-- **Clé racine** : la clé officielle (pas encore générée) en release ; en développement, à défaut, une
-  **clé racine de développement publique** (`oblivio_license::dev_root`), absente des binaires release
-  (vérifié : 0 occurrence de sa graine dans `target/release/oblivio-helper`). Sans clé racine, aucune licence
-  n'est jamais `Valid`.
+- **Racines de confiance** (`oblivio_license::trusted_roots()`, 2026-10-04) : la **clé racine officielle**
+  (`oblivio_attestation::trust::OFFICIAL_ROOT_KEY`, générée hors ligne le 2026-10-04) ; en développement
+  **en plus**, la clé racine de développement publique (`oblivio_license::dev_root`), absente des binaires
+  release (vérifié : 0 occurrence de sa graine). Une licence ou un certificat est accepté s'il remonte à l'une
+  d'elles. `oblivio-verify` n'utilise que la clé officielle, sauf `--root-key` explicite (avec avertissement).
 - **Dossier d'état** : `/var/lib/oblivio` en release (environnement ignoré) ; en développement,
   `OBLIVIO_STATE_DIR` ou `~/.local/state/oblivio-dev`.
 - Licence de développement : `cargo run -p oblivio-license --example issue_dev_license -- 'OBA1:…' [jours]`.

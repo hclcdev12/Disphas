@@ -1,8 +1,7 @@
 //! License state as seen by the helper: status, activation, installation.
 //!
-//! The root public key is chosen at build time: the official key (none
-//! yet) in release builds; in development builds, the official key if any,
-//! otherwise the public development root key of `oblivio-license`.
+//! Licenses are checked against `oblivio_license::trusted_roots()`: the
+//! official root key, plus the public development root in debug builds.
 
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -33,21 +32,6 @@ pub struct Signer {
     pub license: Vec<u8>,
 }
 
-/// The root key licenses must be signed with, if this build has one.
-pub fn root_key() -> Option<VerifyingKey> {
-    if let Some(official) = oblivio_attestation::trust::official_root_key() {
-        return Some(official);
-    }
-    #[cfg(debug_assertions)]
-    {
-        Some(oblivio_license::dev_root::verifying_key())
-    }
-    #[cfg(not(debug_assertions))]
-    {
-        None
-    }
-}
-
 /// Where keys and licenses are stored.
 ///
 /// Release builds always use `/var/lib/oblivio` and ignore the environment,
@@ -70,13 +54,25 @@ pub fn state_dir() -> PathBuf {
 #[derive(Debug)]
 pub struct StoreLicensing {
     store: LicenseStore,
-    root: Option<VerifyingKey>,
+    roots: Vec<VerifyingKey>,
 }
 
 impl StoreLicensing {
-    /// Licensing over `store`, checking licenses against `root`.
-    pub fn new(store: LicenseStore, root: Option<VerifyingKey>) -> Self {
-        Self { store, root }
+    /// Licensing over `store`, accepting licenses signed by any of `roots`
+    /// (see `oblivio_license::trusted_roots`).
+    pub fn new(store: LicenseStore, roots: Vec<VerifyingKey>) -> Self {
+        Self { store, roots }
+    }
+
+    /// Status of the installed license under the first root that verifies it.
+    /// `None` when no root does (or this build trusts none).
+    fn installed(&self) -> Option<LicenseStatus> {
+        self.roots
+            .iter()
+            .find_map(|root| match self.store.status(root, now()) {
+                Ok(LicenseStatus::Invalid(_)) | Err(_) => None,
+                Ok(status) => Some(status),
+            })
     }
 }
 
@@ -104,20 +100,18 @@ fn invalid(detail: impl Into<String>) -> ErrorBody {
 
 impl Licensing for StoreLicensing {
     fn status(&self) -> LicenseStatusResult {
-        let Some(root) = &self.root else {
+        match self.installed() {
             // Without a root key nothing can be verified: never Valid.
-            return result(LicenseState::Missing, None);
-        };
-        match self.store.status(root, now()) {
-            Ok(LicenseStatus::Missing) => result(LicenseState::Missing, None),
-            Ok(LicenseStatus::Valid(installed)) => result(LicenseState::Valid, Some(&installed)),
-            Ok(LicenseStatus::NotYetValid(installed)) => {
+            None if self.roots.is_empty() => result(LicenseState::Missing, None),
+            None | Some(LicenseStatus::Invalid(_)) => result(LicenseState::Invalid, None),
+            Some(LicenseStatus::Missing) => result(LicenseState::Missing, None),
+            Some(LicenseStatus::Valid(installed)) => result(LicenseState::Valid, Some(&installed)),
+            Some(LicenseStatus::NotYetValid(installed)) => {
                 result(LicenseState::NotYetValid, Some(&installed))
             }
-            Ok(LicenseStatus::Expired(installed)) => {
+            Some(LicenseStatus::Expired(installed)) => {
                 result(LicenseState::Expired, Some(&installed))
             }
-            Ok(LicenseStatus::Invalid(_)) | Err(_) => result(LicenseState::Invalid, None),
         }
     }
 
@@ -131,14 +125,14 @@ impl Licensing for StoreLicensing {
     }
 
     fn install(&self, text: &str) -> Result<LicenseStatusResult, ErrorBody> {
-        let root = self
-            .root
-            .as_ref()
-            .ok_or_else(|| invalid("this build has no root key to verify licenses"))?;
-        self.store
-            .install(text, root, now())
-            .map_err(|error| invalid(error.to_string()))?;
-        Ok(self.status())
+        let mut last = invalid("this build has no root key to verify licenses");
+        for root in &self.roots {
+            match self.store.install(text, root, now()) {
+                Ok(_) => return Ok(self.status()),
+                Err(error) => last = invalid(error.to_string()),
+            }
+        }
+        Err(last)
     }
 
     fn signer(&self) -> Result<Signer, ErrorBody> {
@@ -146,8 +140,7 @@ impl Licensing for StoreLicensing {
             code: ErrorCode::LicenseRequired,
             detail: Some(detail.to_owned()),
         };
-        let root = self.root.as_ref().ok_or_else(|| required("no root key"))?;
-        let Ok(LicenseStatus::Valid(installed)) = self.store.status(root, now()) else {
+        let Some(LicenseStatus::Valid(installed)) = self.installed() else {
             return Err(required("no valid license installed"));
         };
         let key = self
@@ -172,7 +165,10 @@ mod tests {
         let dir = tempfile::tempdir().expect("temporary directory");
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
             .expect("chmod");
-        let licensing = StoreLicensing::new(LicenseStore::new(dir.path()), root_key());
+        let licensing = StoreLicensing::new(
+            LicenseStore::new(dir.path()),
+            oblivio_license::trusted_roots(),
+        );
         (dir, licensing)
     }
 
@@ -218,7 +214,7 @@ mod tests {
     #[test]
     fn without_root_key_nothing_is_valid() {
         let dir = tempfile::tempdir().expect("temporary directory");
-        let licensing = StoreLicensing::new(LicenseStore::new(dir.path()), None);
+        let licensing = StoreLicensing::new(LicenseStore::new(dir.path()), Vec::new());
         assert_eq!(licensing.status().state, LicenseState::Missing);
         assert_eq!(
             licensing.install("OBL1:x").expect_err("rejected").code,
