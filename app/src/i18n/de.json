@@ -166,7 +166,8 @@
       "attempt_retry": "Prüfung fehlgeschlagen: neuer Versuch",
       "job_failed": "Der Auftrag ist fehlgeschlagen: {{reason}}",
       "job_resumed": "Auftrag nach unerwartetem Abbruch fortgesetzt",
-      "job_state_not_saved": "Der Auftragsstatus konnte nicht gespeichert werden"
+      "job_state_not_saved": "Der Auftragsstatus konnte nicht gespeichert werden",
+      "validation_random_pass": "Validierung des Zufallsdurchgangs: {{result}}"
     },
     "finished": "Löschung abgeschlossen",
     "status": {

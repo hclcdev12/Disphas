@@ -166,7 +166,8 @@
       "attempt_retry": "Contrôle en échec : nouvelle tentative",
       "job_failed": "La tâche a échoué : {{reason}}",
       "job_resumed": "Tâche reprise après un arrêt inattendu",
-      "job_state_not_saved": "L'état de la tâche n'a pas pu être enregistré"
+      "job_state_not_saved": "L'état de la tâche n'a pas pu être enregistré",
+      "validation_random_pass": "Validation de la passe aléatoire : {{result}}"
     },
     "finished": "Effacement terminé",
     "status": {

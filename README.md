@@ -14,6 +14,7 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Moteur de décision](docs/moteur_decision.md) | Brouillon : états, critères Say NO, choix de méthode, validation |
 | [Certificat](docs/certificat.md) | Brouillon : format signé, statuts, chaîne de confiance, vérification |
 | [Protocole UI ↔ helper](docs/protocole_ipc.md) | Frontière de sécurité : commandes, contrôles, événements, reprise |
+| [Manuel de l'opérateur](docs/manuel_operateur.md) | Installation, licence, effacement, lots, certificats, cas particuliers (installé dans `/usr/share/doc/oblivio/`) |
 | [Banc de test](docs/banc_de_test.md) | Tests sur vrais disques : matériel, étapes, points à confirmer |
 | [Politique de sécurité](SECURITY.md) | Signaler une vulnérabilité |
 | [Conformité](docs/conformite.md) | RGPD, Cyber Resilience Act, normes (NIST, IEEE, BSI, ANSSI, ISO), licences : état et actions |

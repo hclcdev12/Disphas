@@ -166,7 +166,8 @@
       "attempt_retry": "Check failed: retrying",
       "job_failed": "The job failed: {{reason}}",
       "job_resumed": "Job resumed after an unexpected stop",
-      "job_state_not_saved": "The job state could not be saved"
+      "job_state_not_saved": "The job state could not be saved",
+      "validation_random_pass": "Random pass validation: {{result}}"
     },
     "finished": "Erasure finished",
     "status": {
