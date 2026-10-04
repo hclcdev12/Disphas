@@ -5,7 +5,7 @@
 
 use oblivio_attestation::batch::{BatchVerification, DriveError, is_batch, verify_batch};
 use oblivio_attestation::display::uuid;
-use oblivio_attestation::pdf::{ExtractError, all_attachments, attachments};
+use oblivio_attestation::pdf::{ExtractError, all_attachments, certificate};
 
 use crate::trust::Trust;
 use oblivio_attestation::{Verified, VerifyError, from_qr_text, verify};
@@ -258,14 +258,15 @@ pub fn check(input: &[u8], trust: &Trust) -> Report {
     if input.len() > MAX_INPUT_BYTES {
         return rejected(None, "TooLarge");
     }
-    if input.starts_with(b"%PDF-")
-        && let Ok(files) = all_attachments(input)
-        && is_batch(&files)
-    {
-        return check_batch(&files, trust);
-    }
     let (source, signed, journal) = if input.starts_with(b"%PDF-") {
-        match attachments(input) {
+        // Read once: the same files decide between batch and single.
+        let files = all_attachments(input);
+        if let Ok(files) = &files
+            && is_batch(files)
+        {
+            return check_batch(files, trust);
+        }
+        match files.and_then(certificate) {
             Ok(attached) => (Source::Pdf, attached.attestation, attached.journal),
             Err(ExtractError::NoAttestation) => {
                 return rejected(Some(Source::Pdf), "NoAttestation");

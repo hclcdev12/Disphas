@@ -155,16 +155,17 @@ fn run(args: Args) -> Result<bool, String> {
     let newest = lists.iter().map(|list| (list.seq, list.issued_at)).max();
 
     // A PDF only carries the proof: its attachments are what is verified.
-    if input.starts_with(b"%PDF-")
-        && let Ok(files) = pdf::all_attachments(&input)
-        && batch::is_batch(&files)
-    {
-        let verification = batch::verify_batch(&files, &root, &revocations);
-        print!("{}", render::batch(&verification, newest, unofficial, lang));
-        return Ok(verification.authentic());
-    }
     let (input, attached) = if input.starts_with(b"%PDF-") {
-        match pdf::attachments(&input) {
+        // Read once: the same files decide between batch and single.
+        let files = pdf::all_attachments(&input);
+        if let Ok(files) = &files
+            && batch::is_batch(files)
+        {
+            let verification = batch::verify_batch(files, &root, &revocations);
+            print!("{}", render::batch(&verification, newest, unofficial, lang));
+            return Ok(verification.authentic());
+        }
+        match files.and_then(pdf::certificate) {
             Ok(found) => (found.attestation, found.journal),
             Err(error) => {
                 print!("{}", render::rejected_pdf(&error, lang));

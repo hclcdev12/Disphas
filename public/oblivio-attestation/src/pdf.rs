@@ -4,7 +4,7 @@
 //!
 //! Behind the `pdf` feature (adds `lopdf`, Rust 1.88).
 
-use lopdf::{Document, Object};
+use lopdf::{Document, LoadOptions, Object};
 
 /// Largest decoded attachment accepted (an attestation is a few KiB, a
 /// journal well under this).
@@ -63,14 +63,21 @@ fn embedded(document: &Document, spec: &lopdf::Dictionary) -> Option<Vec<u8>> {
         .ok()
 }
 
+/// Largest stream decoded while the PDF is loaded (object and
+/// cross-reference streams, decoded eagerly by `lopdf`): without it, a few
+/// KiB of deflate can inflate to gigabytes before any check runs. The
+/// certificates Oblivio produces stay far below.
+const MAX_LOAD_STREAM_BYTES: usize = 4 << 20;
+
 /// Most files read from one PDF (a batch of 2000 drives has 4000).
 const MAX_FILES: usize = 4096;
 /// Largest total of decoded files.
 const MAX_TOTAL_BYTES: usize = 256 << 20;
 
 fn read_all(pdf: &[u8]) -> Result<Vec<(String, Vec<u8>)>, ExtractError> {
-    let document =
-        Document::load_mem(pdf).map_err(|error| ExtractError::NotPdf(error.to_string()))?;
+    let options = LoadOptions::with_max_decompressed_size(MAX_LOAD_STREAM_BYTES);
+    let document = Document::load_mem_with_options(pdf, options)
+        .map_err(|error| ExtractError::NotPdf(error.to_string()))?;
     let mut files: Vec<(String, Vec<u8>)> = Vec::new();
     let mut total = 0usize;
     for object in document.objects.values() {
@@ -104,10 +111,13 @@ fn read_all(pdf: &[u8]) -> Result<Vec<(String, Vec<u8>)>, ExtractError> {
     Ok(files)
 }
 
-fn read(pdf: &[u8]) -> Result<Attachments, ExtractError> {
+/// The single-certificate attachments among the files of a PDF (as returned
+/// by [`all_attachments`]): lets a caller read the PDF once, then decide
+/// between a batch and a single certificate.
+pub fn certificate(files: Vec<(String, Vec<u8>)>) -> Result<Attachments, ExtractError> {
     let mut attestation = None;
     let mut journal = None;
-    for (name, content) in read_all(pdf)? {
+    for (name, content) in files {
         match name.as_str() {
             "attestation.cose" => attestation = Some(content),
             "journal.json" => journal = Some(content),
@@ -131,6 +141,68 @@ pub fn all_attachments(pdf: &[u8]) -> Result<Vec<(String, Vec<u8>)>, ExtractErro
 /// Reads the attachments of a certificate PDF. Untrusted input: decoded
 /// sizes are bounded, and a parser panic is turned into an error.
 pub fn attachments(pdf: &[u8]) -> Result<Attachments, ExtractError> {
-    std::panic::catch_unwind(|| read(pdf))
+    std::panic::catch_unwind(|| read_all(pdf).and_then(certificate))
         .unwrap_or_else(|_| Err(ExtractError::NotPdf("malformed PDF".to_owned())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A PDF whose `attestation.cose` file specification sits in an object
+    /// stream followed by `padding` spaces once decompressed.
+    fn pdf_with_object_stream(padding: usize) -> Vec<u8> {
+        let spec = b"<< /Type /Filespec /F (attestation.cose) /EF << /F 2 0 R >> >>";
+        let header = b"3 0 ";
+        let mut decoded = header.to_vec();
+        decoded.extend_from_slice(spec);
+        decoded.resize(decoded.len() + padding, b' ');
+        let packed = miniz_oxide::deflate::compress_to_vec_zlib(&decoded, 9);
+
+        let mut pdf = b"%PDF-1.7\n".to_vec();
+        let mut offsets = Vec::new();
+        offsets.push(pdf.len());
+        pdf.extend_from_slice(b"1 0 obj\n<< /Type /Catalog >>\nendobj\n");
+        offsets.push(pdf.len());
+        pdf.extend_from_slice(b"2 0 obj\n<< /Length 3 >>\nstream\nabc\nendstream\nendobj\n");
+        offsets.push(pdf.len());
+        pdf.extend_from_slice(
+            format!(
+                "4 0 obj\n<< /Type /ObjStm /N 1 /First {} /Filter /FlateDecode /Length {} >>\nstream\n",
+                header.len(),
+                packed.len()
+            )
+            .as_bytes(),
+        );
+        pdf.extend_from_slice(&packed);
+        pdf.extend_from_slice(b"\nendstream\nendobj\n");
+        let xref = pdf.len();
+        pdf.extend_from_slice(b"xref\n0 5\n0000000000 65535 f \n");
+        for (index, offset) in offsets.iter().enumerate() {
+            if index == 2 {
+                // Object 3 lives in the object stream.
+                pdf.extend_from_slice(b"0000000000 65535 f \n");
+            }
+            pdf.extend_from_slice(format!("{offset:010} 00000 n \n").as_bytes());
+        }
+        pdf.extend_from_slice(
+            format!("trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes(),
+        );
+        pdf
+    }
+
+    #[test]
+    fn a_small_object_stream_is_read() {
+        let attached = attachments(&pdf_with_object_stream(1024)).expect("attachments");
+        assert_eq!(attached.attestation, b"abc");
+    }
+
+    #[test]
+    fn an_object_stream_inflating_past_the_load_limit_is_not_decoded() {
+        // A few KiB of deflate inflating to 64 MiB: skipped while loading,
+        // so the file specification it hides is never seen.
+        let bomb = pdf_with_object_stream(64 << 20);
+        assert!(bomb.len() < 256 << 10, "{} bytes", bomb.len());
+        assert_eq!(attachments(&bomb), Err(ExtractError::NoAttestation));
+    }
 }

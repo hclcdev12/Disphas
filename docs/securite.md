@@ -73,9 +73,13 @@ de la licence ou du refus des disques PROTÉGÉS depuis le protocole, aucune inj
 
 ### 5.2 Moyens
 
+Corrigés le 2026-10-04 :
+
+- **S3** : à l'ouverture d'un PDF, aucun flux décodé d'office (flux d'objets, tables de références) ne peut dépasser 4 Mio décompressés (`LoadOptions::max_decompressed_size` de `lopdf`) ; un flux plus gros est ignoré. Les PDF produits par Oblivio n'en contiennent pas (Typst n'émet pas de flux d'objets). Le PDF n'est plus analysé qu'une fois pour choisir entre certificat seul et certificat de lot. Testé : une bombe de quelques Kio gonflant à 64 Mio n'est pas décodée, et le même test échoue sans la limite.
+
 | # | Constat | Vérifié | Correction |
 |---|---|---|---|
-| S3 | PDF piégé : la décompression des flux d'objets n'est pas bornée à l'ouverture (`lopdf` sans limite par défaut) → saturation mémoire de l'application / `oblivio-verify` | Oui (source de lopdf) | Limite de décompression à l'ouverture ; une seule analyse |
+| S3 ✅ | PDF piégé : la décompression des flux d'objets n'est pas bornée à l'ouverture (`lopdf` sans limite par défaut) → saturation mémoire de l'application / `oblivio-verify` | Oui (source de lopdf) | Limite de décompression à l'ouverture ; une seule analyse |
 | S4 | File de réponses du helper sans limite, commande inconnue renvoyée en entier → saturation mémoire du helper root par un client qui ne lit pas | Oui | File bornée ; écho tronqué |
 | S5 | NVMe Format peut effacer **tous** les espaces de noms (bit FNA lu mais inutilisé) ; les espaces de noms voisins ne sont pas tenus pendant une commande à l'échelle du contrôleur | Oui | Portée « tous les namespaces » aussi pour Format quand FNA l'indique ; ouverture exclusive des voisins pendant l'opération |
 | S6 | Identités en double (n° de série identique ou vide) : le premier disque correspondant est pris ; la reprise Security Erase ne compare que le n° de série | Oui | Refuser une identité ambiguë ou un n° de série vide ; comparer l'identité complète |
