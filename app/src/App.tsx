@@ -149,7 +149,9 @@ export default function App() {
     setJobInfo((current) => ({ ...current, [result.value.job_id]: { model, serial, resumed: false } }));
     setRequest(null);
     setOpenJob(null);
-    setView("jobs");
+    // In a batch the operator chains drives: stay on the list, each card shows
+    // its own progress. A single erasure opens the Erasures tab.
+    if (!batch) setView("jobs");
     return null;
   };
 
