@@ -234,6 +234,11 @@ contenu attendu de chaque bloc échantillon et l'exige **à l'identique** (un bl
 échoue). Remplace la passe de zéros. Débit mesuré du générateur : ~2 Go/s sur un cœur (Ryzen AI 9 365),
 au-dessus d'un disque dur ou d'un SSD SATA ; sur un NVMe rapide il peut limiter la réécriture (méthode de
 repli) — parallélisation possible plus tard.
+**Option « finir par une passe de zéros »** (décidée le 2026-10-04, **à implémenter**) : pour les clients
+qui veulent un disque d'apparence vide. Passe pseudo-aléatoire, **validation**, puis passe de zéros et
+seconde validation : les deux passes sont prouvées et le certificat l'indique. Désactivée par défaut
+(elle double la durée : ~11 h au lieu de ~5 h 30 pour un disque dur de 4 To à 200 Mo/s, estimation à
+mesurer sur le banc).
 
 **Échantillon** : LBA 0, LBA milieu, dernier LBA + **N** blocs aléatoires répartis (N = 1 000 par défaut, minimum 100). Graine aléatoire inscrite au certificat (rejouable).
 Option « validation intégrale » (lecture complète) proposée pour les méthodes hôte.
