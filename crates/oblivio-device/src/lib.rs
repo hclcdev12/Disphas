@@ -8,6 +8,7 @@
 //! So far it holds the read-only [`inventory`] (sysfs and procfs, no device
 //! node opened, no ioctl sent) and pure [`decode`]rs for firmware data.
 
+pub mod block;
 pub mod decode;
 pub mod inventory;
 pub mod procfs;
