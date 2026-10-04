@@ -69,6 +69,9 @@ jobs:
           cargo test --workspace
           cargo test -p oblivio-helper --features demo
 
+      - name: Third-party notices are up to date
+        run: python3 tools/third_party_notices.py --check
+
       - name: TypeScript bindings are up to date
         run: |
           cargo test -q -p oblivio-protocol --features ts-rs export_bindings

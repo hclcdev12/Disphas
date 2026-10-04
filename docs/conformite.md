@@ -124,14 +124,14 @@ Mono : licences jointes (`assets/fonts`).
 
 | # | Constat | Action | Statut |
 |---|---|---|---|
-| L1 | Le `.deb` ne contient **aucun avis de licences tierces** (exigé par MIT/BSD/Apache) | Générer `THIRD-PARTY-NOTICES` (crates + paquets npm + polices) et l'installer avec le paquet | À faire |
-| L2 | Crates publiques déclarées Apache-2.0 **sans fichier `LICENSE`** | Ajouter `LICENSE` (texte Apache-2.0) avant publication | À faire |
+| L1 | Le `.deb` ne contenait **aucun avis de licences tierces** (exigé par MIT/BSD/Apache) | `tools/third_party_notices.py` génère `packaging/THIRD-PARTY-NOTICES.txt` (505 composants : crates liées au helper et à l'application sous Linux, paquets npm réellement présents dans le bundle d'après la source map de Vite, polices ; textes de licence lus dans chaque paquet, textes SPDX officiels pour les 34 paquets qui n'en contiennent pas). Installé dans `/usr/share/doc/oblivio/` ; la CI échoue s'il n'est plus à jour | **Fait** (2026-10-04) |
+| L2 | Crates publiques déclarées Apache-2.0 **sans fichier `LICENSE`** | Texte officiel (apache.org, SHA-256 `cfc7749b…`) dans `public/*/LICENSE` | **Fait** (2026-10-04) |
 
 ## 6. Plan d'actions
 
 | Priorité | Actions |
 |---|---|
-| Avant la première vente | L1, L2, C1, R5 ; validation juridique de ce document |
+| Avant la première vente | C1, R5 ; validation juridique de ce document (L1, L2 faits) |
 | Produit (prochaines versions) | R1, R2, R3, R4, C2 |
 | Avant le 11/12/2027 | C3, C4 |
 | Normes | Acquisition et analyse d'écarts IEEE 2883 et ISO/IEC 27040 (§ 7) ; comparaison avec l'annexe C du NIST ; décision « profil BSI » (§ 3.1) |

@@ -46,7 +46,8 @@
         ],
         "files": {
           "/usr/libexec/oblivio/oblivio-helper": "../../target/release/oblivio-helper",
-          "/usr/share/polkit-1/actions/org.oblivio.helper.policy": "../../packaging/polkit/org.oblivio.helper.policy"
+          "/usr/share/polkit-1/actions/org.oblivio.helper.policy": "../../packaging/polkit/org.oblivio.helper.policy",
+          "/usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt": "../../packaging/THIRD-PARTY-NOTICES.txt"
         }
       }
     }
