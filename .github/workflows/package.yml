@@ -86,6 +86,14 @@ jobs:
           test -f /usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt
           getent group oblivio
 
+      - name: State tree is root-owned with the expected modes
+        run: |
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 755"
+          for sub in keys license jobs recovery; do
+            test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
+          done
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio/reports)" = "root:oblivio 750"
+
       - name: The release helper refuses to run outside pkexec
         run: |
           if /usr/libexec/oblivio/oblivio-helper </dev/null; then
@@ -133,6 +141,14 @@ jobs:
           done
           test -f /usr/share/polkit-1/actions/org.oblivio.helper.policy
           getent group oblivio
+
+      - name: State tree is root-owned with the expected modes
+        run: |
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 755"
+          for sub in keys license jobs recovery; do
+            test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
+          done
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio/reports)" = "root:oblivio 750"
 
       - name: The release helper refuses to run outside pkexec
         run: |

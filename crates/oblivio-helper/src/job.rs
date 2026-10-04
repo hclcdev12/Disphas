@@ -817,8 +817,12 @@ fn store(dir: &std::path::Path, id: &str, signed: &[u8], journal: &[u8]) -> Resu
             .mode(0o640)
             .open(&path)
             .map_err(fail)?;
+        // On the open file, not the path: the umask (077) would otherwise
+        // keep the group out, and no path can be swapped in between.
+        file.set_permissions(std::fs::Permissions::from_mode(0o640))
+            .map_err(fail)?;
         if let Some(gid) = group {
-            std::os::unix::fs::chown(&path, None, Some(gid)).map_err(fail)?;
+            std::os::unix::fs::fchown(&file, None, Some(gid)).map_err(fail)?;
         }
         file.write_all(content).map_err(fail)?;
         file.sync_all().map_err(fail)?;

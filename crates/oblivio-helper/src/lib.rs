@@ -16,6 +16,7 @@ pub mod recovery;
 pub mod serve;
 pub mod session;
 pub mod startup;
+pub mod statedir;
 #[cfg(any(not(debug_assertions), feature = "real-devices"))]
 pub mod system;
 

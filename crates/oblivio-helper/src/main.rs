@@ -18,10 +18,28 @@ use oblivio_helper::session::{Session, SessionConfig};
 use oblivio_license::LicenseStore;
 
 fn main() -> ExitCode {
+    // Files are private unless a mode is set explicitly (docs/securite.md, S1).
+    oblivio_helper::statedir::restrict_umask();
     // Release builds: root, started by pkexec, or nothing (protocole_ipc.md §3).
     #[cfg(not(debug_assertions))]
     if let Err(error) = oblivio_helper::startup::check_this_process() {
         eprintln!("oblivio-helper: {error}");
+        return ExitCode::FAILURE;
+    }
+    // The state folder must be ours alone before anything is read from it.
+    let owner = match std::fs::read_to_string("/proc/self/status")
+        .map_err(|error| error.to_string())
+        .and_then(|status| {
+            oblivio_helper::startup::effective_uid(&status).map_err(|error| error.to_string())
+        }) {
+        Ok(uid) => uid,
+        Err(error) => {
+            eprintln!("oblivio-helper: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    if let Err(error) = oblivio_helper::statedir::prepare(&licensing::state_dir(), owner) {
+        eprintln!("oblivio-helper: unsafe state folder, refusing to start: {error}");
         return ExitCode::FAILURE;
     }
     let config = SessionConfig {

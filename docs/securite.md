@@ -60,12 +60,16 @@ cryptographie), en lecture seule. Chaque constat retenu ci-dessous a été **rev
 autres sont marqués *à confirmer*. Aucune faille mémoire, aucun contournement des 9 contrôles de `Sanitize`,
 de la licence ou du refus des disques PROTÉGÉS depuis le protocole, aucune injection dans le PDF ni XSS.
 
-### 5.1 Élevés
+### 5.1 Élevés (✅ corrigés le 2026-10-04)
+
+- **S1** : le paquet crée `/var/lib/oblivio` (root 0755) et ses sous-dossiers (root 0700, `reports` root:oblivio 0750) et s'arrête s'il y trouve un lien symbolique ; le helper fixe `umask 077` au démarrage et **refuse de démarrer** si le dossier d'état ou un sous-dossier n'est pas un vrai dossier appartenant au compte du helper et fermé en écriture aux autres ; les certificats reçoivent leurs droits (0640) et leur groupe sur le fichier ouvert (`fchmod`/`fchown`). Vérifié : refus réel sur un dossier 0777, démarrage normal sinon ; droits contrôlés après installation par le workflow *Package*.
+- **S2** : après l'ouverture exclusive, le numéro de périphérique doit être celui de l'inventaire et l'identité relue par IDENTIFY sur le descripteur ouvert doit être exactement celle confirmée ; même contrôle avant un déverrouillage.
+
 
 | # | Constat | Vérifié | Correction |
 |---|---|---|---|
-| S1 | `/var/lib/oblivio` est créé par le helper avec les droits issus du `umask` hérité ; ni le paquet ni le helper ne fixent ses droits ni ne vérifient son propriétaire. Si un utilisateur en obtient l'écriture : clé du poste substituée (le contrôle accepte le propriétaire du dossier parent), `reports` en lien symbolique (chmod/chown root ailleurs), tâche plantée reprise sans confirmation | Oui (transmission du `umask` par pkexec *à confirmer*) | Le paquet crée l'arborescence root ; le helper fixe `umask 077`, refuse tout dossier d'état qui n'est pas à root, est un lien, ou est ouvert en écriture à d'autres ; clé du poste exigée à root |
-| S2 | Le disque est ouvert **par son nom** après résolution de l'identité, sans revérifier ensuite que c'est le même disque (débranchement / branchement entre-temps) | Oui | Après ouverture exclusive : comparer le numéro de périphérique et relire l'identité (IDENTIFY) sur le descripteur ouvert |
+| S1 ✅ | `/var/lib/oblivio` est créé par le helper avec les droits issus du `umask` hérité ; ni le paquet ni le helper ne fixent ses droits ni ne vérifient son propriétaire. Si un utilisateur en obtient l'écriture : clé du poste substituée (le contrôle accepte le propriétaire du dossier parent), `reports` en lien symbolique (chmod/chown root ailleurs), tâche plantée reprise sans confirmation | Oui (transmission du `umask` par pkexec *à confirmer*) | Le paquet crée l'arborescence root ; le helper fixe `umask 077`, refuse tout dossier d'état qui n'est pas à root, est un lien, ou est ouvert en écriture à d'autres ; clé du poste exigée à root |
+| S2 ✅ | Le disque est ouvert **par son nom** après résolution de l'identité, sans revérifier ensuite que c'est le même disque (débranchement / branchement entre-temps) | Oui | Après ouverture exclusive : comparer le numéro de périphérique et relire l'identité (IDENTIFY) sur le descripteur ouvert |
 
 ### 5.2 Moyens
 

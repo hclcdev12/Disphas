@@ -166,6 +166,9 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
   l'afficher ; un rapport qui échoue n'est montré que par son identifiant, jamais par son contenu. Lecture
   bornée (1 Mio par attestation, 16 Mio par journal, 5 000 rapports les plus récents). Le dossier d'état
   est défini une seule fois, dans `oblivio_license::state_dir()`.
+  Arborescence créée par le paquet (root 0755, sous-dossiers 0700) ; le helper fixe `umask 077` et refuse de démarrer
+  si le dossier d'état ou un sous-dossier n'est pas à lui, est un lien ou est ouvert en écriture aux autres
+  ([sécurité](securite.md) S1).
   Droits (2026-10-04, RGPD art. 25(2), voir [conformité](conformite.md) R1) : `reports/` **0750** et fichiers **0640**
   (jamais écrasés), groupe **`oblivio`** — seuls root et les opérateurs membres du groupe les lisent ; `keys/` et
   `license/` restent 0700/0600. Le groupe est créé par le paquet (`packaging/debian/postinst`) ; sans lui (build de

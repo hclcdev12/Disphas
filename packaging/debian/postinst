@@ -10,14 +10,30 @@ case "$1" in
         if ! getent group oblivio >/dev/null; then
             groupadd --system oblivio
         fi
+        state=/var/lib/oblivio
+        # The helper's state tree, owned by root (docs/securite.md, S1). A symbolic
+        # link where a folder is expected means tampering: stop.
+        for path in "$state" "$state/keys" "$state/license" "$state/jobs" "$state/recovery" "$state/reports"; do
+            if [ -L "$path" ]; then
+                echo "oblivio: $path is a symbolic link, refusing to continue" >&2
+                exit 1
+            fi
+        done
+        mkdir -p "$state"
+        chown root:root "$state"
+        chmod 0755 "$state"
+        for sub in keys license jobs recovery; do
+            mkdir -p "$state/$sub"
+            chown root:root "$state/$sub"
+            chmod 0700 "$state/$sub"
+        done
+        reports="$state/reports"
+        mkdir -p "$reports"
+        chown root:oblivio "$reports"
+        chmod 0750 "$reports"
         # Certificates stored by an earlier version (0755/0644): restrict them.
-        reports=/var/lib/oblivio/reports
-        if [ -d "$reports" ]; then
-            chgrp oblivio "$reports"
-            chmod 0750 "$reports"
-            find "$reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
-                -exec chgrp oblivio {} + -exec chmod 0640 {} +
-        fi
+        find "$reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
+            -exec chgrp oblivio {} + -exec chmod 0640 {} +
         ;;
 esac
 
