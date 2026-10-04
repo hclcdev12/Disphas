@@ -48,6 +48,10 @@ Les entiers 64 bits sont exportés en `number` (toutes les valeurs du protocole 
 
 - **JSON UTF-8, un message par ligne** (NDJSON) sur stdin/stdout.
 - Taille maximale d'un message : **1 Mio** ; au-delà, le helper rejette et ferme.
+- **File de sortie bornée** (256 messages) : si l'UI ne lit plus, le helper cesse de lire les requêtes
+  jusqu'à ce qu'elle lise ses réponses ; les **événements** de tâche qui ne trouvent pas de place sont
+  abandonnés (une tâche n'attend jamais l'UI), l'état reste disponible par `ListJobs`. Le détail d'erreur
+  d'une requête rejetée, qui peut citer l'entrée, est tronqué à 256 octets.
 - **stdout du helper est réservé au protocole.** Ses logs de diagnostic vont sur stderr, que l'app capture.
 - Trois types de messages :
 

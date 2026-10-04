@@ -11,6 +11,15 @@ use zeroize::{Zeroize, Zeroizing};
 use crate::backend::DeviceBackend;
 use crate::session::Session;
 
+/// Messages waiting for the writer thread. Responses wait for room (the
+/// helper stops reading requests from a client that does not read its
+/// answers); job events are dropped instead, so a job never stalls.
+const OUTPUT_QUEUE: usize = 256;
+
+/// Longest error detail echoed in a rejection: the detail may quote the
+/// offending input.
+const MAX_DETAIL_BYTES: usize = 256;
+
 /// Outcome of reading one line.
 enum LineRead {
     /// A complete line, newline stripped.
@@ -31,7 +40,7 @@ pub fn serve<R: BufRead, W: Write + Send + 'static, B: DeviceBackend>(
     writer: W,
     session: &mut Session<B>,
 ) -> io::Result<W> {
-    let (sender, receiver) = mpsc::channel::<ServerMessage>();
+    let (sender, receiver) = mpsc::sync_channel::<ServerMessage>(OUTPUT_QUEUE);
     let output = std::thread::spawn(move || -> io::Result<W> {
         let mut writer = writer;
         for message in receiver {
@@ -54,7 +63,7 @@ pub fn serve<R: BufRead, W: Write + Send + 'static, B: DeviceBackend>(
 
 fn read_requests<R: BufRead, B: DeviceBackend>(
     reader: &mut R,
-    output: &mpsc::Sender<ServerMessage>,
+    output: &mpsc::SyncSender<ServerMessage>,
     session: &mut Session<B>,
 ) -> io::Result<()> {
     // The line may hold an ATA password: wipe it after every message.
@@ -100,8 +109,21 @@ fn rejection(error: &DecodeError) -> Option<Response> {
     Some(Response::failure(
         id,
         error.error_code(),
-        Some(error.to_string()),
+        Some(truncated(error.to_string(), MAX_DETAIL_BYTES)),
     ))
+}
+
+/// `text` cut to at most `max` bytes, on a character boundary.
+fn truncated(mut text: String, max: usize) -> String {
+    if text.len() > max {
+        let mut end = max;
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        text.truncate(end);
+        text.push('…');
+    }
+    text
 }
 
 fn read_line<R: BufRead>(reader: &mut R, buffer: &mut Vec<u8>) -> io::Result<LineRead> {
@@ -217,6 +239,61 @@ mod tests {
     fn oversized_message_closes_the_connection() {
         let input = format!("{HELLO}\n{}\n{HELLO}\n", "x".repeat(MAX_MESSAGE_BYTES));
         assert_eq!(run(&input).len(), 1);
+    }
+
+    #[test]
+    fn echoed_input_is_truncated() {
+        let long = "é".repeat(MAX_MESSAGE_BYTES / 4);
+        let input = format!("{HELLO}\n{{\"type\":\"request\",\"id\":2,\"cmd\":\"{long}\"}}\n");
+        let responses = run(&input);
+        let error = responses[1].outcome.as_ref().expect_err("rejected");
+        assert_eq!(error.code, ErrorCode::UnknownCommand);
+        let detail = error.detail.as_deref().expect("detail");
+        assert!(
+            detail.len() <= MAX_DETAIL_BYTES + '…'.len_utf8(),
+            "{}",
+            detail.len()
+        );
+    }
+
+    #[test]
+    fn a_client_that_does_not_read_blocks_the_helper_without_growing_memory() {
+        // A writer that never accepts anything stands for a client that
+        // never reads: the queue fills, then reading stops.
+        struct Stuck(std::sync::mpsc::Receiver<()>);
+        impl Write for Stuck {
+            fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+                let _ = self.0.recv();
+                Err(io::Error::other("closed"))
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+        let request = r#"{"type":"request","id":2,"cmd":"ListJobs"}"#;
+        let count = OUTPUT_QUEUE * 4;
+        let input = format!("{HELLO}\n{}", format!("{request}\n").repeat(count));
+        let consumed = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        struct Counting<'a>(&'a [u8], std::sync::Arc<std::sync::atomic::AtomicUsize>);
+        impl Read for Counting<'_> {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                let read = self.0.read(buffer)?;
+                self.1.fetch_add(read, std::sync::atomic::Ordering::SeqCst);
+                Ok(read)
+            }
+        }
+        let (release, stuck) = std::sync::mpsc::channel();
+        let total = input.len();
+        let seen = consumed.clone();
+        let server = std::thread::spawn(move || {
+            let reader = io::BufReader::with_capacity(64, Counting(input.as_bytes(), seen));
+            serve(reader, Stuck(stuck), &mut session()).map(|_| ())
+        });
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        let read = consumed.load(std::sync::atomic::Ordering::SeqCst);
+        assert!(read < total / 2, "read {read} of {total} bytes");
+        drop(release);
+        assert!(server.join().expect("no panic").is_err(), "output closed");
     }
 
     #[test]

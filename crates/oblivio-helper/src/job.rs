@@ -11,7 +11,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -144,7 +144,7 @@ pub fn uuid_v7() -> Result<[u8; 16], String> {
 pub fn spawn(
     spec: JobSpec,
     jobs: JobTable,
-    events: Option<Sender<ServerMessage>>,
+    events: Option<SyncSender<ServerMessage>>,
     resumed: Option<Left>,
 ) -> JoinHandle<()> {
     let job_id = JobId(uuid(&spec.id));
@@ -211,7 +211,7 @@ pub fn spawn(
 struct Runner {
     job_id: JobId,
     jobs: JobTable,
-    events: Option<Sender<ServerMessage>>,
+    events: Option<SyncSender<ServerMessage>>,
     timeline: Vec<serde_json::Value>,
     /// The job's files and their last content.
     persist: Option<(JobHandle, JobFile)>,
@@ -221,9 +221,12 @@ struct Runner {
 type Attempt = AttemptFile;
 
 impl Runner {
+    /// Never blocks: when the output queue is full (the UI does not read),
+    /// the event is dropped and the job goes on; its state stays available
+    /// through `ListJobs` (`docs/protocole_ipc.md` §3).
     fn emit(&self, event: Event) {
         if let Some(events) = &self.events {
-            let _ = events.send(ServerMessage::Event(event));
+            let _ = events.try_send(ServerMessage::Event(event));
         }
     }
 
@@ -462,15 +465,16 @@ impl Runner {
             let events = self.events.clone();
             let mut report = |percent: u8| {
                 if let Some(events) = &events {
-                    let _ =
-                        events.send(ServerMessage::Event(Event::JobProgress(JobProgressData {
+                    let _ = events.try_send(ServerMessage::Event(Event::JobProgress(
+                        JobProgressData {
                             job_id: job_id.clone(),
                             percent,
                             source: ProgressSource::Firmware,
                             bytes_done: None,
                             bytes_per_second: None,
                             remaining_seconds: None,
-                        })));
+                        },
+                    )));
                 }
             };
             let outcome = if resuming {

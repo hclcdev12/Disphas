@@ -19,7 +19,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::SyncSender;
 use std::thread::JoinHandle;
 
 use oblivio_protocol::ServerMessage;
@@ -98,7 +98,7 @@ pub struct Session<B> {
     issued: u64,
     jobs: JobTable,
     threads: Vec<JoinHandle<()>>,
-    events: Option<Sender<ServerMessage>>,
+    events: Option<SyncSender<ServerMessage>>,
     shut_down: bool,
     /// Whether jobs left by a crashed helper were looked for.
     recovered: bool,
@@ -122,7 +122,7 @@ impl<B: DeviceBackend> Session<B> {
     }
 
     /// Where job events are sent, or `None` to drop them.
-    pub fn set_events(&mut self, events: Option<Sender<ServerMessage>>) {
+    pub fn set_events(&mut self, events: Option<SyncSender<ServerMessage>>) {
         self.events = events;
     }
 

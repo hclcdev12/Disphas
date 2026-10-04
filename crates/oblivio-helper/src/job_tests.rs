@@ -251,7 +251,7 @@ impl Bench {
                 jobs_dir: Some(dir.path().join("jobs")),
             },
         );
-        let (sender, events) = mpsc::channel();
+        let (sender, events) = mpsc::sync_channel(4096);
         session.set_events(Some(sender));
         let mut bench = Self {
             dir,
