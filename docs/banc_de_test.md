@@ -29,3 +29,8 @@
 - Offsets et bits décodés (FNA, SANICAP, SANITIZE STATUS EXT bits 13/14) — `moteur_decision.md` §4.
 - Comportement de l'état du journal Sanitize juste après le démarrage d'un Crypto Erase rapide.
 - Temps réels d'effacement par méthode, pour les estimations de l'interface.
+- ATA Security Erase : disposition du bloc de 512 octets (contrôle en octets 0–1, mot de passe en 2–33,
+  comme hdparm), désactivation de la sécurité après l'effacement, et **coupure volontaire pendant
+  l'effacement** puis redémarrage du helper : le disque doit être déverrouillé et libéré au démarrage.
+- `Unlock` sur un disque verrouillé avec un mot de passe connu, puis effacement.
+- Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.

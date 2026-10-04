@@ -27,7 +27,9 @@ pub struct Inspected {
     pub profile: DeviceProfile,
 }
 
-fn open_read_only(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
+/// Opens a drive node read-only and non-exclusively, for inspection and
+/// security state changes (unlock). Block devices only.
+pub fn open_read_only(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
     let path = paths.dev.join(name);
     if !std::fs::symlink_metadata(&path)?
         .file_type()
@@ -79,10 +81,7 @@ fn ata_profile(
     } else {
         ata_decode::sanitize_status(0, false)
     };
-    let mut profile = ata_decode::profile(&identify, smart, sanitize, rotational);
-    // ATA Security Erase is not executed by this version (password handling
-    // and recovery after a failed erase are not implemented): do not offer it.
-    profile.security.supported = false;
+    let profile = ata_decode::profile(&identify, smart, sanitize, rotational);
     let identity = DeviceIdentity {
         model: identify.model.clone(),
         serial: identify.serial.clone(),

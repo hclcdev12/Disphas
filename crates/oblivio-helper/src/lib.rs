@@ -11,6 +11,7 @@ pub mod demo;
 pub mod erasure;
 pub mod job;
 pub mod licensing;
+pub mod recovery;
 pub mod serve;
 pub mod session;
 pub mod startup;

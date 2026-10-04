@@ -4,32 +4,80 @@
 //! Used by release builds only, or by development builds with the
 //! `real-devices` feature, on a test bench, as root (CLAUDE.md §2).
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use oblivio_core::method::Method;
 use oblivio_core::profile::{AtaSmart, SanitizeState};
-use oblivio_device::ata::{AtaDevice, SanitizeOperation};
+use oblivio_device::ata::{AtaDevice, Identifier, SanitizeOperation};
 use oblivio_device::block::BlockIo;
 use oblivio_device::drive::ErasableDrive;
-use oblivio_device::inspect::inspect;
+use oblivio_device::inspect::{inspect, open_read_only};
 use oblivio_device::nvme::{NvmeDevice, SanitizeAction, SecureErase};
+use oblivio_device::security::{self, Password, SecurityDrive, SecurityState};
 use oblivio_device::{SystemPaths, scan};
 use oblivio_protocol::command::DeviceIdentity;
 
 use crate::backend::{Device, DeviceBackend};
 use crate::convert;
 use crate::erasure::ErasureTarget;
+use crate::recovery::{self, FileRecord};
 
 /// Interval between two sanitize status reads.
 const POLL: Duration = Duration::from_secs(1);
 
 /// Backend over the drives of this machine.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SystemBackend {
     paths: SystemPaths,
+    /// Where Security Erase recovery records live (`<state>/recovery`).
+    recovery: PathBuf,
 }
 
 impl SystemBackend {
+    /// Backend keeping Security Erase recovery records in `recovery`.
+    pub fn new(recovery: PathBuf) -> Self {
+        Self {
+            paths: SystemPaths::default(),
+            recovery,
+        }
+    }
+
+    /// Restores the drives left with Oblivio's password by an interrupted
+    /// Security Erase, using their recovery records. Records of drives not
+    /// found, or not restored, are kept. Returns a line per record.
+    pub fn restore_pending(&mut self) -> Vec<String> {
+        let drives = self.inspected();
+        recovery::pending(&self.recovery)
+            .into_iter()
+            .map(|mut pending| {
+                let Some((name, _)) = drives
+                    .iter()
+                    .find(|(_, device)| device.profile.identity.serial == pending.serial)
+                else {
+                    return format!("drive {} absent, recovery record kept", pending.serial);
+                };
+                let outcome = open_read_only(&self.paths, name).and_then(|file| {
+                    let mut drive = AtaSecurity {
+                        ata: AtaDevice::new(&file),
+                    };
+                    security::restore(&mut drive, &pending.password)
+                });
+                match outcome {
+                    Ok(true) => match security::RecoveryRecord::clear(&mut pending.record) {
+                        Ok(()) => format!("drive {} restored", pending.serial),
+                        Err(error) => format!(
+                            "drive {} restored, record not deleted: {error}",
+                            pending.serial
+                        ),
+                    },
+                    Ok(false) => format!("drive {} still protected, record kept", pending.serial),
+                    Err(error) => format!("drive {}: {error}, record kept", pending.serial),
+                }
+            })
+            .collect()
+    }
+
     fn inspected(&self) -> Vec<(String, Device)> {
         let drives = match scan(&self.paths) {
             Ok(drives) => drives,
@@ -77,15 +125,92 @@ impl DeviceBackend for SystemBackend {
             .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
             .map(|(name, _)| name)
             .ok_or("drive not found")?;
+        let identity = self
+            .inspected()
+            .into_iter()
+            .find(|(candidate, _)| *candidate == name)
+            .map(|(_, device)| device.profile.identity)
+            .ok_or("drive not found")?;
         // Opening re-checks protections on a fresh inventory and uses O_EXCL.
         let drive = ErasableDrive::open(&self.paths, &name).map_err(|error| error.to_string())?;
-        Ok(Box::new(DriveTarget { drive }))
+        Ok(Box::new(DriveTarget {
+            drive,
+            record: FileRecord::new(&self.recovery, &identity),
+        }))
+    }
+
+    fn unlock(&mut self, identity: &DeviceIdentity, password: &[u8; 32]) -> Result<(), String> {
+        let name = self
+            .inspected()
+            .into_iter()
+            .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
+            .map(|(name, _)| name)
+            .ok_or("drive not found")?;
+        if !name.starts_with("sd") {
+            return Err("only SATA drives have ATA passwords".to_owned());
+        }
+        let file = open_read_only(&self.paths, &name).map_err(|error| error.to_string())?;
+        let ata = AtaDevice::new(&file);
+        // Each failed attempt counts towards the drive's limit (B6).
+        ata.unlock(Identifier::User, password)
+            .map_err(|_| "wrong password, or the drive refused it".to_owned())?;
+        ata.disable_password(Identifier::User, password)
+            .map_err(|error| format!("unlocked, but the password could not be removed: {error}"))
+    }
+}
+
+/// The security commands of a SATA drive.
+struct AtaSecurity<'a> {
+    ata: AtaDevice<'a>,
+}
+
+impl SecurityDrive for AtaSecurity<'_> {
+    fn state(&mut self, enhanced: bool) -> Result<SecurityState, oblivio_device::DeviceError> {
+        let identify = self.ata.identify()?;
+        let security = identify.security;
+        Ok(SecurityState {
+            supported: security.supported,
+            enabled: security.enabled,
+            locked: security.locked,
+            frozen: security.frozen,
+            attempts_expired: security.attempts_expired,
+            enhanced_supported: security.enhanced_erase,
+            erase_minutes: if enhanced {
+                identify.enhanced_erase_minutes
+            } else {
+                identify.security_erase_minutes
+            },
+        })
+    }
+
+    fn set_password(&mut self, password: &Password) -> Result<(), oblivio_device::DeviceError> {
+        self.ata.set_user_password(password.bytes())
+    }
+
+    fn erase(
+        &mut self,
+        password: &Password,
+        enhanced: bool,
+        timeout_ms: u32,
+    ) -> Result<(), oblivio_device::DeviceError> {
+        self.ata.erase_unit(password.bytes(), enhanced, timeout_ms)
+    }
+
+    fn unlock(&mut self, password: &Password) -> Result<(), oblivio_device::DeviceError> {
+        self.ata.unlock(Identifier::User, password.bytes())
+    }
+
+    fn disable(&mut self, password: &Password) -> Result<(), oblivio_device::DeviceError> {
+        self.ata
+            .disable_password(Identifier::User, password.bytes())
     }
 }
 
 /// A real drive opened for erasure.
 struct DriveTarget {
     drive: ErasableDrive,
+    /// Recovery record used by Security Erase.
+    record: FileRecord,
 }
 
 /// Polls a background sanitize until it ends. After a successful start the
@@ -161,7 +286,19 @@ impl ErasureTarget for DriveTarget {
                 )
             }
             Method::AtaSecurityEraseEnhanced | Method::AtaSecurityEraseNormal => {
-                Err("ATA Security Erase is not executed by this version".to_owned())
+                // SECURITY ERASE UNIT blocks until done: no progress until then.
+                progress(0);
+                let mut drive = AtaSecurity {
+                    ata: AtaDevice::new(file),
+                };
+                let erased = security::security_erase(
+                    &mut drive,
+                    &mut self.record,
+                    method == Method::AtaSecurityEraseEnhanced,
+                )
+                .map_err(text)?;
+                progress(100);
+                Ok(erased)
             }
             Method::HostOverwrite => Err("a host overwrite is not a firmware method".to_owned()),
         }

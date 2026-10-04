@@ -226,7 +226,11 @@ UI                                   helper
   - contrôle 5 : `detail` liste les codes manquants (`"D4,R7"`) pour que l'app les signale ;
   - contrôle 5 porte sur la méthode **choisie** (R7 exigé pour une écriture hôte en alternative) ;
   - au-delà des contrôles, l'exécution n'est pas encore implémentée (`INTERNAL`).
-- `Unlock`, `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
+- `Unlock` (2026-10-04) : déverrouille (SECURITY UNLOCK, mot de passe utilisateur complété par des zéros
+  jusqu'à 32 octets) puis **retire** le mot de passe (SECURITY DISABLE PASSWORD), pour que le disque
+  devienne effaçable ; le disque est retrouvé par identité ; chaque échec compte dans le compteur du disque
+  (B6) ; `UNLOCK_FAILED` sans jamais reprendre le mot de passe dans `detail`. Refusé pendant une tâche.
+- `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
   `binary_sha256` est vide et la licence est `Missing` (donc tout `Sanitize` s'arrête au contrôle 8).
 - Non encore fait : vérification `PKEXEC_UID` et purge de l'environnement (§3), événements, persistance (§10).
 

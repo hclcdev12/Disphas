@@ -42,7 +42,15 @@ fn main() -> ExitCode {
         not(feature = "demo"),
         any(not(debug_assertions), feature = "real-devices")
     ))]
-    let backend = oblivio_helper::system::SystemBackend::default();
+    let mut backend =
+        oblivio_helper::system::SystemBackend::new(licensing::state_dir().join("recovery"));
+    #[cfg(all(
+        not(feature = "demo"),
+        any(not(debug_assertions), feature = "real-devices")
+    ))]
+    for line in backend.restore_pending() {
+        eprintln!("oblivio-helper: Security Erase recovery: {line}");
+    }
     #[cfg(all(not(feature = "demo"), debug_assertions, not(feature = "real-devices")))]
     let backend = NoDevices;
     let mut session = Session::new(backend, config);

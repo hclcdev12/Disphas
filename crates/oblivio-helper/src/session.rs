@@ -182,10 +182,20 @@ impl<B: DeviceBackend> Session<B> {
                 }
             }
             Command::LicenseStatus => to_value(&self.config.licensing.status()),
-            Command::Unlock(_) => Err(Failure::new(
-                ErrorCode::UnlockFailed,
-                "unlock not implemented yet",
-            )),
+            Command::Unlock(args) => {
+                if self.running_job() {
+                    return Err(Failure::new(ErrorCode::Busy, "a job is running"));
+                }
+                // ATA passwords are 32 bytes, zero-padded (as hdparm does).
+                let mut password = zeroize::Zeroizing::new([0u8; 32]);
+                for (byte, typed) in password.iter_mut().zip(args.password.expose().bytes()) {
+                    *byte = typed;
+                }
+                self.backend
+                    .unlock(&args.device.identity, &password)
+                    .map_err(|error| Failure::new(ErrorCode::UnlockFailed, error))?;
+                to_value(&Empty {})
+            }
             Command::CreateActivationRequest => {
                 let request = self
                     .config
@@ -559,8 +569,9 @@ mod tests {
     use oblivio_protocol::codes::{
         Acknowledgement, DispositionCode, Method, ReserveCode, ScopeWarning,
     };
-    use oblivio_protocol::command::{DeviceArgs, DeviceRef, ForceArgs};
+    use oblivio_protocol::command::{DeviceArgs, DeviceRef, ForceArgs, UnlockArgs};
     use oblivio_protocol::response::LicenseStatusResult;
+    use oblivio_protocol::secret::AtaPassword;
 
     /// Error of a fixed licensing asked for its key: reaching it proves that
     /// a request passed every Sanitize check.
@@ -761,6 +772,18 @@ mod tests {
             code(harness.send(Command::ListDevices)),
             ErrorCode::BadRequest
         );
+    }
+
+    #[test]
+    fn unlock_failure_is_reported_without_the_password() {
+        let mut harness = Harness::greeted(vec![], LicenseState::Missing);
+        let result = harness.send(Command::Unlock(UnlockArgs {
+            device: device_ref("SN-LOCKED"),
+            password: AtaPassword::new("correct horse".to_owned()).expect("short"),
+        }));
+        let error = result.expect_err("this backend cannot unlock");
+        assert_eq!(error.code, ErrorCode::UnlockFailed);
+        assert!(!format!("{error:?}").contains("correct horse"));
     }
 
     #[test]

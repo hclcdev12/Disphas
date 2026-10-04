@@ -164,10 +164,18 @@ L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (rè
 
 **Exécution** (`oblivio-device`, 2026-10-04) : NVMe Sanitize (Block / Crypto Erase) et Format NVM (SES 1/2)
 par commandes d'administration ; ATA Sanitize (Block Erase, Crypto Scramble, Overwrite 1 passe à zéro) par
-ATA PASS-THROUGH (16) ; progression lue dans le journal / SANITIZE STATUS EXT. ⚠️ **Écart** : ATA Security
-Erase **n'est pas exécuté** dans cette version (gestion du mot de passe temporaire et reprise d'un disque resté
-verrouillé après un échec non implémentées) : l'inspection le déclare non disponible, le moteur se replie sur
-la méthode suivante (souvent écriture hôte, Clear + R7). À implémenter avant la V1 pour les disques sans Sanitize.
+ATA PASS-THROUGH (16) ; progression lue dans le journal / SANITIZE STATUS EXT.
+
+**ATA Security Erase** (2026-10-04) : seulement sur un disque **sans mot de passe** (sinon B7, le disque
+appartient à un tiers). Le helper tire un mot de passe utilisateur **aléatoire** (32 caractères
+alphanumériques, jamais journalisé, `zeroize`), l'**enregistre durablement avant** de le poser
+(`<state>/recovery/ata-<hex(S/N)>.json`, dossier 0700, fichier 0600, écriture atomique + fsync), pose le
+mot de passe, vérifie que la sécurité est bien activée, lance SECURITY ERASE PREPARE + UNIT (Enhanced si
+choisi ; délai = 2 × l'estimation des mots 89/90, 60 min minimum). Succès seulement si la sécurité est
+**désactivée** après coup (la norme l'exige) ; sinon le helper déverrouille et retire son mot de passe.
+L'enregistrement n'est supprimé qu'une fois le disque libéré : s'il en reste un au démarrage (coupure,
+plantage), le helper restaure le disque avant toute autre chose et garde l'enregistrement en cas d'échec
+(un technicien peut s'en servir avec des outils standards). Aucune progression : l'opération est bloquante.
 
 ### 4.1 NVMe (SSD)
 
