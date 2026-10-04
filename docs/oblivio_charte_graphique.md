@@ -52,3 +52,33 @@ Ce document formalise l'identité visuelle d'**Oblivio**. Il définit la palette
 * **Application Desktop (Tauri) :** Fond sombre mat `#090D16`, cartes composées en `#111827` avec bordures `#1F2937`.
 
 * **Certificat d'Audit (PDF) :** Adaptation haute lisibilité (fond blanc `#FFFFFF`, structures `#111827`, accents Indigo et Émeraude pour la signature et le statut).
+## 6. Logo (décidé le 2026-10-04)
+
+**Concept** : un O dont la moitié droite se dissout en lignes horizontales, comme un disque effacé
+secteur par secteur ; dans le logotype, le mot « finit dans l'oubli ». Fichiers dans `assets/logo/`,
+générés par `assets/logo/src/generate.py` (tracés Inter Bold, aucune police requise pour les afficher).
+
+| Fichier | Usage |
+|---|---|
+| `oblivio-wordmark-dark.svg` | Logotype sur fond sombre (interface) |
+| `oblivio-wordmark-light.svg` | Logotype sur fond clair (certificat, documents) |
+| `oblivio-wordmark-mono.svg` | Impression noir et blanc, gravure |
+| `oblivio-symbol.svg` / `-mono.svg` | Symbole seul (4 lignes), au-dessus de 32 px |
+| `oblivio-symbol-small.svg` | Symbole réduit (3 lignes), 32 px et moins |
+| `oblivio-icon.svg` | Icône d'application et favicon : tuile indigo, symbole réduit en blanc |
+| `oblivio-stamp.svg` | Tampon secondaire des certificats |
+
+**Règles**
+- Couleur de marque : **indigo** uniquement (`#6366F1` sur fond sombre, `#4F46E5` sur blanc), ou monochrome.
+- **Jamais les couleurs d'état** (vert, rouge, orange) sur le logo ou le tampon : ils figurent aussi sur les refus.
+- Pas de dégradé, d'ombre, de halo, de contour, de rotation ni de déformation ; ne pas modifier les lignes.
+- Zone de protection : la hauteur du symbole sur chaque côté. Taille minimale du logotype : 80 px de large à
+  l'écran, 20 mm à l'impression. En dessous de 32 px, utiliser le symbole réduit.
+- Le **tampon** n'apparaît que sur les certificats, à côté du QR code. Il ne porte que ce qui appartient à
+  Oblivio (nom, algorithme de signature **Ed25519**) : **jamais « NIST » ni « IEEE »**, un sceau à leur nom
+  suggérerait une certification qu'ils n'accordent pas. Les normes sont citées dans le texte du certificat,
+  qui porte une mention de non-affiliation.
+
+**À faire** : affinage par un designer (approche entre « i » et symbole, débord optique du symbole) ;
+recherche d'antériorité du nom et du logo (INPI, EUIPO, classes 9 et 42) avant tout dépôt ;
+couleur de l'état BLOQUÉ (orange provisoire `#F59E0B`) à valider.

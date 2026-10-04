@@ -52,4 +52,4 @@ journal-hash = SHA-256 du journal
 attestation-hash = SHA-256 de l'attestation
 attachments = Fichiers joints
 attachments-value = journal.json (journal détaillé), attestation.cose (attestation signée)
-legal = Ce certificat atteste la sanitisation du support identifié ci-dessus selon NIST SP 800-88 et IEEE 2883. Les champs libres sont reproduits tels que saisis par l'opérateur.
+legal = Ce certificat atteste la sanitisation du support identifié ci-dessus selon NIST SP 800-88 et IEEE 2883. Les champs libres sont reproduits tels que saisis par l'opérateur. Oblivio n'est ni affilié au NIST ni à l'IEEE, ni approuvé ou certifié par eux ; les normes sont citées pour identifier les méthodes appliquées.

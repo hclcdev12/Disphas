@@ -75,11 +75,7 @@
 #grid(
   columns: (1fr, auto),
   align: (left + horizon, right + horizon),
-  if d.logo != none {
-    image(d.logo, height: 1.1cm, format: d.logo_format)
-  } else {
-    text(size: 17pt, weight: "bold", fill: indigo, tracking: 0.14em)[OBLIVIO]
-  },
+  image(d.logo, height: 0.95cm, format: d.logo_format),
   [
     #text(size: 15pt, weight: "bold", d.title) \
     #text(fill: muted, d.report_label) #mono(d.report_id) \
@@ -119,8 +115,8 @@
 // --- Issuer, fingerprint and QR code.
 #v(4mm)
 #grid(
-  columns: (1fr, 4.4cm),
-  column-gutter: 8mm,
+  columns: (1fr, 3cm, 4.4cm),
+  column-gutter: 6mm,
   [
     #section(d.issuer.title, d.issuer.rows)
     #v(2mm)
@@ -129,6 +125,7 @@
     #v(2mm)
     #text(size: 8pt, fill: muted, d.verify_hint)
   ],
+  align(center + bottom, image(d.stamp, width: 3cm, format: "svg")),
   align(right + bottom, image(d.qr, width: 4.4cm, format: "svg")),
 )
 

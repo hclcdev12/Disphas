@@ -31,6 +31,11 @@ use crate::i18n::Translator;
 
 const TEMPLATE: &str = include_str!("certificate.typ");
 
+/// Oblivio wordmark for white backgrounds, used when no custom logo is given.
+const WORDMARK: &[u8] = include_bytes!("../../../assets/logo/oblivio-wordmark-light.svg");
+/// Secondary mark printed next to the QR code (`docs/oblivio_charte_graphique.md`).
+const STAMP: &[u8] = include_bytes!("../../../assets/logo/oblivio-stamp.svg");
+
 /// Fonts of the brand charter, embedded so rendering is offline and reproducible.
 const FONTS: &[&[u8]] = &[
     include_bytes!("../../../assets/fonts/Inter-Regular-latin.ttf"),
@@ -478,20 +483,20 @@ fn inputs(
     ] {
         set(key, i64::try_from(value).unwrap_or_default().into_value());
     }
-    set(
-        "logo",
-        options.logo.map_or(Value::None, |logo| {
-            Bytes::new(logo.data.to_vec()).into_value()
-        }),
-    );
+    let logo = options.logo.unwrap_or(Logo {
+        data: WORDMARK,
+        format: LogoFormat::Svg,
+    });
+    set("logo", Bytes::new(logo.data.to_vec()).into_value());
     set(
         "logo_format",
-        match options.logo.map(|logo| logo.format) {
-            Some(LogoFormat::Svg) => "svg",
-            _ => "png",
+        match logo.format {
+            LogoFormat::Svg => "svg",
+            LogoFormat::Png => "png",
         }
         .into_value(),
     );
+    set("stamp", Bytes::new(STAMP.to_vec()).into_value());
     set(
         "banners",
         banners.into_iter().collect::<Array>().into_value(),

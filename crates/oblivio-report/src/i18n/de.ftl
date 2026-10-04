@@ -52,4 +52,4 @@ journal-hash = SHA-256 des Protokolls
 attestation-hash = SHA-256 der Bescheinigung
 attachments = Beigefügte Dateien
 attachments-value = journal.json (Detailprotokoll), attestation.cose (signierte Bescheinigung)
-legal = Dieses Zertifikat bescheinigt die Bereinigung des oben genannten Datenträgers gemäß NIST SP 800-88 und IEEE 2883. Freitextfelder werden so wiedergegeben, wie sie vom Bediener eingegeben wurden.
+legal = Dieses Zertifikat bescheinigt die Bereinigung des oben genannten Datenträgers gemäß NIST SP 800-88 und IEEE 2883. Freitextfelder werden so wiedergegeben, wie sie vom Bediener eingegeben wurden. Oblivio ist weder mit dem NIST noch mit dem IEEE verbunden noch von ihnen anerkannt oder zertifiziert; die Normen werden zur Kennzeichnung der angewandten Methoden genannt.

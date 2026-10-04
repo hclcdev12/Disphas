@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import wordmark from "../../../assets/logo/oblivio-wordmark-dark.svg";
 import type { HelloResult } from "../bindings/HelloResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import { LANGUAGES, type Language } from "../i18n";
@@ -21,7 +22,7 @@ export function Header({
   const helper = mode === "preview" ? "preview" : connected ? "connected" : "disconnected";
   return (
     <header className="flex items-center gap-4 border-b border-edge px-6 py-4">
-      <span className="text-lg font-bold tracking-[0.3em] text-brand">OBLIVIO</span>
+      <img src={wordmark} alt="Oblivio" className="h-6" />
       {hello && <span className="font-mono text-xs text-ash">{t("header.rules", { version: hello.rules_version })}</span>}
       <div className="ml-auto flex items-center gap-2">
         <Badge tone="ready">
