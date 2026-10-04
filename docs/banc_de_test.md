@@ -40,3 +40,6 @@
   certificats d'une version antérieure passés en 0750/0640 ; opérateur hors groupe → message de l'historique ;
   `apt remove` garde `/var/lib/oblivio` ; `apt purge` le supprime avec le groupe.
 - Effacement parallèle sur plusieurs vrais disques (SATA et NVMe en même temps), puis certificat de lot.
+- B5 (Sanitize en échec) : ajouter et valider la commande « Exit Failure Mode » (NVMe Sanitize action 1,
+  ATA SANITIZE STATUS EXT avec Clear Sanitize Operation Failed), avec un bouton dans l'application ;
+  d'ici là, la consigne oriente vers la destruction ou l'outil du constructeur (décidé le 2026-10-04).

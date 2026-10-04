@@ -74,7 +74,7 @@
     "B2": "Saisissez le mot de passe utilisateur ou maître.",
     "B3": "Effectuez un cycle d'alimentation du disque.",
     "B4": "Patientez : l'opération reprend automatiquement.",
-    "B5": "Envoyez Exit Failure Mode, puis réessayez.",
+    "B5": "Cet état persiste après un redémarrage et cette version ne sait pas encore en sortir : traitez le disque en destruction physique, ou faites-le remettre en état avec l'outil de son constructeur, puis relancez l'inspection.",
     "B6": "Effectuez un cycle d'alimentation du disque.",
     "B7": "Retirez le mot de passe ATA existant (ou faites-le retirer par son propriétaire), puis relancez l'inspection."
   },

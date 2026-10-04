@@ -74,7 +74,7 @@
     "B2": "Enter the user or master password.",
     "B3": "Power-cycle the drive.",
     "B4": "Wait: the operation resumes automatically.",
-    "B5": "Send Exit Failure Mode, then retry.",
+    "B5": "This state survives a restart and this version cannot clear it yet: send the drive to physical destruction, or have it restored with its manufacturer's tool, then inspect again.",
     "B6": "Power-cycle the drive.",
     "B7": "Remove the existing ATA password (or have its owner do it), then inspect again."
   },

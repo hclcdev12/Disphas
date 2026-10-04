@@ -74,7 +74,7 @@
     "B2": "Benutzer- oder Master-Passwort eingeben.",
     "B3": "Laufwerk aus- und wieder einschalten.",
     "B4": "Warten: Der Vorgang wird automatisch fortgesetzt.",
-    "B5": "Exit Failure Mode senden und erneut versuchen.",
+    "B5": "Dieser Zustand bleibt nach einem Neustart bestehen und diese Version kann ihn noch nicht aufheben: Lassen Sie den Datenträger physisch vernichten oder mit dem Werkzeug des Herstellers wiederherstellen und prüfen Sie ihn dann erneut.",
     "B6": "Laufwerk aus- und wieder einschalten.",
     "B7": "Entfernen Sie das vorhandene ATA-Passwort (oder lassen Sie es vom Inhaber entfernen) und prüfen Sie erneut."
   },

@@ -100,7 +100,7 @@ Oblivio l'inspecte automatiquement ; **Actualiser** relance l'inspection de tous
 | B2 | Disque verrouillé par un mot de passe ATA | **Déverrouiller…** (§ 8.1) |
 | B3 | Verrou de gel Sanitize actif | Éteignez puis rallumez le disque (cycle d'alimentation) |
 | B4 | Une opération Sanitize est en cours | Patientez : elle reprend automatiquement |
-| B5 | L'opération Sanitize précédente a échoué | Voir § 8.4 (la consigne affichée à l'écran sera revue) |
+| B5 | L'opération Sanitize précédente a échoué | Destruction physique, ou remise en état avec l'outil du constructeur (§ 8.4) |
 | B6 | Tentatives de mot de passe épuisées | Cycle d'alimentation du disque |
 | B7 | Sécurité ATA activée par un tiers | Faites retirer le mot de passe par son propriétaire, puis **Actualiser** |
 
