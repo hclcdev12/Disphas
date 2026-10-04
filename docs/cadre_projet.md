@@ -50,6 +50,36 @@
 | `oblivio-helper` | Binaire root : core + device + license + signature | Oui | Privé |
 | `oblivio-report` | Rendu PDF/A-3, QR, traductions (Fluent) | Non | Privé |
 | `oblivio-app` | Shell Tauri + frontend React | Non | Privé |
+| `oblivio-issuer` (`tools/`) | Outil de l'éditeur : clé racine, licences, révocations. Jamais livré | Non | Privé |
+| `oblivio-fuzz` (`fuzz/`) | Cibles de fuzzing (cargo-fuzz), hors workspace | Non | Privé |
+
+### Stack technique (état au 2026-10-04)
+
+Versions relevées dans `Cargo.lock` et `app/package-lock.json` ; ce sont elles qui font foi.
+
+| Domaine | Choix | Version | Où |
+|---|---|---|---|
+| Langage | Rust stable, édition 2024 | 1.99 (MSRV 1.85 ; helper 1.89 ; verify 1.88 ; report et app 1.92) | tout le workspace |
+| Shell desktop | Tauri v2 (`tauri`, `@tauri-apps/api`, `@tauri-apps/cli`) | 2.11 / 2.11 / 2.12 | `app/` |
+| Frontend | React + TypeScript, Vite | React 19.3, TS 6.0, Vite 8.3 | `app/src` |
+| Style, icônes | Tailwind CSS 4 (plugin Vite), Lucide | 4.3, lucide-react 1.51 | `app/src` |
+| Traductions UI | i18next + react-i18next (FR, EN, DE) | 26.4 / 17.0 | `app/src/i18n` |
+| Lint frontend | oxlint | 1.86 | `app/` |
+| Types partagés UI ↔ helper | ts-rs (génère `app/src/bindings`) | 12.0 | `oblivio-protocol` |
+| Sérialisation, erreurs | serde, serde_json ; thiserror | 1.0 ; 2.0 | partout |
+| Attestation | CBOR (`ciborium`), COSE_Sign1 (`coset`), Ed25519 (`ed25519-dalek`), SHA-256 (`sha2`), zlib (`miniz_oxide`) | 0.2 ; 0.4 ; 3.0 ; 0.11 ; 0.9 | `oblivio-attestation` |
+| Lecture PDF (option `pdf`) | `lopdf` (MIT) | 0.45 | `oblivio-attestation` |
+| Rendu du certificat | Typst (PDF/A-3b), Fluent (traductions), `qrcode` | 0.15 ; fluent-bundle 0.16 ; 0.14 | `oblivio-report` |
+| Accès disques | ioctl directs via `libc` (NVMe admin, SG_IO / ATA PASS-THROUGH), sysfs | libc 0.2 | `oblivio-device` |
+| Secrets | `zeroize`, aléa de l'OS (`getrandom`) | 1.9 ; 0.4 | device, protocol, license |
+| Clé racine (éditeur) | Argon2id + ChaCha20-Poly1305 | argon2 0.6 ; 0.11 | `tools/oblivio-issuer` |
+| Fuzzing | cargo-fuzz + libFuzzer, toolchain nightly | cargo-fuzz 0.13 | `fuzz/` |
+| Node.js (développement) | via fnm | 24 | `app/` |
+| CI | GitHub Actions (dépôt privé) : contrôles à chaque push, fuzzing hebdomadaire | — | `.github/workflows/` |
+
+Écart avec les documents d'origine : **shadcn/ui n'est pas utilisé** ; les composants sont écrits à la main
+(`app/src/components/ui.tsx`) avec Tailwind. Pas de gestionnaire d'état ni de routeur : l'état vit dans
+`App.tsx`, le helper étant la seule source de vérité.
 
 ## 3. Modèle de confiance du certificat
 
