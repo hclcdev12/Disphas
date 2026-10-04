@@ -48,6 +48,9 @@ n'importe quel programme qui le lit ; s'il reste non monté, l'inventaire **éch
   namespace voisin tenu ouvert (`/proc/<pid>/fd`) — `O_EXCL` n'arrête que les ouvertures exclusives.
 - **Échec fermé** : `mountinfo` ou `swaps` illisible, swap ou montage `/dev/…` introuvable, ou racine `/`
   rattachée à aucun disque (ZFS, overlay d'un système live…) → l'inventaire **échoue** entièrement.
+  Aussi (2026-10-04, revue de sécurité) : un montage dont le numéro de périphérique n'existe pas dans sysfs, une
+  pile de périphériques illisible ou plus profonde que 16 niveaux, et **tout** montage ZFS (un pool ne se rattache
+  pas à ses disques par la table des montages) : leurs disques auraient paru libres.
   Un dossier `holders/` illisible compte comme P4.
 - Périmètre V1 : seuls `nvme<N>n<M>` et `sd<lettres>` sont listés ; le transport (NVMe, ATA, USB) est signalé.
   ⚠️ L'échec sur racine ZFS ou système live rendra l'application inutilisable sur ces systèmes : à revoir avec l'ISO (V2).

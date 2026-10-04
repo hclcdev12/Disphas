@@ -113,6 +113,7 @@ Corrigés le 2026-10-04 :
 - **L5 lots mêlant plusieurs licences** : prévu par la spec (plusieurs postes d'un client) ; le risque réel est un même numéro de lot chez deux clients. Un disque sous licence d'un autre client que le premier est refusé, à la production du PDF de lot comme à la vérification (application, `oblivio-verify`). Testé.
 - **L6 attente Sanitize** : une opération dont l'avancement ne bouge plus pendant 4 heures est abandonnée (tâche en échec, sans certificat CONFORME) au lieu d'être attendue indéfiniment. Le délai porte sur l'absence de progrès, pas sur la durée totale : un long effacement qui avance n'est jamais interrompu. Testé (horloge simulée).
 - **L7 transfert ATA incomplet** : une commande ATA dont SG_IO signale des octets non transférés (`resid`) est en échec (un IDENTIFY tronqué était décodé avec une fin vide). À confirmer au banc qu'aucun contrôleur SATA courant ne signale de `resid` à tort.
+- **L8 inventaire fail open** : trois chemins qui laissaient un disque paraître libre échouent désormais : montage d'un numéro de périphérique inconnu de sysfs, pile `slaves/` illisible ou trop profonde, montage ZFS (même hors racine). Testés ; inventaire réel du poste de développement inchangé.
 
 Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
 « format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après

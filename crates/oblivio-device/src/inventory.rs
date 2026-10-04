@@ -24,6 +24,10 @@ const SYSTEM_MOUNT_POINTS: &[&str] = &["/", "/boot", "/boot/efi", "/efi"];
 /// Deepest device stack followed through `slaves/` (dm-crypt on LVM on md…).
 const MAX_STACK_DEPTH: usize = 16;
 
+/// Filesystems that pool several drives without a traceable device number
+/// or source: their drives cannot be found from the mount table.
+const POOLED_FILESYSTEMS: &[&str] = &["zfs"];
+
 /// Where the system files live. Tests point these at a fake tree.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SystemPaths {
@@ -191,7 +195,7 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
         let name = resolver
             .dev_path_name(&swap.path)
             .ok_or_else(|| ScanError::Untraceable(swap.path.clone()))?;
-        for disk in resolver.disks_of(&name) {
+        for disk in resolver.disks_of(&name)? {
             protection.entry(disk).or_default().has_active_swap = true;
         }
     }
@@ -211,7 +215,7 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
         let name = resolver
             .dev_path_name(&backing)
             .ok_or_else(|| ScanError::Untraceable(backing.clone()))?;
-        for disk in resolver.disks_of(&name) {
+        for disk in resolver.disks_of(&name)? {
             protection.entry(disk).or_default().is_volume_member = true;
         }
     }
@@ -429,8 +433,20 @@ impl<'a> Resolver<'a> {
 
     /// Drives under a mount. Virtual filesystems (tmpfs, proc, overlay…) have none.
     fn mount_disks(&self, mount: &MountEntry) -> Result<BTreeSet<String>, ScanError> {
+        if POOLED_FILESYSTEMS.contains(&mount.fs_type.as_str()) {
+            return Err(ScanError::Untraceable(format!(
+                "{} ({})",
+                mount.source, mount.fs_type
+            )));
+        }
         let name = if mount.dev.major != 0 {
-            self.names.get(&mount.dev).cloned()
+            // A real device number always names a block device in sysfs.
+            Some(
+                self.names
+                    .get(&mount.dev)
+                    .cloned()
+                    .ok_or_else(|| ScanError::Untraceable(mount.source.clone()))?,
+            )
         } else if mount.source.starts_with("/dev/") {
             // btrfs and a few others report an anonymous device number.
             Some(
@@ -440,7 +456,10 @@ impl<'a> Resolver<'a> {
         } else {
             None
         };
-        Ok(name.map(|name| self.disks_of(&name)).unwrap_or_default())
+        match name {
+            Some(name) => self.disks_of(&name),
+            None => Ok(BTreeSet::new()),
+        }
     }
 
     /// Kernel name behind a `/dev/…` path, following symlinks such as
@@ -452,10 +471,12 @@ impl<'a> Resolver<'a> {
     }
 
     /// Drives under a block device, through `slaves/` for stacked devices.
-    fn disks_of(&self, name: &str) -> BTreeSet<String> {
+    /// A stack that cannot be read, or deeper than [`MAX_STACK_DEPTH`],
+    /// fails: its drives would otherwise look free.
+    fn disks_of(&self, name: &str) -> Result<BTreeSet<String>, ScanError> {
         let mut disks = BTreeSet::new();
-        self.collect_disks(name, 0, &mut disks);
-        disks
+        self.collect_disks(name, 0, &mut disks)?;
+        Ok(disks)
     }
 
     /// Backing devices (`/dev/…` paths) of the bound loop devices (those
@@ -490,24 +511,37 @@ impl<'a> Resolver<'a> {
         sysfs::read_optional(&path).filter(|backing| backing.starts_with("/dev/"))
     }
 
-    fn collect_disks(&self, name: &str, depth: usize, disks: &mut BTreeSet<String>) {
+    fn collect_disks(
+        &self,
+        name: &str,
+        depth: usize,
+        disks: &mut BTreeSet<String>,
+    ) -> Result<(), ScanError> {
         if let Some(disk) = self.owner.get(name) {
             disks.insert(disk.clone());
-            return;
+            return Ok(());
         }
         if depth >= MAX_STACK_DEPTH {
-            return;
+            return Err(ScanError::Untraceable(name.to_owned()));
         }
         // A filesystem mounted from a loop device over a partition.
-        if let Some(backing) = self.loop_backing(name)
-            && let Some(backing) = self.dev_path_name(&backing)
-        {
-            self.collect_disks(&backing, depth + 1, disks);
+        if let Some(backing) = self.loop_backing(name) {
+            let backing = self
+                .dev_path_name(&backing)
+                .ok_or_else(|| ScanError::Untraceable(backing.clone()))?;
+            self.collect_disks(&backing, depth + 1, disks)?;
         }
         let slaves = self.paths.sys.join("class/block").join(name).join("slaves");
-        for slave in sysfs::entry_names(&slaves).unwrap_or_default() {
-            self.collect_disks(&slave, depth + 1, disks);
+        let slaves = match sysfs::entry_names(&slaves) {
+            Ok(slaves) => slaves,
+            // A device that is not stacked (zram, nbd…) may have none.
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
+            Err(source) => return Err(read_error(&slaves, source)),
+        };
+        for slave in slaves {
+            self.collect_disks(&slave, depth + 1, disks)?;
         }
+        Ok(())
     }
 }
 
@@ -957,8 +991,43 @@ mod tests {
     fn unknown_root_drive_fails_the_scan() {
         let mut fixture = Fixture::new();
         fixture.disk("sda", "8:0", "ata1");
-        fixture.mount("0:30", "/", "zfs", "rpool/ROOT/ubuntu");
+        fixture.mount("0:30", "/", "overlay", "overlay");
         assert!(matches!(fixture.scan(), Err(ScanError::RootNotResolved)));
+    }
+
+    #[test]
+    fn a_zfs_pool_fails_the_scan_wherever_it_is_mounted() {
+        let mut fixture = two_nvme();
+        fixture.mount("0:31", "/srv/tank", "zfs", "tank/data");
+        assert!(matches!(fixture.scan(), Err(ScanError::Untraceable(_))));
+    }
+
+    #[test]
+    fn a_device_number_unknown_to_sysfs_fails_the_scan() {
+        let mut fixture = two_nvme();
+        fixture.mount("8:99", "/srv/data", "ext4", "/dev/sdz1");
+        assert!(matches!(fixture.scan(), Err(ScanError::Untraceable(_))));
+    }
+
+    #[test]
+    fn an_unreadable_or_endless_stack_fails_the_scan() {
+        let mut fixture = two_nvme();
+        // dm-0 -> dm-1 -> dm-0…: never reaches a drive.
+        fixture
+            .stacked("dm-0", "253:0", &[])
+            .stacked("dm-1", "253:1", &[]);
+        fs::create_dir_all(fixture.path("sys/class/block/dm-0/slaves/dm-1")).expect("loop");
+        fs::create_dir_all(fixture.path("sys/class/block/dm-1/slaves/dm-0")).expect("loop");
+        fixture.mount("253:0", "/srv/data", "ext4", "/dev/dm-0");
+        assert!(matches!(fixture.scan(), Err(ScanError::Untraceable(_))));
+
+        // A stacked device whose slaves cannot be listed.
+        let mut fixture = two_nvme();
+        fixture.stacked("dm-2", "253:2", &[]);
+        fs::remove_dir(fixture.path("sys/class/block/dm-2/slaves")).expect("rm");
+        fixture.write("sys/class/block/dm-2/slaves", "not a directory");
+        fixture.mount("253:2", "/srv/data", "ext4", "/dev/dm-2");
+        assert!(matches!(fixture.scan(), Err(ScanError::Read { .. })));
     }
 
     #[test]
