@@ -12,6 +12,8 @@ pub mod cbor;
 pub mod cose;
 pub mod display;
 pub mod model;
+#[cfg(feature = "pdf")]
+pub mod pdf;
 pub mod trust;
 pub mod verify;
 

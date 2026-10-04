@@ -3,17 +3,27 @@
 use std::fmt::Write;
 
 use oblivio_attestation::model::{Category, Code, DispositionKind, Status, ValidationMethod};
+use oblivio_attestation::pdf::ExtractError as PdfError;
 use oblivio_attestation::{Verified, VerifyError};
 
 use oblivio_attestation::display::{utc, uuid};
 
 use crate::labels::{self, Lang, Msg};
 
+/// Result of the journal check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct JournalCheck {
+    /// Whether its SHA-256 is the one signed.
+    pub matches: bool,
+    /// Whether it came from the PDF attachments rather than `--journal`.
+    pub from_pdf: bool,
+}
+
 /// Report of an authentic attestation. `journal` is the result of the
-/// journal check, if a journal was given.
+/// journal check, if a journal was given or attached.
 pub fn authentic(
     verified: &Verified,
-    journal: Option<bool>,
+    journal: Option<JournalCheck>,
     unofficial_root: bool,
     lang: Lang,
 ) -> String {
@@ -149,15 +159,20 @@ pub fn authentic(
         Msg::License,
         &format!("{} — {} ({})", license.id, license.customer, license.offer),
     );
-    if let Some(matches) = journal {
-        line(
-            Msg::Journal,
-            m(if matches {
-                Msg::JournalMatches
-            } else {
-                Msg::JournalMismatch
-            }),
-        );
+    if let Some(check) = journal {
+        let verdict = m(if check.matches {
+            Msg::JournalMatches
+        } else {
+            Msg::JournalMismatch
+        });
+        if check.from_pdf {
+            line(
+                Msg::Journal,
+                &format!("{verdict} ({})", m(Msg::JournalFromPdf)),
+            );
+        } else {
+            line(Msg::Journal, verdict);
+        }
     }
 
     let mut header = format!("✔ {}\n", m(Msg::Authentic));
@@ -165,6 +180,19 @@ pub fn authentic(
         header.push_str(&format!("⚠ {}\n", m(Msg::UnofficialRoot)));
     }
     header + "\n" + &out
+}
+
+/// Report of a PDF whose attestation cannot be read.
+pub fn rejected_pdf(error: &PdfError, lang: Lang) -> String {
+    let reason = match error {
+        PdfError::NoAttestation => Msg::ErrPdfNoAttestation,
+        PdfError::NotPdf(_) | PdfError::Duplicate(_) => Msg::ErrPdfUnreadable,
+    };
+    format!(
+        "✘ {}: {}\n  ({error})\n",
+        labels::msg(Msg::NotAuthentic).get(lang),
+        labels::msg(reason).get(lang)
+    )
 }
 
 /// Report of a rejected attestation.

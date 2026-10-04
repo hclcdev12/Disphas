@@ -1,6 +1,8 @@
 //! Reading back the files attached to a certificate PDF: the signed
 //! attestation (`attestation.cose`) and the journal (`journal.json`). The PDF
 //! itself proves nothing; only these attachments are verified.
+//!
+//! Behind the `pdf` feature (adds `lopdf`, Rust 1.88).
 
 use lopdf::{Document, Object};
 
@@ -36,10 +38,8 @@ fn pdf_text(bytes: &[u8]) -> String {
     match bytes.strip_prefix(&[0xfe, 0xff]) {
         Some(utf16) => {
             let units: Vec<u16> = utf16
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|pair| u16::from_be_bytes(*pair))
+                .chunks_exact(2)
+                .map(|pair| u16::from_be_bytes([pair[0], pair[1]]))
                 .collect();
             String::from_utf16_lossy(&units)
         }

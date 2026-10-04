@@ -3,11 +3,12 @@ name = "oblivio-verify"
 description = "Command-line verifier for Oblivio erasure certificates. Fully offline."
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+# 1.88: PDF reading (lopdf).
+rust-version = "1.88"
 license = "Apache-2.0"
 
 [dependencies]
-oblivio-attestation = { path = "../oblivio-attestation", version = "0.1.0" }
+oblivio-attestation = { path = "../oblivio-attestation", version = "0.1.0", features = ["pdf"] }
 
 # No workspace inheritance on purpose: this crate is extracted as-is into the
 # public repository and must not depend on anything under crates/ or app/.

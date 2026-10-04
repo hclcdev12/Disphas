@@ -5,8 +5,8 @@
 
 use oblivio_attestation::display::uuid;
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
+use oblivio_attestation::pdf::{ExtractError, attachments};
 use oblivio_attestation::{Verified, VerifyError, from_qr_text, verify};
-use oblivio_report::extract::{ExtractError, attachments};
 use serde::Serialize;
 
 /// Largest input accepted (a certificate PDF is well under 1 MiB).

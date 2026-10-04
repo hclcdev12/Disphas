@@ -224,3 +224,53 @@ fn official_root_is_used_by_default_and_rejects_test_certificates() {
     assert!(!text.contains("root key given on the command line"));
     assert_eq!(verify_cli(&["--qr", "OBV1:"]).status.code(), Some(1));
 }
+
+/// Certificate PDF rendered by Oblivio from fictional data and test keys
+/// (root key `[1; 32]`, the one of these tests). See `fixtures/README.md`.
+const PDF: &[u8] = include_bytes!("fixtures/certificate.pdf");
+
+#[test]
+fn authentic_pdf_with_its_attached_journal() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let pdf = write(dir.path(), "certificate.pdf", PDF);
+    let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&root()), &pdf]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(0), "{text}");
+    assert!(text.contains("AUTHENTIC"));
+    assert!(text.contains("FICT0000A001"));
+    assert!(text.contains("matches the attestation (attached to the PDF)"));
+}
+
+#[test]
+fn pdf_with_a_foreign_journal_is_not_accepted() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let pdf = write(dir.path(), "certificate.pdf", PDF);
+    let journal = write(dir.path(), "journal.json", b"{}");
+    let output = verify_cli(&[
+        "--lang",
+        "en",
+        "--root-key",
+        &root_hex(&root()),
+        "--journal",
+        &journal,
+        &pdf,
+    ]);
+    let text = stdout(&output);
+    assert_eq!(output.status.code(), Some(1), "{text}");
+    assert!(text.contains("DOES NOT match"));
+}
+
+#[test]
+fn pdf_without_attestation_or_truncated_is_rejected() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    for (name, data) in [
+        ("plain.pdf", &b"%PDF-1.7\n1 0 obj << >> endobj\n%%EOF\n"[..]),
+        ("truncated.pdf", &PDF[..PDF.len() / 2]),
+    ] {
+        let path = write(dir.path(), name, data);
+        let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&root()), &path]);
+        let text = stdout(&output);
+        assert_eq!(output.status.code(), Some(1), "{name}: {text}");
+        assert!(text.contains("NOT AUTHENTIC"), "{name}: {text}");
+    }
+}

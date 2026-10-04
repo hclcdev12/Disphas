@@ -62,6 +62,9 @@ pub enum Msg {
     ErrLicenseNotValid,
     ErrLicenseRevoked,
     ErrSignature,
+    JournalFromPdf,
+    ErrPdfNoAttestation,
+    ErrPdfUnreadable,
 }
 
 /// Text of an interface message.
@@ -180,6 +183,17 @@ pub fn msg(message: Msg) -> Text {
             "the license was revoked before the attestation date",
             "la licence a été révoquée avant la date de l'attestation",
             "die Lizenz wurde vor dem Datum der Bescheinigung widerrufen",
+        ),
+        Msg::JournalFromPdf => t("attached to the PDF", "joint au PDF", "dem PDF beigefügt"),
+        Msg::ErrPdfNoAttestation => t(
+            "this PDF carries no Oblivio attestation (not an Oblivio certificate, or reprinted)",
+            "ce PDF ne contient pas d'attestation Oblivio (pas un certificat Oblivio, ou réimprimé)",
+            "dieses PDF enthält keine Oblivio-Bescheinigung (kein Oblivio-Zertifikat oder neu gedruckt)",
+        ),
+        Msg::ErrPdfUnreadable => t(
+            "the PDF is unreadable",
+            "le PDF est illisible",
+            "das PDF ist unlesbar",
         ),
         Msg::ErrSignature => t(
             "the attestation is not signed by the licensed workstation",

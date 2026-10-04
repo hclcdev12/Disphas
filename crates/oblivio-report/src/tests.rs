@@ -125,14 +125,14 @@ fn attachments_are_read_back_from_the_pdf() {
         },
     )
     .expect("rendered");
-    let attached = crate::extract::attachments(&pdf).expect("attachments");
+    let attached = oblivio_attestation::pdf::attachments(&pdf).expect("attachments");
     assert_eq!(attached.attestation, signed_bytes);
     assert_eq!(attached.journal.as_deref(), Some(JOURNAL));
 }
 
 #[test]
 fn foreign_or_broken_pdfs_are_refused() {
-    use crate::extract::{ExtractError, attachments};
+    use oblivio_attestation::pdf::{ExtractError, attachments};
     assert!(matches!(
         attachments(b"not a pdf"),
         Err(ExtractError::NotPdf(_))

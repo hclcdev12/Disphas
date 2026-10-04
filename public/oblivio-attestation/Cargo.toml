@@ -23,3 +23,8 @@ ed25519-dalek = { version = "3.0.0", features = ["zeroize"] }
 miniz_oxide = "0.9.1"
 sha2 = "0.11.0"
 thiserror = "2.0.21"
+lopdf = { version = "0.45.0", default-features = false, optional = true }
+
+[features]
+# Reading the attachments of certificate PDFs. Requires Rust 1.88 (lopdf).
+pdf = ["dep:lopdf"]

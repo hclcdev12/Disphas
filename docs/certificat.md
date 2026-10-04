@@ -168,8 +168,10 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
 
 **`oblivio-verify` (implémenté le 2026-10-04)** :
 `oblivio-verify [--lang en|fr|de] [--journal FICHIER] [--root-key HEX] (FICHIER | --qr TEXTE)`.
-- Entrées : texte du QR (`OBV1:…`) ou attestation COSE binaire ; journal optionnel comparé à `jh`.
-  Lecture du **PDF** à ajouter quand `oblivio-report` en produira.
+- Entrées : **PDF** du certificat, texte du QR (`OBV1:…`) ou attestation COSE binaire ; journal optionnel
+  comparé à `jh`. D'un PDF, on vérifie l'attestation **jointe** (`attestation.cose`) et, sauf `--journal`, le
+  journal joint ; un PDF sans attestation est **non authentique** (code 1). Lecture PDF (2026-10-04) dans
+  `oblivio-attestation`, option `pdf` (dépendance `lopdf`, MIT ; Rust 1.88), partagée avec l'application.
 - Codes de sortie : **0** authentique (et journal conforme s'il est fourni), **1** non authentique, **2** erreur d'usage.
 - Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
 - Clé racine officielle intégrée depuis le 2026-10-04 ; `--root-key` reste possible et le rapport avertit

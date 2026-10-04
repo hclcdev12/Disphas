@@ -17,7 +17,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 base64 = "0.23.1"
-oblivio-attestation.workspace = true
+oblivio-attestation = { workspace = true, features = ["pdf"] }
 oblivio-license.workspace = true
 oblivio-protocol.workspace = true
 oblivio-report.workspace = true

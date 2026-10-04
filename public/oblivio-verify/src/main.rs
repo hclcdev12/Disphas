@@ -4,7 +4,9 @@
 //! oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
 //! ```
 //!
-//! FILE holds either the QR text (`OBV1:…`) or the binary COSE attestation.
+//! FILE holds a certificate PDF, the QR text (`OBV1:…`) or the binary COSE
+//! attestation. From a PDF, the attached attestation is verified, and the
+//! attached journal unless `--journal` is given.
 //! Exit status: 0 authentic, 1 not authentic, 2 usage or input error.
 
 mod labels;
@@ -13,19 +15,21 @@ mod render;
 use std::process::ExitCode;
 
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
-use oblivio_attestation::{VerifyError, from_qr_text, verify};
+use oblivio_attestation::{VerifyError, from_qr_text, pdf, verify};
 
 use crate::labels::Lang;
 
-/// Largest input file read.
-const MAX_INPUT_BYTES: u64 = 1 << 20;
+/// Largest certificate file read (PDF).
+const MAX_INPUT_BYTES: u64 = 32 << 20;
+/// Largest journal read.
+const MAX_JOURNAL_BYTES: u64 = 16 << 20;
 
 const USAGE: &str = "\
 usage: oblivio-verify [--lang en|fr|de] [--journal FILE] [--root-key HEX] (FILE | --qr TEXT)
 
-  FILE            QR text (OBV1:...) or binary COSE attestation
+  FILE            certificate PDF, QR text (OBV1:...) or binary COSE attestation
   --qr TEXT       QR text given directly
-  --journal FILE  detailed journal to check against the attestation
+  --journal FILE  detailed journal to check (default for a PDF: the attached one)
   --root-key HEX  root public key (64 hex digits) instead of the official one
   --lang LANG     report language (default: system language, else English)
 
@@ -79,15 +83,15 @@ fn parse_key(hex: &str) -> Result<VerifyingKey, String> {
     VerifyingKey::from_bytes(&key).map_err(|_| "--root-key is not a valid Ed25519 key".to_owned())
 }
 
-fn read_bounded(path: &str) -> Result<Vec<u8>, String> {
+fn read_bounded(path: &str, limit: u64) -> Result<Vec<u8>, String> {
     use std::io::Read;
     let file = std::fs::File::open(path).map_err(|error| format!("{path}: {error}"))?;
     let mut data = Vec::new();
-    file.take(MAX_INPUT_BYTES + 1)
+    file.take(limit + 1)
         .read_to_end(&mut data)
         .map_err(|error| format!("{path}: {error}"))?;
-    if data.len() as u64 > MAX_INPUT_BYTES {
-        return Err(format!("{path}: larger than {MAX_INPUT_BYTES} bytes"));
+    if data.len() as u64 > limit {
+        return Err(format!("{path}: larger than {limit} bytes"));
     }
     Ok(data)
 }
@@ -116,20 +120,42 @@ fn run(args: Args) -> Result<bool, String> {
     };
     let input = match (&args.qr, &args.file) {
         (Some(qr), _) => qr.clone().into_bytes(),
-        (None, Some(file)) => read_bounded(file)?,
+        (None, Some(file)) => read_bounded(file, MAX_INPUT_BYTES)?,
         (None, None) => return Err("give either FILE or --qr".to_owned()),
     };
-    let journal = args.journal.as_deref().map(read_bounded).transpose()?;
+    let given = args
+        .journal
+        .as_deref()
+        .map(|path| read_bounded(path, MAX_JOURNAL_BYTES))
+        .transpose()?;
+
+    // A PDF only carries the proof: its attachments are what is verified.
+    let (input, attached) = if input.starts_with(b"%PDF-") {
+        match pdf::attachments(&input) {
+            Ok(found) => (found.attestation, found.journal),
+            Err(error) => {
+                print!("{}", render::rejected_pdf(&error, lang));
+                return Ok(false);
+            }
+        }
+    } else {
+        (input, None)
+    };
+    let journal = match (given, attached) {
+        (Some(given), _) => Some((given, false)),
+        (None, Some(attached)) => Some((attached, true)),
+        (None, None) => None,
+    };
 
     let result = attestation_bytes(input).and_then(|signed| verify(&signed, &root, &[]));
     match result {
         Ok(verified) => {
-            let journal_ok = journal.map(|journal| verified.matches_journal(&journal));
-            print!(
-                "{}",
-                render::authentic(&verified, journal_ok, unofficial, lang)
-            );
-            Ok(journal_ok != Some(false))
+            let check = journal.map(|(journal, from_pdf)| render::JournalCheck {
+                matches: verified.matches_journal(&journal),
+                from_pdf,
+            });
+            print!("{}", render::authentic(&verified, check, unofficial, lang));
+            Ok(check.is_none_or(|check| check.matches))
         }
         Err(error) => {
             print!("{}", render::rejected(&error, lang));
