@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { HelloResult } from "../bindings/HelloResult";
+import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import { LANGUAGES, type Language } from "../i18n";
 import { Badge, Dot } from "./ui";
 
@@ -7,10 +8,14 @@ export function Header({
   hello,
   mode,
   connected,
+  license,
+  onLicense,
 }: {
   hello: HelloResult | null;
   mode: "tauri" | "preview";
   connected: boolean;
+  license: LicenseStatusResult | null;
+  onLicense: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const helper = mode === "preview" ? "preview" : connected ? "connected" : "disconnected";
@@ -27,10 +32,12 @@ export function Header({
           <Dot tone={helper === "connected" ? "brand" : helper === "preview" ? "blocked" : "sayno"} />
           {t(`header.helper.${helper}`)}
         </Badge>
-        {hello && (
-          <Badge tone={hello.license.state === "Valid" ? "ready" : "neutral"}>
-            {t(`header.license.${hello.license.state}`)}
-          </Badge>
+        {license && (
+          <button type="button" onClick={onLicense} className="cursor-pointer">
+            <Badge tone={license.state === "Valid" ? "ready" : "neutral"}>
+              {t(`header.license.${license.state}`)}
+            </Badge>
+          </button>
         )}
         <select
           aria-label="Language"

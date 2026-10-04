@@ -5,7 +5,9 @@ import type { Acknowledgement } from "./bindings/Acknowledgement";
 import type { HelloResult } from "./bindings/HelloResult";
 import type { InspectResult } from "./bindings/InspectResult";
 import type { ListDevicesResult } from "./bindings/ListDevicesResult";
+import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { LicenseDialog } from "./components/LicenseDialog";
 import { DriveCard, type EraseRequest } from "./components/DriveCard";
 import { Header } from "./components/Header";
 import { Button } from "./components/ui";
@@ -19,6 +21,8 @@ export default function App() {
   const [inspections, setInspections] = useState<Record<string, Outcome<InspectResult>>>({});
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [request, setRequest] = useState<EraseRequest | null>(null);
+  const [license, setLicense] = useState<LicenseStatusResult | null>(null);
+  const [licenseOpen, setLicenseOpen] = useState(false);
 
   // Every drive is inspected by the helper; the UI only displays verdicts.
   const refresh = useCallback(async () => {
@@ -36,7 +40,10 @@ export default function App() {
     void (async () => {
       const greeted = await api.hello();
       setHello(greeted);
-      if (greeted.ok) await refresh();
+      if (greeted.ok) {
+        setLicense(greeted.value.license);
+        await refresh();
+      }
     })();
   }, [refresh]);
 
@@ -66,7 +73,13 @@ export default function App() {
   const connected = hello?.ok ?? false;
   return (
     <div className="flex min-h-full flex-col">
-      <Header hello={hello?.ok ? hello.value : null} mode={api.mode} connected={connected} />
+      <Header
+        hello={hello?.ok ? hello.value : null}
+        mode={api.mode}
+        connected={connected}
+        license={license}
+        onLicense={() => setLicenseOpen(true)}
+      />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
         <div className="mb-4 flex items-center">
           <h1 className="text-xl font-bold">{t("drives.title")}</h1>
@@ -90,6 +103,9 @@ export default function App() {
             ))}
         </div>
       </main>
+      {licenseOpen && license && (
+        <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
+      )}
       {request && (
         <ConfirmDialog
           key={request.inspection.verdict_id + request.choice.method}

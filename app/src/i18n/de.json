@@ -10,7 +10,9 @@
       "Missing": "Keine Lizenz",
       "Valid": "Lizenziert",
       "Expired": "Lizenz abgelaufen",
-      "Revoked": "Lizenz widerrufen"
+      "Revoked": "Lizenz widerrufen",
+      "NotYetValid": "Lizenz noch nicht gültig",
+      "Invalid": "Ungültige Lizenz"
     },
     "rules": "Regeln {{version}}"
   },
@@ -113,6 +115,22 @@
     "NOT_CANCELLABLE": "Diese Phase kann nicht abgebrochen werden",
     "UNLOCK_FAILED": "Das Laufwerk konnte nicht entsperrt werden",
     "INTERNAL": "Interner Helper-Fehler",
-    "UNAVAILABLE": "Der Helper ist nicht verfügbar"
+    "UNAVAILABLE": "Der Helper ist nicht verfügbar",
+    "LICENSE_INVALID": "Die Lizenz wurde abgelehnt"
+  },
+  "license": {
+    "title": "Lizenz",
+    "state": "Status",
+    "id": "Lizenz",
+    "offer": "Angebot",
+    "until": "Gültig bis",
+    "activate": "1. Aktivierungsanfrage erstellen",
+    "requestHint": "Senden Sie diesen Text an Oblivio. Er enthält nur den öffentlichen Schlüssel dieses Arbeitsplatzes.",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "install": "2. Erhaltene Lizenz einfügen",
+    "installButton": "Lizenz installieren",
+    "installed": "Lizenz installiert.",
+    "close": "Schließen"
   }
 }

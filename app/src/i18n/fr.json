@@ -10,7 +10,9 @@
       "Missing": "Sans licence",
       "Valid": "Sous licence",
       "Expired": "Licence expirée",
-      "Revoked": "Licence révoquée"
+      "Revoked": "Licence révoquée",
+      "NotYetValid": "Licence pas encore valide",
+      "Invalid": "Licence invalide"
     },
     "rules": "règles {{version}}"
   },
@@ -113,6 +115,22 @@
     "NOT_CANCELLABLE": "Cette phase ne peut pas être annulée",
     "UNLOCK_FAILED": "Le disque n'a pas pu être déverrouillé",
     "INTERNAL": "Erreur interne du helper",
-    "UNAVAILABLE": "Le helper n'est pas disponible"
+    "UNAVAILABLE": "Le helper n'est pas disponible",
+    "LICENSE_INVALID": "La licence a été refusée"
+  },
+  "license": {
+    "title": "Licence",
+    "state": "État",
+    "id": "Licence",
+    "offer": "Offre",
+    "until": "Valable jusqu'au",
+    "activate": "1. Créer la demande d'activation",
+    "requestHint": "Envoyez ce texte à Oblivio. Il ne contient que la clé publique de ce poste.",
+    "copy": "Copier",
+    "copied": "Copié",
+    "install": "2. Coller la licence reçue",
+    "installButton": "Installer la licence",
+    "installed": "Licence installée.",
+    "close": "Fermer"
   }
 }

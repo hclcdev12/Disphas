@@ -10,8 +10,8 @@ use oblivio_core::RuleSet;
 use oblivio_core::verdict::Verdict;
 use oblivio_protocol::command::{Command, DeviceIdentity, HelloArgs, SanitizeArgs, VerdictId};
 use oblivio_protocol::response::{
-    DeviceSummary, Empty, ErrorCode, HelloResult, InspectResult, LicenseState, LicenseStatusResult,
-    ListDevicesResult, ListJobsResult,
+    ActivationRequestResult, DeviceSummary, Empty, ErrorBody, ErrorCode, HelloResult,
+    InspectResult, LicenseState, ListDevicesResult, ListJobsResult,
 };
 use oblivio_protocol::verdict as wire_verdict;
 use oblivio_protocol::{PROTOCOL_VERSION, Request, Response};
@@ -20,19 +20,20 @@ use serde_json::Value;
 
 use crate::backend::DeviceBackend;
 use crate::convert;
+use crate::licensing::Licensing;
 
 /// How long a verdict can be quoted by `Sanitize` (§6).
 pub const VERDICT_TTL: Duration = Duration::from_secs(600);
 
 /// Fixed facts about this helper.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SessionConfig {
     /// Rule set of the decision engine.
     pub rules: RuleSet,
     /// SHA-256 of the helper binary, hexadecimal.
     pub binary_sha256: String,
-    /// License status.
-    pub license: LicenseStatusResult,
+    /// License status, activation and installation.
+    pub licensing: Box<dyn Licensing + Send>,
 }
 
 /// A verdict issued by `Inspect`, kept until it expires.
@@ -48,6 +49,15 @@ struct IssuedVerdict {
 struct Failure {
     code: ErrorCode,
     detail: Option<String>,
+}
+
+impl From<ErrorBody> for Failure {
+    fn from(error: ErrorBody) -> Self {
+        Self {
+            code: error.code,
+            detail: error.detail,
+        }
+    }
 }
 
 impl Failure {
@@ -125,15 +135,31 @@ impl<B: DeviceBackend> Session<B> {
             Command::Cancel(_) | Command::GetJobResult(_) => {
                 Err(Failure::new(ErrorCode::BadRequest, "unknown job"))
             }
-            Command::LicenseStatus => to_value(&self.config.license),
+            Command::LicenseStatus => to_value(&self.config.licensing.status()),
             Command::Unlock(_) => Err(Failure::new(
                 ErrorCode::UnlockFailed,
                 "unlock not implemented yet",
             )),
-            Command::CreateActivationRequest | Command::InstallLicense(_) => Err(Failure::new(
-                ErrorCode::Internal,
-                "licensing not implemented yet",
-            )),
+            Command::CreateActivationRequest => {
+                let request = self
+                    .config
+                    .licensing
+                    .activation_request()
+                    .map_err(Failure::from)?;
+                to_value(&ActivationRequestResult { request })
+            }
+            Command::InstallLicense(args) => {
+                if self.running_job {
+                    return Err(Failure::new(ErrorCode::Busy, "a job is running"));
+                }
+                to_value(
+                    &self
+                        .config
+                        .licensing
+                        .install(&args.license)
+                        .map_err(Failure::from)?,
+                )
+            }
             Command::Shutdown => {
                 if self.running_job {
                     return Err(Failure::new(ErrorCode::Busy, "a job is running"));
@@ -160,7 +186,7 @@ impl<B: DeviceBackend> Session<B> {
             helper_version: env!("CARGO_PKG_VERSION").to_owned(),
             rules_version: self.config.rules.version.to_string(),
             binary_sha256: self.config.binary_sha256.clone(),
-            license: self.config.license.clone(),
+            license: self.config.licensing.status(),
         })
     }
 
@@ -294,7 +320,7 @@ impl<B: DeviceBackend> Session<B> {
         }
 
         // 8. License.
-        if self.config.license.state != LicenseState::Valid {
+        if self.config.licensing.status().state != LicenseState::Valid {
             return Err(Failure::new(
                 ErrorCode::LicenseRequired,
                 "no valid license installed",
@@ -386,7 +412,28 @@ mod tests {
         Acknowledgement, DispositionCode, Method, ReserveCode, ScopeWarning,
     };
     use oblivio_protocol::command::{DeviceArgs, DeviceRef, ForceArgs};
-    use oblivio_protocol::response::{ErrorBody, LicenseStatusResult};
+    use oblivio_protocol::response::LicenseStatusResult;
+
+    /// Licensing with a fixed state, for session tests.
+    #[derive(Debug)]
+    struct FixedLicensing(LicenseStatusResult);
+
+    impl Licensing for FixedLicensing {
+        fn status(&self) -> LicenseStatusResult {
+            self.0.clone()
+        }
+
+        fn activation_request(&self) -> Result<String, ErrorBody> {
+            Ok("OBA1:TEST".to_owned())
+        }
+
+        fn install(&self, _text: &str) -> Result<LicenseStatusResult, ErrorBody> {
+            Err(ErrorBody {
+                code: ErrorCode::LicenseInvalid,
+                detail: None,
+            })
+        }
+    }
 
     /// Backend over fictional drives; tests edit them between requests.
     #[derive(Debug, Default)]
@@ -476,7 +523,7 @@ mod tests {
             let config = SessionConfig {
                 rules: RuleSet::baseline(),
                 binary_sha256: "test".to_owned(),
-                license: license(license_state),
+                licensing: Box::new(FixedLicensing(license(license_state))),
             };
             Self {
                 session: Session::new(FakeBackend { devices }, config),
@@ -837,5 +884,63 @@ mod tests {
         assert_eq!(last_chars("S5GXNX0T1234567", 4), "4567");
         assert_eq!(last_chars("ÉÈ12", 4), "ÉÈ12");
         assert_eq!(last_chars("ab", 4), "ab");
+    }
+}
+
+#[cfg(test)]
+mod licensing_commands {
+    use super::*;
+    use crate::backend::NoDevices;
+    use crate::licensing::StoreLicensing;
+    use oblivio_license::LicenseStore;
+    use oblivio_protocol::command::InstallLicenseArgs;
+    use oblivio_protocol::response::LicenseStatusResult;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn activation_then_installation_enables_erasure_checks() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
+            .expect("chmod");
+        let licensing =
+            StoreLicensing::new(LicenseStore::new(dir.path()), crate::licensing::root_key());
+        let mut session = Session::new(
+            NoDevices,
+            SessionConfig {
+                rules: RuleSet::baseline(),
+                binary_sha256: "test".to_owned(),
+                licensing: Box::new(licensing),
+            },
+        );
+        let now = Instant::now();
+        let mut send = |id, command| session.handle(Request { id, command }, now).outcome;
+        send(
+            1,
+            Command::Hello(HelloArgs {
+                protocol_version: PROTOCOL_VERSION,
+                app_version: "test".to_owned(),
+            }),
+        )
+        .expect("hello");
+        let request: ActivationRequestResult =
+            serde_json::from_value(send(2, Command::CreateActivationRequest).expect("request"))
+                .expect("ActivationRequestResult");
+        let license = oblivio_license::dev_root::issue(
+            &request.request,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |elapsed| elapsed.as_secs()),
+            30,
+        )
+        .expect("issued");
+        let status: LicenseStatusResult = serde_json::from_value(
+            send(3, Command::InstallLicense(InstallLicenseArgs { license })).expect("installed"),
+        )
+        .expect("LicenseStatusResult");
+        assert_eq!(status.state, LicenseState::Valid);
+        let status: LicenseStatusResult =
+            serde_json::from_value(send(4, Command::LicenseStatus).expect("status"))
+                .expect("LicenseStatusResult");
+        assert_eq!(status.state, LicenseState::Valid);
     }
 }

@@ -4,7 +4,9 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Command } from "../bindings/Command";
 import type { DeviceRef } from "../bindings/DeviceRef";
 import type { HelloResult } from "../bindings/HelloResult";
+import type { ActivationRequestResult } from "../bindings/ActivationRequestResult";
 import type { InspectResult } from "../bindings/InspectResult";
+import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import type { ListDevicesResult } from "../bindings/ListDevicesResult";
 import type { SanitizeArgs } from "../bindings/SanitizeArgs";
 import type { SanitizeResult } from "../bindings/SanitizeResult";
@@ -24,6 +26,9 @@ export interface OblivioApi {
   listDevices(): Promise<Outcome<ListDevicesResult>>;
   inspect(device: DeviceRef): Promise<Outcome<InspectResult>>;
   sanitize(args: SanitizeArgs): Promise<Outcome<SanitizeResult>>;
+  licenseStatus(): Promise<Outcome<LicenseStatusResult>>;
+  createActivationRequest(): Promise<Outcome<ActivationRequestResult>>;
+  installLicense(license: string): Promise<Outcome<LicenseStatusResult>>;
   /** Labels of the attestation codes (N, D, R, methods), from Rust. */
   codeLabels(lang: Language): Promise<Record<string, string>>;
 }
@@ -50,8 +55,16 @@ const tauriApi: OblivioApi = {
   listDevices: () => call<ListDevicesResult>({ cmd: "ListDevices" }),
   inspect: (device) => call<InspectResult>({ cmd: "Inspect", args: { device } }),
   sanitize: (args) => call<SanitizeResult>({ cmd: "Sanitize", args }),
+  licenseStatus: () => call<LicenseStatusResult>({ cmd: "LicenseStatus" }),
+  createActivationRequest: () => call<ActivationRequestResult>({ cmd: "CreateActivationRequest" }),
+  installLicense: (license) => call<LicenseStatusResult>({ cmd: "InstallLicense", args: { license } }),
   codeLabels: (lang) => invoke<Record<string, string>>("code_labels", { lang }),
 };
+
+const unavailable = {
+  ok: false,
+  error: { code: "UNAVAILABLE", detail: "browser preview: no helper" },
+} as const;
 
 /** Browser preview: replays answers recorded from `oblivio-helper --features demo`. */
 const previewApi: OblivioApi = {
@@ -65,10 +78,10 @@ const previewApi: OblivioApi = {
       ? { ok: true, value: result as InspectResult }
       : { ok: false, error: { code: "DEVICE_NOT_FOUND", detail: null } };
   },
-  sanitize: async () => ({
-    ok: false,
-    error: { code: "UNAVAILABLE", detail: "browser preview: no helper" },
-  }),
+  sanitize: async () => unavailable,
+  licenseStatus: async () => ({ ok: true, value: recording.hello.license as LicenseStatusResult }),
+  createActivationRequest: async () => unavailable,
+  installLicense: async () => unavailable,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 

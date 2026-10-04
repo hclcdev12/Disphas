@@ -226,3 +226,18 @@ fn foreign_or_oversized_text_is_refused() {
         Err(LicenseError::Format(_))
     ));
 }
+
+#[test]
+fn development_root_issues_installable_licenses() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let text = crate::dev_root::issue(&request, NOW, 30).expect("issued");
+    let installed = store
+        .install(&text, &crate::dev_root::verifying_key(), NOW)
+        .expect("installed");
+    assert_eq!(installed.license.offer, "Dev");
+    assert!(matches!(
+        store.install(&text, &root().verifying_key(), NOW),
+        Err(LicenseError::Signature)
+    ));
+}

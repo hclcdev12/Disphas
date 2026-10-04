@@ -35,6 +35,8 @@ pub enum ErrorCode {
     ForceNotAllowed,
     /// The license does not allow erasure.
     LicenseRequired,
+    /// A license given to `InstallLicense` was rejected.
+    LicenseInvalid,
     /// Another job is running.
     Busy,
     /// The current job phase cannot be cancelled.
@@ -231,6 +233,10 @@ pub enum LicenseState {
     Expired,
     /// Revoked license.
     Revoked,
+    /// Installed license not valid yet.
+    NotYetValid,
+    /// Installed license unusable: corrupted, wrong root key or workstation.
+    Invalid,
 }
 
 /// Result of `LicenseStatus`.

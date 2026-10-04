@@ -10,7 +10,9 @@
       "Missing": "No license",
       "Valid": "Licensed",
       "Expired": "License expired",
-      "Revoked": "License revoked"
+      "Revoked": "License revoked",
+      "NotYetValid": "License not valid yet",
+      "Invalid": "Invalid license"
     },
     "rules": "rules {{version}}"
   },
@@ -113,6 +115,22 @@
     "NOT_CANCELLABLE": "This phase cannot be cancelled",
     "UNLOCK_FAILED": "The drive could not be unlocked",
     "INTERNAL": "Internal helper error",
-    "UNAVAILABLE": "The helper is not available"
+    "UNAVAILABLE": "The helper is not available",
+    "LICENSE_INVALID": "The license was rejected"
+  },
+  "license": {
+    "title": "License",
+    "state": "Status",
+    "id": "License",
+    "offer": "Offer",
+    "until": "Valid until",
+    "activate": "1. Create the activation request",
+    "requestHint": "Send this text to Oblivio. It contains only the public key of this workstation.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "install": "2. Paste the license received",
+    "installButton": "Install the license",
+    "installed": "License installed.",
+    "close": "Close"
   }
 }

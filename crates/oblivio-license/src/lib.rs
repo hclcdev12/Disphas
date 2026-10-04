@@ -11,6 +11,10 @@
 
 pub mod key;
 
+/// Public development root key: debug builds only, never in a release.
+#[cfg(debug_assertions)]
+pub mod dev_root;
+
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};

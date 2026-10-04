@@ -87,7 +87,7 @@ Avant toute action, le helper retrouve le disque **par son identité**. Si l'ide
 | `GetJobResult` | `job_id` | Statut final, attestation COSE (base64), journal JSON |
 | `LicenseStatus` | — | Offre, validité, identifiant |
 | `CreateActivationRequest` | — | Demande d'activation (contient la clé publique du poste) |
-| `InstallLicense` | contenu du `.lic` | OK ou erreur de vérification |
+| `InstallLicense` | contenu du `.lic` | Nouvel état de licence, ou `LICENSE_INVALID` |
 | `Shutdown` | — | Arrêt propre (refusé si une tâche est en cours) |
 
 La validation et la signature **ne sont pas** des commandes : elles font partie d'un `Sanitize`.
@@ -138,7 +138,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 
 `PROTOCOL_MISMATCH`, `BAD_REQUEST`, `UNKNOWN_COMMAND`, `DEVICE_NOT_FOUND`, `DEVICE_CHANGED`, `PROTECTED`,
 `VERDICT_EXPIRED`, `VERDICT_MISMATCH`, `CONFIRMATION_MISMATCH`, `ACK_MISSING`, `FORCE_NOT_ALLOWED`,
-`LICENSE_REQUIRED`, `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `INTERNAL`.
+`LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `INTERNAL`.
 
 ## 10. Persistance et reprise
 
@@ -223,3 +223,17 @@ UI                                   helper
 - `Unlock`, `CreateActivationRequest`, `InstallLicense`, `Cancel`, `GetJobResult` : pas encore implémentés ;
   `binary_sha256` est vide et la licence est `Missing` (donc tout `Sanitize` s'arrête au contrôle 8).
 - Non encore fait : vérification `PKEXEC_UID` et purge de l'environnement (§3), événements, persistance (§10).
+
+### Licence (branchée le 2026-10-04)
+
+- États sur le fil : `Missing`, `Valid`, `Expired`, `Revoked`, plus `NotYetValid` et `Invalid`
+  (fichier altéré, mauvaise racine ou mauvais poste), que la licence distinguait déjà.
+- L'état est relu et revérifié à chaque `Hello`, `LicenseStatus` et contrôle 8 de `Sanitize`.
+- **Clé racine** : la clé officielle (pas encore générée) en release ; en développement, à défaut, une
+  **clé racine de développement publique** (`oblivio_license::dev_root`), absente des binaires release
+  (vérifié : 0 occurrence de sa graine dans `target/release/oblivio-helper`). Sans clé racine, aucune licence
+  n'est jamais `Valid`.
+- **Dossier d'état** : `/var/lib/oblivio` en release (environnement ignoré) ; en développement,
+  `OBLIVIO_STATE_DIR` ou `~/.local/state/oblivio-dev`.
+- Licence de développement : `cargo run -p oblivio-license --example issue_dev_license -- 'OBA1:…' [jours]`.
+

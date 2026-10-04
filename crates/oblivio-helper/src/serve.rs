@@ -115,7 +115,6 @@ mod tests {
     use crate::backend::NoDevices;
     use crate::session::SessionConfig;
     use oblivio_core::RuleSet;
-    use oblivio_protocol::response::{LicenseState, LicenseStatusResult};
 
     fn session() -> Session<NoDevices> {
         Session::new(
@@ -123,12 +122,10 @@ mod tests {
             SessionConfig {
                 rules: RuleSet::baseline(),
                 binary_sha256: "test".to_owned(),
-                license: LicenseStatusResult {
-                    state: LicenseState::Missing,
-                    offer: None,
-                    license_id: None,
-                    valid_until: None,
-                },
+                licensing: Box::new(crate::licensing::StoreLicensing::new(
+                    oblivio_license::LicenseStore::new("/nonexistent/oblivio-test"),
+                    None,
+                )),
             },
         )
     }

@@ -11,22 +11,20 @@ use std::process::ExitCode;
 use oblivio_core::RuleSet;
 #[cfg(not(feature = "demo"))]
 use oblivio_helper::backend::NoDevices;
+use oblivio_helper::licensing::{self, StoreLicensing};
 use oblivio_helper::serve::serve;
 use oblivio_helper::session::{Session, SessionConfig};
-use oblivio_protocol::response::{LicenseState, LicenseStatusResult};
+use oblivio_license::LicenseStore;
 
 fn main() -> ExitCode {
     let config = SessionConfig {
         rules: RuleSet::baseline(),
         // TODO: hash /proc/self/exe once the helper is packaged.
         binary_sha256: String::new(),
-        // TODO: read the installed license once oblivio-license exists.
-        license: LicenseStatusResult {
-            state: LicenseState::Missing,
-            offer: None,
-            license_id: None,
-            valid_until: None,
-        },
+        licensing: Box::new(StoreLicensing::new(
+            LicenseStore::new(licensing::state_dir()),
+            licensing::root_key(),
+        )),
     };
     #[cfg(feature = "demo")]
     let backend = oblivio_helper::demo::DemoDevices::default();

@@ -3,4 +3,4 @@
 /**
  * State of the installed license.
  */
-export type LicenseState = "Missing" | "Valid" | "Expired" | "Revoked";
+export type LicenseState = "Missing" | "Valid" | "Expired" | "Revoked" | "NotYetValid" | "Invalid";
