@@ -1,0 +1,75 @@
+# Checks run on every push and pull request. No secret is available here and
+# nothing touches a real drive: hardware tests need the `hw-tests` feature and
+# OBLIVIO_TEST_DEVICE, never set in CI (CLAUDE.md §2).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Frontend (lint, types, build; Tauri needs app/dist to compile)
+        working-directory: app
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy (debug, every target)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Clippy (helper features)
+        run: |
+          cargo clippy -p oblivio-helper --all-targets --features demo -- -D warnings
+          cargo clippy -p oblivio-helper --all-targets --features real-devices -- -D warnings
+
+      - name: Clippy (release)
+        run: cargo clippy --release -p oblivio-helper -p oblivio-app -- -D warnings
+
+      - name: Tests
+        run: |
+          cargo test --workspace
+          cargo test -p oblivio-helper --features demo
+
+      - name: TypeScript bindings are up to date
+        run: |
+          cargo test -q -p oblivio-protocol --features ts-rs export_bindings
+          git diff --exit-code app/src/bindings

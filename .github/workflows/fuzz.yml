@@ -1,0 +1,48 @@
+# Weekly fuzzing of every parser of untrusted input (fuzz/README.md), five
+# minutes per target. Crashes are kept as artifacts to replay locally.
+name: Fuzz
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+
+      - name: Install cargo-fuzz
+        run: cargo install --locked cargo-fuzz
+
+      - name: Fuzz each target for 5 minutes
+        working-directory: fuzz
+        run: |
+          for target in $(cargo +nightly fuzz list); do
+            echo "::group::$target"
+            mkdir -p "corpus/$target"
+            cargo +nightly fuzz run "$target" "corpus/$target" "seeds/$target" -- \
+              -max_total_time=300 -rss_limit_mb=2048 -timeout=10
+            echo "::endgroup::"
+          done
+
+      - name: Keep crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/

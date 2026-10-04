@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileText, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import { api, type HelperError, type HistoryEntry } from "../lib/api";
@@ -19,14 +19,14 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; error: HelperError } | null>(null);
 
-  const load = useCallback(async () => {
-    setEntries(null);
-    setEntries(await api.listReports());
+  useEffect(() => {
+    void api.listReports().then(setEntries);
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const reload = async () => {
+    setEntries(null);
+    setEntries(await api.listReports());
+  };
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -63,7 +63,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <Button className="flex items-center gap-2" onClick={() => void load()}>
+        <Button className="flex items-center gap-2" onClick={() => void reload()}>
           <RefreshCw size={14} />
           {t("drives.refresh")}
         </Button>
