@@ -38,6 +38,21 @@ const OVERWRITE_SIGNATURE: u64 = 0x4f57 << 32; // "OW" in LBA 47:32
 const SHORT_TIMEOUT_MS: u32 = 10_000;
 const SANITIZE_START_TIMEOUT_MS: u32 = 60_000;
 
+/// ATA Security feature set commands.
+const SECURITY_SET_PASSWORD: u8 = 0xf1;
+const SECURITY_UNLOCK: u8 = 0xf2;
+const SECURITY_ERASE_PREPARE: u8 = 0xf3;
+const SECURITY_ERASE_UNIT: u8 = 0xf4;
+const SECURITY_DISABLE_PASSWORD: u8 = 0xf6;
+
+/// Control word bits of the security data block (word 0).
+const MASTER_PASSWORD: u16 = 1 << 0;
+const ENHANCED_ERASE: u16 = 1 << 1;
+/// Word 0 bit 8 of SET PASSWORD: security level Maximum. Oblivio always uses
+/// High (bit clear), so the manufacturer's master password can still unlock.
+#[cfg(test)]
+const LEVEL_MAXIMUM: u16 = 1 << 8;
+
 /// Data transfer of an ATA command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Transfer {
@@ -45,6 +60,8 @@ pub enum Transfer {
     None,
     /// PIO data-in of `n` 512-byte sectors.
     In(u16),
+    /// PIO data-out of one 512-byte sector (security commands).
+    Out,
 }
 
 /// An ATA command to pass through.
@@ -75,6 +92,8 @@ pub fn cdb(command: &AtaCommand) -> [u8; 16] {
         Transfer::None => (3u8, 0x20u8),
         // PIO data-in; T_DIR from device, BYTE_BLOCK, T_LENGTH in COUNT.
         Transfer::In(_) => (4, 0x0e),
+        // PIO data-out; T_DIR to device, BYTE_BLOCK, T_LENGTH in COUNT.
+        Transfer::Out => (5, 0x06),
     };
     let lba = command.lba.to_be_bytes(); // lba[2..8] = bits 47..0
     let [features_high, features_low] = command.features.to_be_bytes();
@@ -189,6 +208,86 @@ pub fn sanitize(operation: SanitizeOperation) -> AtaCommand {
     }
 }
 
+/// Whose password a security command carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Identifier {
+    /// User password.
+    User,
+    /// Master password.
+    Master,
+}
+
+/// The 512-byte data block of a security command (ACS-4 §7.42-7.47): the
+/// control word, then the 32-byte password as is, from byte 2 (as hdparm
+/// does, so a recorded password also works with standard tools).
+pub fn password_block(control: u16, password: &[u8; 32]) -> [u8; 512] {
+    let mut block = [0u8; 512];
+    block[..2].copy_from_slice(&control.to_le_bytes());
+    block[2..34].copy_from_slice(password);
+    block
+}
+
+fn security_command(command: u8, timeout_ms: u32) -> AtaCommand {
+    AtaCommand {
+        command,
+        features: 0,
+        count: 1,
+        lba: 0,
+        device: 0,
+        extend: false,
+        transfer: Transfer::Out,
+        timeout_ms,
+    }
+}
+
+/// SECURITY SET PASSWORD (user password, security level High).
+pub fn security_set_password() -> (AtaCommand, u16) {
+    (security_command(SECURITY_SET_PASSWORD, SHORT_TIMEOUT_MS), 0)
+}
+
+/// SECURITY UNLOCK with the given password.
+pub fn security_unlock(identifier: Identifier) -> (AtaCommand, u16) {
+    let control = if identifier == Identifier::Master {
+        MASTER_PASSWORD
+    } else {
+        0
+    };
+    (security_command(SECURITY_UNLOCK, SHORT_TIMEOUT_MS), control)
+}
+
+/// SECURITY DISABLE PASSWORD with the given password.
+pub fn security_disable_password(identifier: Identifier) -> (AtaCommand, u16) {
+    let control = if identifier == Identifier::Master {
+        MASTER_PASSWORD
+    } else {
+        0
+    };
+    (
+        security_command(SECURITY_DISABLE_PASSWORD, SHORT_TIMEOUT_MS),
+        control,
+    )
+}
+
+/// SECURITY ERASE PREPARE: must immediately precede SECURITY ERASE UNIT.
+pub fn security_erase_prepare() -> AtaCommand {
+    AtaCommand {
+        command: SECURITY_ERASE_PREPARE,
+        features: 0,
+        count: 0,
+        lba: 0,
+        device: 0,
+        extend: false,
+        transfer: Transfer::None,
+        timeout_ms: SHORT_TIMEOUT_MS,
+    }
+}
+
+/// SECURITY ERASE UNIT with the user password; blocks until the erase ends.
+pub fn security_erase_unit(enhanced: bool, timeout_ms: u32) -> (AtaCommand, u16) {
+    let control = if enhanced { ENHANCED_ERASE } else { 0 };
+    (security_command(SECURITY_ERASE_UNIT, timeout_ms), control)
+}
+
 fn sanitize_device(features: u16, count: u16, lba: u64, timeout_ms: u32) -> AtaCommand {
     AtaCommand {
         command: SANITIZE_DEVICE,
@@ -284,19 +383,34 @@ impl<'a> AtaDevice<'a> {
     }
 
     fn run(&self, command: &AtaCommand) -> Result<Completion, DeviceError> {
+        self.run_with(command, None)
+    }
+
+    /// Runs `command`; `out` is the data block of a data-out command. The
+    /// aligned copy of `out` is wiped right after the call (it may hold a
+    /// password).
+    fn run_with(
+        &self,
+        command: &AtaCommand,
+        out: Option<&[u8; 512]>,
+    ) -> Result<Completion, DeviceError> {
         let block = cdb(command);
         let mut sense = [0u8; 64];
         let sectors = match command.transfer {
             Transfer::None => 0,
             Transfer::In(sectors) => usize::from(sectors),
+            Transfer::Out => 1,
         };
         let mut data = AlignedBuffer::new(sectors * decoded::SECTOR_SIZE);
+        if let Some(out) = out {
+            data.copy_from_slice(out);
+        }
         let mut hdr = SgIoHdr {
             interface_id: i32::from(b'S'),
-            dxfer_direction: if sectors == 0 {
-                sys::SG_DXFER_NONE
-            } else {
-                sys::SG_DXFER_FROM_DEV
+            dxfer_direction: match command.transfer {
+                Transfer::None => sys::SG_DXFER_NONE,
+                Transfer::In(_) => sys::SG_DXFER_FROM_DEV,
+                Transfer::Out => sys::SG_DXFER_TO_DEV,
             },
             cmd_len: block.len() as u8,
             mx_sb_len: sense.len() as u8,
@@ -324,7 +438,12 @@ impl<'a> AtaDevice<'a> {
             info: 0,
         };
         // `block`, `sense` and `data` outlive the call and match the lengths.
-        sys::sg_io(self.file.as_fd(), &mut hdr)?;
+        let sent = sys::sg_io(self.file.as_fd(), &mut hdr);
+        if out.is_some() {
+            // The aligned copy may hold a password: wipe it, even on failure.
+            zeroize::Zeroize::zeroize(&mut data[..]);
+        }
+        sent?;
         if hdr.host_status != 0 || hdr.driver_status & !0x08 != 0 {
             return Err(DeviceError::Command(format!(
                 "SG_IO host 0x{:x}, driver 0x{:x}",
@@ -391,6 +510,47 @@ impl<'a> AtaDevice<'a> {
     pub fn start_sanitize(&self, operation: SanitizeOperation) -> Result<(), DeviceError> {
         self.run(&sanitize(operation)).map(|_| ())
     }
+
+    fn security(
+        &self,
+        (command, control): (AtaCommand, u16),
+        password: &[u8; 32],
+    ) -> Result<(), DeviceError> {
+        let mut block = zeroize::Zeroizing::new(password_block(control, password));
+        let result = self.run_with(&command, Some(&block)).map(|_| ());
+        zeroize::Zeroize::zeroize(&mut *block);
+        result
+    }
+
+    /// SECURITY SET PASSWORD: user password, security level High.
+    pub fn set_user_password(&self, password: &[u8; 32]) -> Result<(), DeviceError> {
+        self.security(security_set_password(), password)
+    }
+
+    /// SECURITY UNLOCK.
+    pub fn unlock(&self, identifier: Identifier, password: &[u8; 32]) -> Result<(), DeviceError> {
+        self.security(security_unlock(identifier), password)
+    }
+
+    /// SECURITY DISABLE PASSWORD.
+    pub fn disable_password(
+        &self,
+        identifier: Identifier,
+        password: &[u8; 32],
+    ) -> Result<(), DeviceError> {
+        self.security(security_disable_password(identifier), password)
+    }
+
+    /// SECURITY ERASE PREPARE then, immediately, SECURITY ERASE UNIT.
+    pub fn erase_unit(
+        &self,
+        password: &[u8; 32],
+        enhanced: bool,
+        timeout_ms: u32,
+    ) -> Result<(), DeviceError> {
+        self.run(&security_erase_prepare())?;
+        self.security(security_erase_unit(enhanced, timeout_ms), password)
+    }
 }
 
 #[cfg(test)]
@@ -454,6 +614,38 @@ mod tests {
             (0x00, 0x01),
             "status, clear failure"
         );
+    }
+
+    #[test]
+    fn security_blocks() {
+        let (set, control) = security_set_password();
+        assert_eq!(control & LEVEL_MAXIMUM, 0, "level High, never Maximum");
+        let block = cdb(&set);
+        assert_eq!(
+            (block[1], block[2], block[6], block[14]),
+            (0x0a, 0x06, 1, 0xf1)
+        );
+        let (unlock, control) = security_unlock(Identifier::Master);
+        assert_eq!((cdb(&unlock)[14], control), (0xf2, MASTER_PASSWORD));
+        assert_eq!(cdb(&security_erase_prepare())[14], 0xf3);
+        let (erase, control) = security_erase_unit(true, 7_200_000);
+        assert_eq!(
+            (cdb(&erase)[14], control, erase.timeout_ms),
+            (0xf4, ENHANCED_ERASE, 7_200_000)
+        );
+        assert_eq!(
+            cdb(&security_disable_password(Identifier::User).0)[14],
+            0xf6
+        );
+    }
+
+    #[test]
+    fn password_block_layout() {
+        let password = *b"ABCDEFGHIJKLMNOPQRSTUVWXYZ012345";
+        let block = password_block(ENHANCED_ERASE, &password);
+        assert_eq!(&block[..2], &[0x02, 0x00]);
+        assert_eq!(&block[2..34], &password);
+        assert!(block[34..].iter().all(|&byte| byte == 0));
     }
 
     fn sense_with(descriptor: [u8; 14]) -> Vec<u8> {

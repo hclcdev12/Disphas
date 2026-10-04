@@ -24,9 +24,11 @@ undocumented_unsafe_blocks = "deny"
 hw-tests = []
 
 [dependencies]
+getrandom = "0.4.3"
 libc = "0.2.190"
 oblivio-core.workspace = true
 thiserror = "2.0.21"
+zeroize = "1.9.0"
 
 [dev-dependencies]
 tempfile = "3.27.0"

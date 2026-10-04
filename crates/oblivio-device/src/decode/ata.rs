@@ -32,6 +32,22 @@ pub struct IdentifyDevice {
     pub sanitize: AtaSanitizeCaps,
     /// Word 128.
     pub security: AtaSecurity,
+    /// Word 89: estimated SECURITY ERASE UNIT time, normal mode, in minutes.
+    pub security_erase_minutes: Option<u32>,
+    /// Word 90: estimated SECURITY ERASE UNIT time, enhanced mode, in minutes.
+    pub enhanced_erase_minutes: Option<u32>,
+}
+
+/// Erase time of IDENTIFY words 89/90 (ACS-3 §7.12.7.30): bit 15 set, bits
+/// 14:0 × 2 minutes; otherwise bits 7:0 × 2 minutes, 0 meaning unknown and
+/// 255 meaning more than 508 minutes.
+fn erase_minutes(word: u16) -> Option<u32> {
+    let value = if word & 0x8000 != 0 {
+        u32::from(word & 0x7fff)
+    } else {
+        u32::from(word & 0x00ff)
+    };
+    (value != 0).then_some(value * 2)
 }
 
 /// Decodes IDENTIFY DEVICE, checking its integrity word when present.
@@ -86,6 +102,8 @@ pub fn identify_device(data: &[u8]) -> Result<IdentifyDevice, DecodeError> {
             overwrite: bit(59, 12) && bit(59, 14),
             crypto_scramble: bit(59, 12) && bit(59, 13),
         },
+        security_erase_minutes: erase_minutes(word(89)),
+        enhanced_erase_minutes: erase_minutes(word(90)),
         security: AtaSecurity {
             supported: bit(128, 0),
             locked: bit(128, 2),
@@ -318,6 +336,16 @@ mod tests {
         let identify = identify_device(&ssd().set(59, 0b1110 << 12).signed()).expect("valid");
         assert!(!identify.sanitize_supported);
         assert_eq!(identify.sanitize, AtaSanitizeCaps::default());
+    }
+
+    #[test]
+    fn reads_erase_time_estimates() {
+        let identify =
+            identify_device(&ssd().set(89, 0x0019).set(90, 0x8000 | 300).signed()).expect("valid");
+        assert_eq!(identify.security_erase_minutes, Some(50));
+        assert_eq!(identify.enhanced_erase_minutes, Some(600));
+        let unknown = identify_device(&ssd().signed()).expect("valid");
+        assert_eq!(unknown.security_erase_minutes, None);
     }
 
     #[test]

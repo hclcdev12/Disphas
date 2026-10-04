@@ -74,6 +74,8 @@ pub const BLKSSZGET: libc::c_ulong = 0x1268;
 
 /// `SG_DXFER_NONE`.
 pub const SG_DXFER_NONE: i32 = -1;
+/// `SG_DXFER_TO_DEV`.
+pub const SG_DXFER_TO_DEV: i32 = -2;
 /// `SG_DXFER_FROM_DEV`.
 pub const SG_DXFER_FROM_DEV: i32 = -3;
 
