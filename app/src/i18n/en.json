@@ -317,7 +317,8 @@
     "batchRejected": "Batch NOT authentic",
     "batchDrives_one": "{{count}} drive",
     "batchDrives_other": "{{count}} drives",
-    "zeroFinish": "Final pass of zeros, validated"
+    "zeroFinish": "Final pass of zeros, validated",
+    "allNamespaces": "Every namespace of the NVMe controller was erased"
   },
   "batch": {
     "current": "Current batch:",

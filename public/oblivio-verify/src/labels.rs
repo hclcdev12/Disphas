@@ -67,6 +67,8 @@ pub enum Msg {
     Batch,
     ZeroFinish,
     ZeroFinishValue,
+    Scope,
+    ScopeAllNamespaces,
     BatchAuthentic,
     BatchNotAuthentic,
     Drives,
@@ -202,6 +204,12 @@ pub fn msg(message: Msg) -> Text {
             "final pass of zeros, validated",
             "passe finale de zéros, validée",
             "abschließender Durchgang mit Nullen, validiert",
+        ),
+        Msg::Scope => t("Scope", "Portée", "Umfang"),
+        Msg::ScopeAllNamespaces => t(
+            "every namespace of the NVMe controller",
+            "tous les namespaces du contrôleur NVMe",
+            "alle Namespaces des NVMe-Controllers",
         ),
         Msg::BatchAuthentic => t(
             "AUTHENTIC BATCH: every drive is signed by a licensed Oblivio workstation",

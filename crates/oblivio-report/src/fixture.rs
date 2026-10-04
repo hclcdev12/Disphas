@@ -73,6 +73,8 @@ fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Ba
                 Status::Refused => None,
             },
             zero_finish: false,
+            // An NVMe Sanitize erases every namespace of the controller.
+            all_namespaces: status == Status::Compliant,
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
         },
         verified: ran.then_some(true),

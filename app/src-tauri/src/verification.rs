@@ -72,6 +72,8 @@ pub struct Details {
     pub method: Option<String>,
     /// The host overwrite ended with a validated pass of zeros.
     pub zero_finish: bool,
+    /// Every namespace of the NVMe controller was erased.
+    pub all_namespaces: bool,
     /// Firmware verification, if it ran.
     pub verified: Option<bool>,
     /// Validation, if it ran.
@@ -215,6 +217,7 @@ fn details(verified: &Verified) -> Details {
             .as_ref()
             .map(|code| code.as_str().to_owned()),
         zero_finish: a.sanitization.zero_finish,
+        all_namespaces: a.sanitization.all_namespaces,
         verified: a.verified,
         validation: a.validation.as_ref().map(|validation| Validation {
             method: validation.method.as_str().to_owned(),

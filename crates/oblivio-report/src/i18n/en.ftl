@@ -66,3 +66,5 @@ batch-status = Status
 batch-verify-hint = Each drive is proven by its own signed attestation, attached to this PDF ("<report>.cose", with its journal "<report>.json") and carrying the batch number under its signature. Verify this PDF offline with Oblivio or oblivio-verify. This document is only a rendering: the signed attestations are authoritative.
 finish = Finish
 finish-zero = final pass of zeros, validated
+scope = Scope
+scope-all-namespaces = every namespace of the NVMe controller

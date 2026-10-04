@@ -317,7 +317,8 @@
     "batchRejected": "Los NICHT echt",
     "batchDrives_one": "{{count}} Datenträger",
     "batchDrives_other": "{{count}} Datenträger",
-    "zeroFinish": "Abschließender Durchgang mit Nullen, validiert"
+    "zeroFinish": "Abschließender Durchgang mit Nullen, validiert",
+    "allNamespaces": "Alle Namespaces des NVMe-Controllers wurden gelöscht"
   },
   "batch": {
     "current": "Aktuelles Los:",

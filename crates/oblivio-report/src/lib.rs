@@ -355,6 +355,13 @@ fn inputs(
     if san.zero_finish {
         sanitization_rows.push(row(t.text("finish")?, vec![t.text("finish-zero")?], false));
     }
+    if san.all_namespaces {
+        sanitization_rows.push(row(
+            t.text("scope")?,
+            vec![t.text("scope-all-namespaces")?],
+            false,
+        ));
+    }
     let sanitization = section(t.text("section-sanitization")?, sanitization_rows);
 
     // Future and reserves.

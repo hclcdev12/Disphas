@@ -317,7 +317,8 @@
     "batchRejected": "Lot NON authentique",
     "batchDrives_one": "{{count}} support",
     "batchDrives_other": "{{count}} supports",
-    "zeroFinish": "Passe finale de zéros, validée"
+    "zeroFinish": "Passe finale de zéros, validée",
+    "allNamespaces": "Tous les namespaces du contrôleur NVMe ont été effacés"
   },
   "batch": {
     "current": "Lot en cours :",

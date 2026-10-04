@@ -485,6 +485,10 @@ fn firmware_erasure_is_compliant_purge() {
         ]
     );
     assert_eq!(bench.reports().len(), 2, "report .cose and .json stored");
+    assert!(
+        attestation.sanitization.all_namespaces,
+        "an NVMe Sanitize certifies every namespace"
+    );
     assert_eq!(
         bench.session.backend_mut().opened,
         [("SN-A001".to_owned(), true)],
@@ -511,6 +515,10 @@ fn host_overwrite_is_compliant_clear_with_r7() {
         .map(|code| code.as_str())
         .collect();
     assert_eq!(reserves, ["R7"]);
+    assert!(
+        !attestation.sanitization.all_namespaces,
+        "a host write stays on its namespace"
+    );
     assert!(image_is_erased(&bench.dir.path().join("SN-B002.img")));
     assert!(
         !bench.phases().contains(&JobPhase::Canaries),

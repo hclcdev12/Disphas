@@ -157,6 +157,9 @@ pub struct Sanitization {
     /// A host overwrite ended with a validated pass of zeros (`z`, present
     /// only when true).
     pub zero_finish: bool,
+    /// The method erased every namespace of the NVMe controller, not only
+    /// the one certified (`nsa`, present only when true).
+    pub all_namespaces: bool,
 }
 
 /// How the result was validated (`val`).
@@ -423,6 +426,12 @@ impl Attestation {
                 "z",
                 self.sanitization.zero_finish.then_some(Value::Bool(true)),
             )
+            .optional(
+                "nsa",
+                self.sanitization
+                    .all_namespaces
+                    .then_some(Value::Bool(true)),
+            )
             .field(
                 "ref",
                 Value::Array(
@@ -536,6 +545,12 @@ impl Attestation {
                 Some(Ok(false)) => return Err(CborError::Invalid("z")),
                 Some(Err(error)) => return Err(error),
             },
+            all_namespaces: match san.optional("nsa").map(|value| cbor::boolean(value, "nsa")) {
+                None => false,
+                Some(Ok(true)) => true,
+                Some(Ok(false)) => return Err(CborError::Invalid("nsa")),
+                Some(Err(error)) => return Err(error),
+            },
         };
         san.finish()?;
 
@@ -634,6 +649,7 @@ impl Attestation {
     /// - A host write (method `HostOverwrite`, or validation by pattern) is
     ///   never Purge.
     /// - `z` only after a host write whose verification and validation passed.
+    /// - `nsa` only with an NVMe drive and a firmware method.
     /// - CONFORME: a method executed, verified and validated, a category, a
     ///   disposition, no refusal reason, no justification.
     /// - NON CONFORME: forced, so a justification and refusal reasons; Clear
@@ -672,6 +688,11 @@ impl Attestation {
         }
         if san.zero_finish && !(host_write && validated) {
             return fail("zero pass without a validated host write");
+        }
+        if san.all_namespaces
+            && (host_write || san.method.is_none() || self.device.drive_type != DriveType::Nvme)
+        {
+            return fail("every namespace erased without an NVMe firmware method");
         }
         match self.status {
             Status::Compliant => {

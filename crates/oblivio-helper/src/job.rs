@@ -793,6 +793,8 @@ fn attestation(
                 && last.is_some_and(|report| {
                     report.verification_passed && report.validation == Validation::Passed
                 }),
+            // Certified as executed: only once the method actually ran.
+            all_namespaces: spec.plan.erases_all_namespaces() && last.is_some(),
         },
         verified: last.map(|report| report.verification_passed),
         validation: last.map(|report| AttValidation {

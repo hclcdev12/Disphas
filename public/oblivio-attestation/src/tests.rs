@@ -64,6 +64,7 @@ fn attestation(license: Vec<u8>) -> Attestation {
             category: Category::Purge,
             method: Some(code("NvmeSanitizeBlockErase")),
             zero_finish: false,
+            all_namespaces: false,
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
         },
         verified: Some(true),
@@ -421,6 +422,63 @@ fn host_write(license: Vec<u8>) -> Attestation {
     }
     host.reserves = vec![code("R7")];
     host
+}
+
+#[test]
+fn every_namespace_is_certified_only_for_an_nvme_firmware_method() {
+    let key = workstation();
+    let check = |change: fn(&mut Attestation)| {
+        let mut attestation = attestation(signed_license(&license(None), &root()));
+        attestation.sanitization.all_namespaces = true;
+        change(&mut attestation);
+        let signed = sign_attestation(&attestation, &key).expect("signed");
+        verify(&signed, &root_key(), &[]).map(|verified| verified.attestation)
+    };
+    // An NVMe Sanitize: certified, and round-trips.
+    let fine = check(|_| {}).expect("consistent");
+    assert!(fine.sanitization.all_namespaces);
+    assert_eq!(Attestation::from_cbor(&fine.to_cbor()), Ok(fine));
+    // A refused NVMe Sanitize still erased every namespace.
+    check(|a| {
+        a.status = Status::Refused;
+        a.sanitization.category = Category::None;
+        a.disposition = None;
+        a.refusals = vec![code("N10")];
+    })
+    .expect("refused but executed");
+    for (name, change) in [
+        (
+            "SATA drive",
+            (|a: &mut Attestation| a.device.drive_type = DriveType::SataSsd)
+                as fn(&mut Attestation),
+        ),
+        ("no method", |a| a.sanitization.method = None),
+        ("host write", |a| {
+            a.sanitization.method = Some(code(HOST_WRITE_METHOD));
+            a.sanitization.category = Category::Clear;
+            if let Some(v) = &mut a.validation {
+                v.method = ValidationMethod::Pattern;
+            }
+        }),
+    ] {
+        assert!(
+            matches!(
+                check(change),
+                Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+            ),
+            "{name}"
+        );
+    }
+    // Present only when true.
+    let mut entries = as_map(&attestation(vec![1]).to_cbor());
+    for (key, value) in &mut entries {
+        if key.as_text() == Some("san")
+            && let Value::Map(san) = value
+        {
+            san.push((Value::Text("nsa".to_owned()), Value::Bool(false)));
+        }
+    }
+    assert!(Attestation::from_cbor(&raw_encode(entries)).is_err());
 }
 
 #[test]

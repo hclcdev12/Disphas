@@ -40,7 +40,7 @@ Taille visée : < 1 000 caractères (QR version ~20, lisible imprimé en 4 × 4 
 | `iat` | Fin de l'opération, UTC (epoch secondes) | — |
 | `st` | **Statut global** (§3) | `CONFORME` |
 | `dev` | Modèle, **numéro de série complet**, firmware, capacité (octets), type (NVMe / SATA-SSD / SATA-HDD), identifiants mondiaux si disponibles : WWN (ATA), EUI-64 / NGUID (NVMe) | — |
-| `san` | Catégorie (`Clear` / `Purge` / `None`), méthode, référentiels (`NIST SP 800-88r2`, `IEEE 2883-2022`) | `Purge`, `NVMe Sanitize Block Erase` |
+| `san` | Catégorie (`Clear` / `Purge` / `None`), méthode, portée « tous les namespaces » le cas échéant, référentiels (`NIST SP 800-88r2`, `IEEE 2883-2022`) | `Purge`, `NVMe Sanitize Block Erase` |
 | `ver` | Vérification firmware : succès / échec | — |
 | `val` | Validation : méthode (`canaris` / `motif`), nombre d'échantillons, graine, résultat | `canaris`, `1000`, `OK` |
 | `dis` | **Devenir** : `Reuse` ou `DestroyRecommended` + codes (D1…D5) | — |
@@ -65,7 +65,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 |---|---|---|
 | `id` | — | UUID v7 en 16 octets bruts (pas en texte : économise ~20 octets dans le QR) |
 | `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) |
-| `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `z`? (`true` : réécriture hôte terminée par une passe de zéros validée — absent sinon, `false` explicite rejeté), `ref` (liste de référentiels) | `z` ajouté le 2026-10-04 |
+| `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `z`? (`true` : réécriture hôte terminée par une passe de zéros validée — absent sinon, `false` explicite rejeté), `nsa`? (`true` : la méthode a effacé **tous les namespaces** du contrôleur NVMe, pas seulement celui certifié — absent sinon, `false` explicite rejeté), `ref` (liste de référentiels) | `z` et `nsa` ajoutés le 2026-10-04 (avant toute mise sur le marché, d'où pas de nouvelle version de schéma) |
 | `ver` | — | booléen, absent si rien n'a été exécuté |
 | `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |
 | `dis` | `k` (`Reuse` / `DestroyRecommended`), `c` (codes D) | absent sur un refus |
@@ -89,6 +89,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
   avant de signer et préfère alors l'échec de la tâche à un certificat contradictoire. Règles :
   une réécriture hôte (`m` = `HostOverwrite`, ou validation `motif`) n'est jamais `Purge` ;
   `z` seulement après une réécriture hôte vérifiée et validée ;
+  `nsa` seulement sur un disque NVMe avec une méthode firmware (jamais une réécriture hôte) ;
   `CONFORME` : méthode, `ver` vrai, `val.ok` vrai, catégorie ≠ `None`, `dis` présent, `rsn` vide, pas de `frc` ;
   `NON_CONFORME` : `frc` et `rsn` non vide, catégorie ≠ `Purge` ;
   `REFUS` : catégorie `None`, `rsn` non vide, ni `dis` ni `z`.

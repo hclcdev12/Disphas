@@ -84,6 +84,9 @@ pub fn authentic(
     if a.sanitization.zero_finish {
         line(Msg::ZeroFinish, m(Msg::ZeroFinishValue));
     }
+    if a.sanitization.all_namespaces {
+        line(Msg::Scope, m(Msg::ScopeAllNamespaces));
+    }
     line(
         Msg::Verification,
         m(match a.verified {

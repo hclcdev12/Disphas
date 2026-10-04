@@ -208,7 +208,8 @@ Ordre de préférence :
   Format NVM aussi quand le contrôleur l'annonce (`FNA` bit 1) : le verdict porte alors la même portée
   (`all_namespaces`, prise d'acte `NS_ALL`). Pendant une opération à l'échelle du contrôleur, le helper tient
   les autres namespaces en `O_EXCL` et refuse si l'un d'eux est utilisé.
-  **Écart connu** : l'attestation signée ne porte pas encore cette portée (à décider : champ signé).
+  Le certificat la porte sous la signature (`san.nsa`, décidé le 2026-10-04) : posé dès que la méthode a été
+  exécutée, même si le résultat est un REFUS, et affiché « Portée : tous les namespaces du contrôleur NVMe ».
 
 ### 4.2 SATA SSD (non rotatif)
 
