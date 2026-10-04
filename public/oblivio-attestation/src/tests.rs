@@ -7,8 +7,8 @@ use sha2::{Digest, Sha256};
 use crate::cbor::CborError;
 use crate::cose::{self, CoseError};
 use crate::model::{
-    Category, Code, Device, Disposition, DispositionKind, DriveType, Sanitization, Status, Tool,
-    Validation, ValidationMethod,
+    Category, Code, Device, Disposition, DispositionKind, DriveType, HOST_WRITE_METHOD,
+    Sanitization, Status, Tool, Validation, ValidationMethod,
 };
 use crate::verify::MAX_ATTESTATION_BYTES;
 use crate::*;
@@ -383,9 +383,21 @@ mod batch_verification {
     }
 }
 
+/// A compliant host overwrite: Clear, validated by pattern.
+fn host_write(license: Vec<u8>) -> Attestation {
+    let mut host = attestation(license);
+    host.sanitization.category = Category::Clear;
+    host.sanitization.method = Some(code(HOST_WRITE_METHOD));
+    if let Some(validation) = &mut host.validation {
+        validation.method = ValidationMethod::Pattern;
+    }
+    host.reserves = vec![code("R7")];
+    host
+}
+
 #[test]
 fn zero_finish_is_present_only_when_true() {
-    let mut finished = attestation(vec![1]);
+    let mut finished = host_write(vec![1]);
     finished.sanitization.zero_finish = true;
     assert_eq!(
         Attestation::from_cbor(&finished.to_cbor()),
@@ -405,4 +417,103 @@ fn zero_finish_is_present_only_when_true() {
         }
     }
     assert!(Attestation::from_cbor(&raw_encode(entries)).is_err());
+}
+
+#[test]
+fn contradictory_attestations_are_rejected_even_when_signed() {
+    type Change = fn(&mut Attestation);
+    let refuse = |status| {
+        move |a: &mut Attestation| {
+            a.status = status;
+            a.sanitization.category = Category::None;
+            a.disposition = None;
+            a.refusals = vec![code("N10")];
+        }
+    };
+    // Each change alone contradicts the certificate rules.
+    let cases: [(&str, Change); 14] = [
+        ("host write certified Purge", |a| {
+            a.sanitization.category = Category::Purge;
+        }),
+        ("pattern validation certified Purge", |a| {
+            a.sanitization.method = Some(code("Anything"));
+            a.sanitization.category = Category::Purge;
+        }),
+        ("zero pass after a firmware erasure", |a| {
+            a.sanitization.method = Some(code("NvmeSanitizeBlockErase"));
+            if let Some(v) = &mut a.validation {
+                v.method = ValidationMethod::Canaries;
+            }
+            a.sanitization.zero_finish = true;
+        }),
+        ("zero pass not validated", |a| {
+            a.sanitization.zero_finish = true;
+            a.status = Status::NonCompliant;
+            a.justification = Some("x".to_owned());
+            a.refusals = vec![code("N1")];
+            a.disposition = None;
+            if let Some(v) = &mut a.validation {
+                v.passed = false;
+            }
+        }),
+        ("CONFORME not verified", |a| a.verified = Some(false)),
+        ("CONFORME not validated", |a| {
+            if let Some(v) = &mut a.validation {
+                v.passed = false;
+            }
+        }),
+        ("CONFORME without validation", |a| a.validation = None),
+        ("CONFORME without method", |a| a.sanitization.method = None),
+        ("CONFORME without category", |a| {
+            a.sanitization.category = Category::None;
+        }),
+        ("CONFORME without disposition", |a| a.disposition = None),
+        ("CONFORME with refusal", |a| a.refusals = vec![code("N1")]),
+        ("CONFORME forced", |a| {
+            a.justification = Some("x".to_owned())
+        }),
+        ("NON CONFORME without justification", |a| {
+            a.status = Status::NonCompliant;
+            a.refusals = vec![code("N1")];
+        }),
+        ("REFUS with a category", |a| {
+            a.status = Status::Refused;
+            a.disposition = None;
+            a.refusals = vec![code("N10")];
+        }),
+    ];
+    let key = workstation();
+    for (name, change) in cases {
+        let mut contradictory = host_write(signed_license(&license(None), &root()));
+        change(&mut contradictory);
+        let signed = sign_attestation(&contradictory, &key).expect("signed");
+        assert!(
+            matches!(
+                verify(&signed, &root_key(), &[]),
+                Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+            ),
+            "{name}"
+        );
+    }
+
+    // The forms Oblivio produces are accepted.
+    let mut refused: Attestation = host_write(signed_license(&license(None), &root()));
+    refuse(Status::Refused)(&mut refused);
+    let mut forced = host_write(signed_license(&license(None), &root()));
+    forced.status = Status::NonCompliant;
+    forced.disposition = None;
+    forced.justification = Some("inspection impossible".to_owned());
+    forced.refusals = vec![code("N1")];
+    let mut zeros = host_write(signed_license(&license(None), &root()));
+    zeros.sanitization.zero_finish = true;
+    for fine in [
+        attestation(signed_license(&license(None), &root())),
+        host_write(signed_license(&license(None), &root())),
+        zeros,
+        refused,
+        forced,
+    ] {
+        let signed = sign_attestation(&fine, &key).expect("signed");
+        verify(&signed, &root_key(), &[]).expect("consistent");
+    }
 }

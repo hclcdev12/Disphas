@@ -82,6 +82,14 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 - COSE : en-tête protégé `{alg: EdDSA}` **seul**, en-tête non protégé vide, message étiqueté (tag 18).
   Toute autre forme est rejetée (pas de confusion d'algorithme). Ed25519 en vérification stricte.
 - QR : décompression bornée à 64 Kio (bombe zlib). Une attestation type tient sous 1 000 caractères (test).
+- **Cohérence** (2026-10-04, revue de sécurité S7) : une attestation dont les champs se contredisent est
+  rejetée au décodage, donc par tout vérificateur, même correctement signée ; le helper fait le même contrôle
+  avant de signer et préfère alors l'échec de la tâche à un certificat contradictoire. Règles :
+  une réécriture hôte (`m` = `HostOverwrite`, ou validation `motif`) n'est jamais `Purge` ;
+  `z` seulement après une réécriture hôte vérifiée et validée ;
+  `CONFORME` : méthode, `ver` vrai, `val.ok` vrai, catégorie ≠ `None`, `dis` présent, `rsn` vide, pas de `frc` ;
+  `NON_CONFORME` : `frc` et `rsn` non vide, catégorie ≠ `Purge` ;
+  `REFUS` : catégorie `None`, `rsn` non vide, ni `dis` ni `z`.
 
 ## 3. Les trois statuts
 

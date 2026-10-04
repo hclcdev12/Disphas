@@ -588,9 +588,89 @@ impl Attestation {
             license: cbor::bytes(fields.required("lic")?, "lic")?,
         };
         fields.finish()?;
+        attestation.check_consistency()?;
         Ok(attestation)
     }
+
+    /// Checks that the fields agree with each other and with the certificate
+    /// rules (`docs/certificat.md` §2 and §3). Applied when decoding, so a
+    /// signed but contradictory attestation is never shown as valid, and by
+    /// the helper before signing.
+    ///
+    /// - A host write (method `HostOverwrite`, or validation by pattern) is
+    ///   never Purge.
+    /// - `z` only after a host write whose verification and validation passed.
+    /// - CONFORME: a method executed, verified and validated, a category, a
+    ///   disposition, no refusal reason, no justification.
+    /// - NON CONFORME: forced, so a justification and refusal reasons; Clear
+    ///   at most.
+    /// - REFUS: category None, refusal reasons, no disposition, no `z`.
+    pub fn check_consistency(&self) -> Result<(), CborError> {
+        let fail = |reason| Err(CborError::Inconsistent(reason));
+        let san = &self.sanitization;
+        let by_pattern = self
+            .validation
+            .as_ref()
+            .is_some_and(|validation| validation.method == ValidationMethod::Pattern);
+        let host_write = by_pattern
+            || san
+                .method
+                .as_ref()
+                .is_some_and(|method| method.as_str() == HOST_WRITE_METHOD);
+        let validated = self.verified == Some(true)
+            && self
+                .validation
+                .as_ref()
+                .is_some_and(|validation| validation.passed);
+
+        if host_write && san.category == Category::Purge {
+            return fail("a host write is never Purge");
+        }
+        if san.zero_finish && !(host_write && validated) {
+            return fail("zero pass without a validated host write");
+        }
+        match self.status {
+            Status::Compliant => {
+                if san.method.is_none() || !validated {
+                    return fail("CONFORME without a verified and validated method");
+                }
+                if san.category == Category::None {
+                    return fail("CONFORME without a category");
+                }
+                if self.disposition.is_none() {
+                    return fail("CONFORME without a disposition");
+                }
+                if !self.refusals.is_empty() || self.justification.is_some() {
+                    return fail("CONFORME with refusal reasons or a justification");
+                }
+            }
+            Status::NonCompliant => {
+                if self.justification.is_none() || self.refusals.is_empty() {
+                    return fail("NON CONFORME without a justification and its reasons");
+                }
+                if san.category == Category::Purge {
+                    return fail("NON CONFORME above Clear");
+                }
+            }
+            Status::Refused => {
+                if san.category != Category::None {
+                    return fail("REFUS with a category");
+                }
+                if self.refusals.is_empty() {
+                    return fail("REFUS without a reason");
+                }
+                if self.disposition.is_some() || san.zero_finish {
+                    return fail("REFUS with a disposition or a zero pass");
+                }
+            }
+        }
+        Ok(())
+    }
 }
+
+/// Name of the host overwrite method (`san.m`): an Oblivio method code, the
+/// only one written by the host rather than by the drive's firmware.
+pub const HOST_WRITE_METHOD: &str = "HostOverwrite";
 
 fn uint(value: u64) -> Value {
     Value::Integer(value.into())

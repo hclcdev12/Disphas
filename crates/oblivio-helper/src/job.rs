@@ -392,6 +392,10 @@ impl Runner {
             lbas.len(),
             &journal,
         )?;
+        // Never sign what a verifier would reject as contradictory.
+        attestation
+            .check_consistency()
+            .map_err(|error| format!("attestation: {error}"))?;
         let signed = spec
             .signer
             .key
@@ -775,7 +779,13 @@ fn attestation(
             category: sanitized,
             method: Some(code(&format!("{:?}", option.method))?),
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
-            zero_finish: spec.zero_pass && option.method.is_host_write() && last.is_some(),
+            // Only a proven erasure ends with a proven pass of zeros.
+            zero_finish: spec.zero_pass
+                && option.method.is_host_write()
+                && status != Status::Refused
+                && last.is_some_and(|report| {
+                    report.verification_passed && report.validation == Validation::Passed
+                }),
         },
         verified: last.map(|report| report.verification_passed),
         validation: last.map(|report| AttValidation {

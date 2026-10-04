@@ -48,6 +48,40 @@ enum Firmware {
     /// The helper dies while the command runs; the drive carries on and
     /// erases the image (as a real Sanitize does after a power cycle).
     Crash,
+    /// Honest firmware, but blocks of zeros written by the host are
+    /// silently dropped: a zero pass cannot be validated.
+    DropsZeros,
+}
+
+/// A disk image that may drop host writes of zeros ([`Firmware::DropsZeros`]).
+struct Image {
+    file: FileImage,
+    drops_zeros: bool,
+}
+
+impl BlockIo for Image {
+    fn block_size(&self) -> u64 {
+        self.file.block_size()
+    }
+
+    fn block_count(&self) -> u64 {
+        self.file.block_count()
+    }
+
+    fn read_blocks(&mut self, lba: u64, buffer: &mut [u8]) -> std::io::Result<()> {
+        self.file.read_blocks(lba, buffer)
+    }
+
+    fn write_blocks(&mut self, lba: u64, data: &[u8]) -> std::io::Result<()> {
+        if self.drops_zeros && data.iter().all(|&byte| byte == 0) {
+            return Ok(());
+        }
+        self.file.write_blocks(lba, data)
+    }
+
+    fn sync(&mut self) -> std::io::Result<()> {
+        self.file.sync()
+    }
 }
 
 /// Holds firmware erasures until released, to keep jobs running.
@@ -72,7 +106,7 @@ impl Gate {
 }
 
 struct TestTarget {
-    image: FileImage,
+    image: Image,
     firmware: Firmware,
     gate: Option<std::sync::Arc<Gate>>,
 }
@@ -87,7 +121,7 @@ impl ErasureTarget for TestTarget {
             gate.wait();
         }
         match self.firmware {
-            Firmware::Honest => {
+            Firmware::Honest | Firmware::DropsZeros => {
                 erasure::host_overwrite(&mut self.image, &[0x11; 32], &mut |_| {})
                     .map_err(|e| e.to_string())?;
             }
@@ -153,7 +187,10 @@ impl DeviceBackend for ImageBackend {
             // Reopened after a crash: the drive keeps its content.
             let image = FileImage::open(&path, 512).map_err(|e| e.to_string())?;
             return Ok(Box::new(TestTarget {
-                image,
+                image: Image {
+                    file: image,
+                    drops_zeros: self.firmware == Firmware::DropsZeros,
+                },
                 firmware: self.firmware,
                 gate: self.gate.clone(),
             }));
@@ -164,7 +201,10 @@ impl DeviceBackend for ImageBackend {
             .write_blocks(0, &vec![0x5a; (BLOCKS * 512) as usize])
             .map_err(|e| e.to_string())?;
         Ok(Box::new(TestTarget {
-            image,
+            image: Image {
+                file: image,
+                drops_zeros: self.firmware == Firmware::DropsZeros,
+            },
             firmware: self.firmware,
             gate: self.gate.clone(),
         }))
@@ -854,6 +894,26 @@ fn zero_finish_proves_both_passes_and_leaves_a_blank_drive() {
         .send(Command::Sanitize(firmware))
         .expect_err("refused");
     assert_eq!(error.code, ErrorCode::BadRequest);
+}
+
+#[test]
+fn a_zero_pass_that_fails_validation_is_never_certified() {
+    let mut bench = Bench::new(vec![drive("SN-Z003", nvme())], Firmware::DropsZeros);
+    let inspection = bench.inspect("SN-Z003");
+    let mut args = sanitize(
+        &inspection,
+        Some(Method::HostOverwrite),
+        vec![Acknowledgement::Reserve(ReserveCode::HostWriteCoverage)],
+    );
+    args.zero_pass = true;
+    let (verified, result) = bench.erase(args);
+    assert_eq!(result.status, FinalStatus::Refused);
+    assert_eq!(verified.attestation.status, Status::Refused);
+    assert!(
+        !verified.attestation.sanitization.zero_finish,
+        "z only when the zero pass is validated"
+    );
+    assert!(verified.attestation.validation.is_some_and(|v| !v.passed));
 }
 
 #[test]

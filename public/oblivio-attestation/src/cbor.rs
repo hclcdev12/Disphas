@@ -25,6 +25,10 @@ pub enum CborError {
     /// Valid CBOR, but not in deterministic form.
     #[error("not in deterministic encoding")]
     NotCanonical,
+    /// Well-formed fields that contradict each other or the certificate
+    /// rules, such as a host write certified Purge.
+    #[error("inconsistent attestation: {0}")]
+    Inconsistent(&'static str),
 }
 
 /// Encodes `value` deterministically: map keys sorted by their encoded bytes.
