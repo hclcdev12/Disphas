@@ -32,6 +32,11 @@ Les entiers 64 bits sont exportés en `number` (toutes les valeurs du protocole 
 1. Au démarrage, `oblivio-app` lance `pkexec /usr/libexec/oblivio/oblivio-helper`.
    Une action polkit dédiée (`org.oblivio.helper`, exigence `auth_admin`) affiche un message clair à l'utilisateur.
 2. Le helper vérifie qu'il est bien lancé par pkexec (`PKEXEC_UID`), purge son environnement, puis attend `Hello`.
+   *Implémenté le 2026-10-04 (builds release)* : refus de démarrer si l'UID effectif (lu dans `/proc/self/status`)
+   n'est pas 0 ou si `PKEXEC_UID` est absent. **Écart** : l'environnement n'est pas réécrit
+   (`remove_var` est `unsafe` en Rust 2024 et le helper interdit l'unsafe) ; garantie équivalente : un helper
+   release ne lit aucune variable d'environnement hormis `PKEXEC_UID` et ne lance aucun processus ;
+   pkexec nettoie déjà l'environnement.
 3. Le helper vit tant que l'UI est ouverte.
 4. **Fermeture de l'UI** (fin de stdin) :
    - aucune tâche en cours → le helper s'arrête immédiatement ;
@@ -151,6 +156,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 ```
 
 - `reports/` sert aussi d'**historique** : l'app peut le lire directement, sans passer par le helper.
+  Droits : `reports/` 0755 et fichiers 0644 (jamais écrasés) ; `keys/` et `license/` restent 0700/0600.
 - Si le helper plante en cours de tâche, le lancement suivant reprend depuis `jobs/` :
   - **Sanitize firmware** : lecture du journal de statut du disque, puis vérification, validation et signature ;
   - **réécriture hôte** : la tâche est marquée *interrompue*, sans attestation ; l'opérateur relance (nouvelle inspection).

@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
+#[cfg(debug_assertions)]
 use std::path::PathBuf;
 use std::process::{Child, ChildStdin, Command as Process, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};

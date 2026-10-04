@@ -19,6 +19,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 getrandom = "0.4.3"
 base64 = "0.23.1"
 sha2 = "0.11"
+thiserror = "2.0.21"
 
 [features]
 # Fictional in-memory drives, one per verdict state, for UI development.

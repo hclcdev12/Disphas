@@ -13,6 +13,7 @@ pub mod job;
 pub mod licensing;
 pub mod serve;
 pub mod session;
+pub mod startup;
 
 #[cfg(test)]
 mod job_tests;

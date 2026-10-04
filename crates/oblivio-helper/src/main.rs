@@ -17,6 +17,12 @@ use oblivio_helper::session::{Session, SessionConfig};
 use oblivio_license::LicenseStore;
 
 fn main() -> ExitCode {
+    // Release builds: root, started by pkexec, or nothing (protocole_ipc.md §3).
+    #[cfg(not(debug_assertions))]
+    if let Err(error) = oblivio_helper::startup::check_this_process() {
+        eprintln!("oblivio-helper: {error}");
+        return ExitCode::FAILURE;
+    }
     let config = SessionConfig {
         rules: RuleSet::baseline(),
         binary_sha256: own_sha256(),

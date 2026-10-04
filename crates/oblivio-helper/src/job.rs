@@ -595,14 +595,24 @@ fn attestation(
     Ok((final_status, attestation))
 }
 
-/// Stores `<id>.cose` and `<id>.json` in the reports directory (0700).
+/// Stores `<id>.cose` and `<id>.json` in the reports directory. Reports are
+/// the user's history and readable by them (§10): directory 0755, files
+/// 0644, never overwritten. Keys and licenses stay root-only.
 fn store(dir: &std::path::Path, id: &str, signed: &[u8], journal: &[u8]) -> Result<(), String> {
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::create_dir_all(dir).map_err(|error| format!("reports: {error}"))?;
-    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
-        .map_err(|error| format!("reports: {error}"))?;
-    std::fs::write(dir.join(format!("{id}.cose")), signed)
-        .map_err(|error| format!("reports: {error}"))?;
-    std::fs::write(dir.join(format!("{id}.json")), journal)
-        .map_err(|error| format!("reports: {error}"))
+    use std::io::Write;
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+    let fail = |error: std::io::Error| format!("reports: {error}");
+    std::fs::create_dir_all(dir).map_err(fail)?;
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o755)).map_err(fail)?;
+    for (extension, content) in [("cose", signed), ("json", journal)] {
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o644)
+            .open(dir.join(format!("{id}.{extension}")))
+            .map_err(fail)?;
+        file.write_all(content).map_err(fail)?;
+        file.sync_all().map_err(fail)?;
+    }
+    Ok(())
 }
