@@ -36,3 +36,7 @@
 - Reprise d'un Sanitize après une **coupure de courant** (NVMe et ATA) : le disque doit reprendre seul,
   l'inspection (IDENTIFY) doit répondre pendant le Sanitize, et la tâche doit finir CONFORME au redémarrage.
 - Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.
+- Paquet `.deb` (non testable sur le poste de développement) : installation → groupe `oblivio` créé,
+  certificats d'une version antérieure passés en 0750/0640 ; opérateur hors groupe → message de l'historique ;
+  `apt remove` garde `/var/lib/oblivio` ; `apt purge` le supprime avec le groupe.
+- Effacement parallèle sur plusieurs vrais disques (SATA et NVMe en même temps), puis certificat de lot.
