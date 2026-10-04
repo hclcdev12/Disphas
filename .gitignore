@@ -46,3 +46,7 @@ issued-licenses.csv
 *~
 .DS_Store
 Thumbs.db
+
+# Python bytecode (asset generators)
+__pycache__/
+*.pyc
