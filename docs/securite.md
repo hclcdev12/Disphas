@@ -1,0 +1,101 @@
+# Oblivio — Modèle de menaces et revue de sécurité
+
+État au **2026-10-04**. Complète le [cadre](cadre_projet.md) (modèle de confiance du certificat), le
+[protocole](protocole_ipc.md) (frontière UI ↔ helper) et la [conformité](conformite.md) (CRA, RGPD).
+
+## 1. Ce qu'on protège
+
+| Bien | Pourquoi |
+|---|---|
+| **Les disques non visés** | Un effacement est irréversible : ne jamais toucher un disque protégé ou autre que celui confirmé |
+| **La vérité du certificat** | Un certificat CONFORME doit correspondre à un effacement réellement fait et prouvé |
+| **La clé du poste** (`/var/lib/oblivio/keys`) | Elle signe les certificats ; volée, elle permet de forger des certificats au nom du poste jusqu'à révocation |
+| **La clé racine** (hors ligne, chez l'éditeur) | Elle signe licences et listes de révocation ; volée, elle permet tout |
+| **Le poste lui-même** | Le helper tourne en root : il ne doit pas devenir une porte d'entrée vers root |
+| **Les données des certificats** | Données personnelles possibles (opérateur, n° de série) : accès limité (groupe `oblivio`) |
+
+## 2. Qui pourrait attaquer
+
+| Acteur | Capacités supposées |
+|---|---|
+| A1 — Programme malveillant **dans la session de l'opérateur** (même compte, sans root) | Lit et écrit les fichiers de l'utilisateur, peut lancer l'application, peut éventuellement piloter le processus de l'application (`ptrace`) selon la configuration du noyau |
+| A2 — **Fichier piégé** soumis à Oblivio | Certificat PDF/COSE/QR à vérifier, logo, licence, liste de révocation, demande d'activation |
+| A3 — **Disque défectueux ou hostile** | Réponses de firmware fausses ou malformées (IDENTIFY, journaux, SMART), comportement mensonger |
+| A4 — **Autre compte local** sans droits | Lit ce qui est lisible par tous, crée des fichiers là où c'est permis |
+| A5 — **Faussaire de certificats** | N'a pas accès au poste ; fabrique ou modifie des certificats et les présente à un tiers |
+| A6 — **Chaîne d'approvisionnement** | Dépendance compromise, paquet modifié en transit |
+
+Hors périmètre V1 : un attaquant déjà **root** sur le poste (il peut tout, y compris lire la clé du poste —
+limite assumée, voir [certificat](certificat.md) §4) ; l'accès physique prolongé à la machine.
+
+## 3. Frontières de confiance
+
+```
+utilisateur / fichiers reçus ──► application (compte utilisateur) ──pipe JSON──► helper (root) ──ioctl──► disques
+                                         │                                        │
+                                         └─► ~/Documents/Oblivio, ~/.config        └─► /var/lib/oblivio
+```
+
+- **Application → helper** : le helper ne fait **aucune** confiance à l'application (cadre §2) ; il
+  revérifie tout (identité du disque relue par lui, 9 contrôles de `Sanitize`, licence, bornes).
+- **Fichiers reçus → application** : toute entrée est bornée en taille et vérifiée avant affichage ; un
+  certificat qui ne se vérifie pas n'est jamais affiché comme fait.
+- **Disques → helper** : les données de firmware sont décodées de façon défensive (fuzzées).
+- **Poste → tiers** : seul le certificat signé fait foi ; le PDF n'est qu'un rendu.
+
+## 4. Limites assumées (V1)
+
+- **`iat` déclaré par le poste** : l'horodatage n'est pas certifié par un tiers ([certificat](certificat.md) §4).
+- **Clé du poste non scellée** : fichier 0600 root ; volée par un attaquant root ou par vol du disque.
+- **A1 et le pipe** : un programme du même compte qui contrôle le processus de l'application peut envoyer
+  des commandes au helper pendant la session. Le helper exige alors toujours la confirmation par le n° de
+  série et applique toutes ses protections ; il ne peut pas effacer un disque protégé ni signer un faux
+  résultat, mais il peut effacer un disque **non protégé** branché. Réduction : `kernel.yama.ptrace_scope ≥ 1`
+  (valeur constatée sur Pop!_OS 24.04 ; à vérifier sur chaque distribution cible), session dédiée à l'opérateur.
+
+## 5. Revue de sécurité du 2026-10-04
+
+Cinq relectures en parallèle (protocole et session, processus et fichiers, couche disque, application,
+cryptographie), en lecture seule. Chaque constat retenu ci-dessous a été **revérifié dans le code** ; les
+autres sont marqués *à confirmer*. Aucune faille mémoire, aucun contournement des 9 contrôles de `Sanitize`,
+de la licence ou du refus des disques PROTÉGÉS depuis le protocole, aucune injection dans le PDF ni XSS.
+
+### 5.1 Élevés
+
+| # | Constat | Vérifié | Correction |
+|---|---|---|---|
+| S1 | `/var/lib/oblivio` est créé par le helper avec les droits issus du `umask` hérité ; ni le paquet ni le helper ne fixent ses droits ni ne vérifient son propriétaire. Si un utilisateur en obtient l'écriture : clé du poste substituée (le contrôle accepte le propriétaire du dossier parent), `reports` en lien symbolique (chmod/chown root ailleurs), tâche plantée reprise sans confirmation | Oui (transmission du `umask` par pkexec *à confirmer*) | Le paquet crée l'arborescence root ; le helper fixe `umask 077`, refuse tout dossier d'état qui n'est pas à root, est un lien, ou est ouvert en écriture à d'autres ; clé du poste exigée à root |
+| S2 | Le disque est ouvert **par son nom** après résolution de l'identité, sans revérifier ensuite que c'est le même disque (débranchement / branchement entre-temps) | Oui | Après ouverture exclusive : comparer le numéro de périphérique et relire l'identité (IDENTIFY) sur le descripteur ouvert |
+
+### 5.2 Moyens
+
+| # | Constat | Vérifié | Correction |
+|---|---|---|---|
+| S3 | PDF piégé : la décompression des flux d'objets n'est pas bornée à l'ouverture (`lopdf` sans limite par défaut) → saturation mémoire de l'application / `oblivio-verify` | Oui (source de lopdf) | Limite de décompression à l'ouverture ; une seule analyse |
+| S4 | File de réponses du helper sans limite, commande inconnue renvoyée en entier → saturation mémoire du helper root par un client qui ne lit pas | Oui | File bornée ; écho tronqué |
+| S5 | NVMe Format peut effacer **tous** les espaces de noms (bit FNA lu mais inutilisé) ; les espaces de noms voisins ne sont pas tenus pendant une commande à l'échelle du contrôleur | Oui | Portée « tous les namespaces » aussi pour Format quand FNA l'indique ; ouverture exclusive des voisins pendant l'opération |
+| S6 | Identités en double (n° de série identique ou vide) : le premier disque correspondant est pris ; la reprise Security Erase ne compare que le n° de série | Oui | Refuser une identité ambiguë ou un n° de série vide ; comparer l'identité complète |
+| S7 | Rien ne revérifie la **cohérence** d'un certificat (ex. réécriture hôte certifiée Purge) ; l'option zéros est déclarée « validée » même si la validation échoue | Oui | Contrôle de cohérence avant signature et à la vérification ; `z` seulement si validé |
+| S8 | Outil éditeur : identifiants de licence sur 16 bits, unicité non vérifiée (la révocation porte sur l'identifiant) ; `revoke` sans `--list` oublie les révocations précédentes | Oui | Identifiants longs et uniques ; `--list` obligatoire dès qu'une liste existe |
+| S9 | Utilisateurs cachés d'un disque : périphérique loop adossé à une partition, swap sur loop, accès direct par un autre processus | *À confirmer* (comportement noyau) | Suivre les loop vers leur disque ; refuser si un processus tient le disque ouvert |
+| S10 | NVMe sur réseau (NVMe-oF) traité comme un disque local | Plausible | N'accepter que le transport `pcie` |
+| S11 | Partition EFI sur un autre disque, montée à la demande (autofs) : disque système non protégé | *À confirmer* | Traiter autofs sur les points système comme non traçable (refus) |
+
+### 5.3 Faibles et informatifs (extraits)
+
+Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
+« format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après
+l'effacement du même disque ; l'onglet *Vérifier* affiche « authentique » en vert même si le journal joint ne
+correspond pas ; un lot peut mêler plusieurs licences ; attente Sanitize sans délai maximal ; transfert ATA
+incomplet accepté ; quelques cas d'inventaire qui ne refusent pas (*fail open*) ; copies résiduelles du mot de
+passe ATA en mémoire ; enveloppe COSE ré-encodable sans la clé (signature intacte) ; `--root-key` avec la clé
+officielle ignore la liste de révocation intégrée ; libellé « 255 » du temps d'effacement ATA mal interprété.
+
+### 5.4 Contrôles jugés corrects
+
+Chaîne de signature (`verify_strict`, en-têtes COSE stricts, CBOR canonique re-encodé), exclusion de la racine
+de développement des builds release, 9 contrôles de `Sanitize` dans l'ordre avec identité relue, licence
+revérifiée, `O_EXCL` tenu toute la tâche, structures `ioctl` conformes aux en-têtes du noyau, décodeurs bornés,
+séquence Security Erase, politique polkit (`auth_admin`, jamais conservée), absence d'injection Typst et de XSS,
+CSP sans source distante, chemins de fichiers de l'application contrôlés, listes de révocation *fail closed*.
+
