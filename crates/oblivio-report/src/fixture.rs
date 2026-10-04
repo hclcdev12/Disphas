@@ -43,13 +43,13 @@ pub fn signed(status: Status, organization: &str) -> Vec<u8> {
         issued_at: ISSUED_AT,
         status,
         device: Device {
-            model: "Micron MTFDKCD1T0TGE-1BK1AABLA".to_owned(),
-            serial: "241248C8AF57".to_owned(),
-            firmware: "1002V6LN".to_owned(),
+            model: "Fictional NVMe SSD 1TB".to_owned(),
+            serial: "FICT0000A001".to_owned(),
+            firmware: "FICT01FW".to_owned(),
             capacity_bytes: 1_024_209_543_168,
             drive_type: DriveType::Nvme,
             wwn: None,
-            eui64: Some("00a0750148c8af57".to_owned()),
+            eui64: Some("00a07501fe0c0001".to_owned()),
             nguid: None,
         },
         sanitization: Sanitization {

@@ -146,9 +146,9 @@ mod tests {
 
     fn controller_buffer() -> Vec<u8> {
         let mut data = vec![0u8; IDENTIFY_SIZE];
-        put(&mut data, 4, &padded("241248C8AF57", 20));
-        put(&mut data, 24, &padded("Micron MTFDKCD1T0TGE-1BK1AABLA", 40));
-        put(&mut data, 64, &padded("1002V6LN", 8));
+        put(&mut data, 4, &padded("FICT0000A001", 20));
+        put(&mut data, 24, &padded("Fictional NVMe SSD 1TB", 40));
+        put(&mut data, 64, &padded("FICT01FW", 8));
         put(&mut data, 256, &0b10u16.to_le_bytes()); // OACS: Format NVM
         put(&mut data, 328, &0b011u32.to_le_bytes()); // SANICAP: CES + BES
         data[524] = 0b110; // FNA: secure erase all namespaces, crypto erase
@@ -158,9 +158,9 @@ mod tests {
     #[test]
     fn decodes_identify_controller() {
         let controller = identify_controller(&controller_buffer()).expect("valid");
-        assert_eq!(controller.serial, "241248C8AF57");
-        assert_eq!(controller.model, "Micron MTFDKCD1T0TGE-1BK1AABLA");
-        assert_eq!(controller.firmware, "1002V6LN");
+        assert_eq!(controller.serial, "FICT0000A001");
+        assert_eq!(controller.model, "Fictional NVMe SSD 1TB");
+        assert_eq!(controller.firmware, "FICT01FW");
         assert_eq!(
             controller.sanitize,
             NvmeSanitizeCaps {
@@ -196,12 +196,12 @@ mod tests {
         put(
             &mut data,
             120,
-            &[0x00, 0xa0, 0x75, 0x01, 0x48, 0xc8, 0xaf, 0x57],
+            &[0x00, 0xa0, 0x75, 0x01, 0xfe, 0x0c, 0x00, 0x01],
         );
         let namespace = identify_namespace(&data).expect("valid");
         assert_eq!(namespace.block_bytes, 4096);
         assert_eq!(namespace.capacity_bytes(), Some(2_000_409_264 * 4096));
-        assert_eq!(namespace.eui64.as_deref(), Some("00a0750148c8af57"));
+        assert_eq!(namespace.eui64.as_deref(), Some("00a07501fe0c0001"));
         assert_eq!(namespace.nguid, None);
     }
 

@@ -51,13 +51,13 @@ fn attestation(license: Vec<u8>) -> Attestation {
         issued_at: ISSUED_AT,
         status: Status::Compliant,
         device: Device {
-            model: "Micron MTFDKCD1T0TGE-1BK1AABLA".to_owned(),
-            serial: "241248C8AF57".to_owned(),
-            firmware: "1002V6LN".to_owned(),
+            model: "Fictional NVMe SSD 1TB".to_owned(),
+            serial: "FICT0000A001".to_owned(),
+            firmware: "FICT01FW".to_owned(),
             capacity_bytes: 1_024_209_543_168,
             drive_type: DriveType::Nvme,
             wwn: None,
-            eui64: Some("00a0750148c8af57".to_owned()),
+            eui64: Some("00a07501fe0c0001".to_owned()),
             nguid: None,
         },
         sanitization: Sanitization {
@@ -176,7 +176,7 @@ fn verifies_the_whole_chain_from_a_qr_code() {
     assert!(qr.len() < 1000, "QR text is {} characters", qr.len());
     let verified = verify(&from_qr_text(&qr).expect("valid QR"), &root_key(), &[])
         .expect("authentic attestation");
-    assert_eq!(verified.attestation.device.serial, "241248C8AF57");
+    assert_eq!(verified.attestation.device.serial, "FICT0000A001");
     assert_eq!(verified.license.customer, "Atelier XYZ");
     assert!(verified.matches_journal(JOURNAL));
     assert!(!verified.matches_journal(b"{}"));
