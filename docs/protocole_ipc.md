@@ -300,7 +300,8 @@ UI                                   helper
 
 ### Exécution (moteur de tâches, 2026-10-04)
 
-- Un `Sanitize` accepté consomme son `verdict_id` (usage unique) et lance une tâche sur son propre fil ;
+- Un `Sanitize` accepté consomme son `verdict_id` (usage unique) — ainsi que tout autre verdict du même disque
+  (même n° de série), qui décrit un état que l'effacement va changer — et lance une tâche sur son propre fil ;
   le helper continue de répondre. Réponses et événements passent par un même fil d'écriture.
 - Phases émises : `Preparing` → `Canaries` (méthodes firmware) → `Executing` → `Verifying` → `Validating`
   → `Signing` → `Done`, puis `JobFinished`. `JobProgress` : source `host` (octets, débit, temps restant)

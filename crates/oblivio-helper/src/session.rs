@@ -512,8 +512,12 @@ impl<B: DeviceBackend> Session<B> {
             .backend
             .open(&issued.identity, plan.erases_all_namespaces())
             .map_err(|error| Failure::new(ErrorCode::Internal, error))?;
-        // A verdict is used once.
-        self.verdicts.remove(&args.verdict_id);
+        // A verdict is used once, and every other verdict of this drive
+        // (same serial: an NVMe controller's namespaces share it) describes
+        // a state the erasure is about to change.
+        let serial = issued.identity.serial.clone();
+        self.verdicts
+            .retain(|_, other| other.identity.serial != serial);
         let spec = JobSpec {
             id,
             device: oblivio_protocol::command::DeviceRef {

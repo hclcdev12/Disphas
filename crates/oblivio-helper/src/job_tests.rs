@@ -598,6 +598,25 @@ fn a_verdict_is_used_only_once() {
 }
 
 #[test]
+fn an_erasure_invalidates_every_verdict_of_its_drive() {
+    let mut bench = Bench::new(
+        vec![drive("SN-E006", nvme()), drive("SN-E007", nvme())],
+        Firmware::Honest,
+    );
+    let first = bench.inspect("SN-E006");
+    let second = bench.inspect("SN-E006");
+    let other = bench.inspect("SN-E007");
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+    bench.erase(sanitize(&first, None, ack()));
+    let error = bench
+        .send(Command::Sanitize(sanitize(&second, None, ack())))
+        .expect_err("issued before the erasure");
+    assert_eq!(error.code, ErrorCode::VerdictExpired);
+    // Another drive's verdict is untouched.
+    bench.erase(sanitize(&other, None, ack()));
+}
+
+#[test]
 fn started_job_cannot_be_cancelled() {
     let mut bench = Bench::new(vec![drive("SN-F006", nvme())], Firmware::Honest);
     let inspection = bench.inspect("SN-F006");
