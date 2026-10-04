@@ -251,6 +251,7 @@
     "qrSource": "QR code text",
     "busy": "Verifying…",
     "authentic": "Authentic certificate",
+    "authenticJournalMismatch": "Authentic attestation, journal does not match",
     "rejected": "NOT an authentic certificate",
     "source": {
       "Pdf": "PDF (attached attestation)",

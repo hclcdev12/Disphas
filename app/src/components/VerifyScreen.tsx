@@ -157,11 +157,16 @@ function Result({
   const d = report.details;
   const tone = d.status === "CONFORME" ? "ready" : "sayno";
   const date = new Intl.DateTimeFormat(lang, { dateStyle: "long", timeStyle: "medium", timeZone: "UTC" });
+  // A journal that is not the signed one fails the check, as in oblivio-verify:
+  // never a green header.
+  const journalOk = report.journal !== "Mismatch";
   return (
-    <div className="mt-6 rounded-lg border border-ready/40 bg-card p-5">
+    <div className={`mt-6 rounded-lg border p-5 ${journalOk ? "border-ready/40 bg-card" : "border-sayno/40 bg-sayno/10"}`}>
       <div className="flex flex-wrap items-center gap-3">
-        <BadgeCheck className="text-ready" />
-        <h2 className="text-lg font-bold text-ready">{t("verify.authentic")}</h2>
+        {journalOk ? <BadgeCheck className="text-ready" /> : <ShieldX className="text-sayno" />}
+        <h2 className={`text-lg font-bold ${journalOk ? "text-ready" : "text-sayno"}`}>
+          {t(journalOk ? "verify.authentic" : "verify.authenticJournalMismatch")}
+        </h2>
         <span className="text-sm text-ash">
           {name} · {t(`verify.source.${report.source}`)}
         </span>

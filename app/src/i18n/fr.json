@@ -251,6 +251,7 @@
     "qrSource": "Texte du QR code",
     "busy": "Vérification…",
     "authentic": "Certificat authentique",
+    "authenticJournalMismatch": "Attestation authentique, journal non conforme",
     "rejected": "Certificat NON authentique",
     "source": {
       "Pdf": "PDF (attestation jointe)",

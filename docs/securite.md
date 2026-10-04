@@ -109,6 +109,7 @@ Corrigés le 2026-10-04 :
 - **L1 textes** : opérateur, organisation, justification (≤ 500) et libellé de lot refusent les caractères de contrôle et de mise en forme invisibles ou d'inversion de sens, au helper et au décodage de toute attestation.
 - **L2 tâche qui panique** : la panique est rattrapée et termine la tâche en échec, sans attestation, fichiers gardés pour le prochain démarrage comme après un arrêt brutal ; la table des tâches, empoisonnée par une panique, est récupérée : le disque n'est plus « occupé » jusqu'à la fin de la session. Testé (le test échoue sans la correction).
 - **L3 verdicts périmés** : le lancement d'une tâche invalide tous les verdicts du même disque, pas seulement celui utilisé. Testé.
+- **L4 onglet Vérifier** : un journal joint qui ne correspond pas à l'attestation donne un en-tête rouge « Attestation authentique, journal non conforme », comme `oblivio-verify` qui renvoie alors un échec (code 1).
 
 Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
 « format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après

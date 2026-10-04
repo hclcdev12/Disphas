@@ -251,6 +251,7 @@
     "qrSource": "Text des QR-Codes",
     "busy": "Wird geprüft…",
     "authentic": "Echte Bescheinigung",
+    "authenticJournalMismatch": "Echte Bescheinigung, Protokoll stimmt nicht überein",
     "rejected": "KEINE echte Bescheinigung",
     "source": {
       "Pdf": "PDF (angehängte Attestierung)",
