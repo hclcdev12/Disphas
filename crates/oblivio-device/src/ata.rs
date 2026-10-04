@@ -50,6 +50,18 @@ const MASTER_PASSWORD: u16 = 1 << 0;
 const ENHANCED_ERASE: u16 = 1 << 1;
 /// Word 0 bit 8 of SET PASSWORD: security level Maximum. Oblivio always uses
 /// High (bit clear), so the manufacturer's master password can still unlock.
+/// Refuses a partial transfer: `resid` bytes of the data block were not
+/// moved, so a data-in block would be decoded with a stale tail, and a
+/// data-out block (a password) did not fully reach the drive.
+fn complete_transfer(resid: i32) -> Result<(), DeviceError> {
+    if resid != 0 {
+        return Err(DeviceError::Command(format!(
+            "incomplete ATA transfer ({resid} bytes not moved)"
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 const LEVEL_MAXIMUM: u16 = 1 << 8;
 
@@ -466,6 +478,7 @@ impl<'a> AtaDevice<'a> {
                 hdr.status
             )));
         }
+        complete_transfer(hdr.resid)?;
         Ok(Completion { data, registers })
     }
 
@@ -556,6 +569,13 @@ impl<'a> AtaDevice<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_partial_transfer_is_refused() {
+        assert!(complete_transfer(0).is_ok());
+        assert!(complete_transfer(256).is_err());
+        assert!(complete_transfer(-1).is_err());
+    }
 
     #[test]
     fn identify_device_block() {

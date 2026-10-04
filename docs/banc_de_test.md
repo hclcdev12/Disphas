@@ -50,3 +50,4 @@
   qui garde le disque ouvert → refus à l'ouverture (« open in another process »).
 - Automount (S11) : sur un système où `/boot/efi` est en automount systemd, l'inventaire doit déclencher le
   montage et protéger le disque de l'ESP (P1).
+- ATA (L7) : `resid` de SG_IO nul sur IDENTIFY, SMART et SANITIZE STATUS pour chaque contrôleur SATA du banc.
