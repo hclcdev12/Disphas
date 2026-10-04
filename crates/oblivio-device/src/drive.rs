@@ -8,11 +8,15 @@
 
 use std::fs::{File, OpenOptions};
 use std::os::fd::AsFd;
-use std::os::unix::fs::{FileExt, FileTypeExt, OpenOptionsExt};
+use std::os::unix::fs::{FileExt, FileTypeExt, MetadataExt, OpenOptionsExt};
 
 use crate::aligned::AlignedBuffer;
 use crate::block::BlockIo;
+use oblivio_core::profile::DeviceIdentity;
+
+use crate::inspect;
 use crate::inventory::{self, SystemPaths, Transport};
+use crate::sysfs::DevNum;
 use crate::{DeviceError, sys};
 
 /// How the drive is driven.
@@ -36,8 +40,16 @@ pub struct ErasableDrive {
 impl ErasableDrive {
     /// Opens the drive named `name` (`nvme0n1`, `sda`) for erasure, after a
     /// fresh inventory. Refuses a drive that is protected, absent, not NVMe
-    /// or SATA, not a block device, or that the kernel reports as in use.
-    pub fn open(paths: &SystemPaths, name: &str) -> Result<Self, DeviceError> {
+    /// or SATA, not a block device, or that the kernel reports as in use;
+    /// then, on the opened node itself, refuses unless its device number is
+    /// the inventory's and its firmware reports exactly `expected` — so a
+    /// drive swapped under the same name between inspection and opening is
+    /// never touched.
+    pub fn open(
+        paths: &SystemPaths,
+        name: &str,
+        expected: &DeviceIdentity,
+    ) -> Result<Self, DeviceError> {
         let drives = inventory::scan(paths)?;
         let drive = drives
             .iter()
@@ -78,6 +90,14 @@ impl ErasableDrive {
                 Some(libc::EBUSY) => DeviceError::Refused(format!("{name} is in use (O_EXCL)")),
                 _ => DeviceError::Io(error),
             })?;
+        let rdev = file.metadata()?.rdev();
+        let actual = DevNum {
+            major: libc::major(rdev),
+            minor: libc::minor(rdev),
+        };
+        let reported = inspect::identity_of(&file, interface == Interface::Nvme)?;
+        same_drive(name, drive.dev, actual, expected, &reported)?;
+
         let block_size = u64::from(sys::logical_block_size(file.as_fd())?);
         let size = sys::block_device_size(file.as_fd())?;
         if block_size == 0 || size % block_size != 0 {
@@ -125,6 +145,28 @@ impl ErasableDrive {
     }
 }
 
+/// Whether the node opened for `name` is the inventoried, confirmed drive:
+/// same device number, and the firmware reports exactly the expected identity.
+fn same_drive(
+    name: &str,
+    inventoried: DevNum,
+    opened: DevNum,
+    expected: &DeviceIdentity,
+    reported: &DeviceIdentity,
+) -> Result<(), DeviceError> {
+    if inventoried != opened {
+        return Err(DeviceError::Refused(format!(
+            "{name}: the opened node is not the inventoried drive"
+        )));
+    }
+    if reported != expected {
+        return Err(DeviceError::Refused(format!(
+            "{name}: the drive opened is not the one confirmed"
+        )));
+    }
+    Ok(())
+}
+
 impl BlockIo for ErasableDrive {
     fn block_size(&self) -> u64 {
         self.block_size
@@ -152,5 +194,51 @@ impl BlockIo for ErasableDrive {
 
     fn sync(&mut self) -> std::io::Result<()> {
         self.file.sync_all()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn identity(serial: &str) -> DeviceIdentity {
+        DeviceIdentity {
+            model: "M".to_owned(),
+            serial: serial.to_owned(),
+            firmware: "1".to_owned(),
+            wwn: Some("5000c500deadbeef".to_owned()),
+            eui64: None,
+            nguid: None,
+        }
+    }
+
+    const SDB: DevNum = DevNum {
+        major: 8,
+        minor: 16,
+    };
+
+    #[test]
+    fn the_confirmed_drive_is_accepted() {
+        assert!(same_drive("sdb", SDB, SDB, &identity("A1"), &identity("A1")).is_ok());
+    }
+
+    #[test]
+    fn another_node_or_another_drive_is_refused() {
+        let other = DevNum {
+            major: 8,
+            minor: 32,
+        };
+        assert!(matches!(
+            same_drive("sdb", SDB, other, &identity("A1"), &identity("A1")),
+            Err(DeviceError::Refused(_))
+        ));
+        // Same name and node, but a different drive was plugged in meanwhile.
+        assert!(matches!(
+            same_drive("sdb", SDB, SDB, &identity("A1"), &identity("B2")),
+            Err(DeviceError::Refused(_))
+        ));
+        let mut no_wwn = identity("A1");
+        no_wwn.wwn = None;
+        assert!(same_drive("sdb", SDB, SDB, &identity("A1"), &no_wwn).is_err());
     }
 }

@@ -62,6 +62,35 @@ pub fn open_exclusive(paths: &SystemPaths, name: &str) -> Result<File, DeviceErr
         })
 }
 
+/// Identity reported by the firmware of an opened drive, built exactly as
+/// [`inspect`] builds it: used to check that a node opened for erasure is
+/// still the drive the operator confirmed.
+pub fn identity_of(file: &File, nvme: bool) -> Result<DeviceIdentity, DeviceError> {
+    if nvme {
+        let device = NvmeDevice::new(file)?;
+        let controller = device.identify_controller()?;
+        let (_, namespace) = device.identify_namespace()?;
+        Ok(DeviceIdentity {
+            model: controller.model,
+            serial: controller.serial,
+            firmware: controller.firmware,
+            wwn: None,
+            eui64: namespace.eui64,
+            nguid: namespace.nguid,
+        })
+    } else {
+        let identify = AtaDevice::new(file).identify()?;
+        Ok(DeviceIdentity {
+            model: identify.model,
+            serial: identify.serial,
+            firmware: identify.firmware,
+            wwn: identify.wwn,
+            eui64: None,
+            nguid: None,
+        })
+    }
+}
+
 fn nvme_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
     let device = NvmeDevice::new(file)?;
     let controller = device.identify_controller()?;

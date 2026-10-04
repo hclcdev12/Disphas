@@ -119,20 +119,17 @@ impl DeviceBackend for SystemBackend {
     }
 
     fn open(&mut self, identity: &DeviceIdentity) -> Result<Box<dyn ErasureTarget>, String> {
-        let name = self
+        // One lookup: the node name and the full identity it must answer with.
+        let (name, identity) = self
             .inspected()
             .into_iter()
             .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
-            .map(|(name, _)| name)
+            .map(|(name, device)| (name, device.profile.identity))
             .ok_or("drive not found")?;
-        let identity = self
-            .inspected()
-            .into_iter()
-            .find(|(candidate, _)| *candidate == name)
-            .map(|(_, device)| device.profile.identity)
-            .ok_or("drive not found")?;
-        // Opening re-checks protections on a fresh inventory and uses O_EXCL.
-        let drive = ErasableDrive::open(&self.paths, &name).map_err(|error| error.to_string())?;
+        // Opening re-checks protections on a fresh inventory, uses O_EXCL, and
+        // verifies on the opened node that it is still this very drive.
+        let drive = ErasableDrive::open(&self.paths, &name, &identity)
+            .map_err(|error| error.to_string())?;
         Ok(Box::new(DriveTarget {
             drive,
             record: FileRecord::new(&self.recovery, &identity),
@@ -145,16 +142,23 @@ impl DeviceBackend for SystemBackend {
         master: bool,
         password: &[u8; 32],
     ) -> Result<(), String> {
-        let name = self
+        let (name, expected) = self
             .inspected()
             .into_iter()
             .find(|(_, device)| convert::identity(&device.profile.identity) == *identity)
-            .map(|(name, _)| name)
+            .map(|(name, device)| (name, device.profile.identity))
             .ok_or("drive not found")?;
         if !name.starts_with("sd") {
             return Err("only SATA drives have ATA passwords".to_owned());
         }
         let file = open_exclusive(&self.paths, &name).map_err(|error| error.to_string())?;
+        // The node may have changed drive since the lookup: never spend an
+        // attempt of another drive's counter.
+        let reported = oblivio_device::inspect::identity_of(&file, false)
+            .map_err(|error| error.to_string())?;
+        if reported != expected {
+            return Err("the drive opened is not the one confirmed".to_owned());
+        }
         let ata = AtaDevice::new(&file);
         // Each failed attempt counts towards the drive's limit (B6).
         let identifier = if master {

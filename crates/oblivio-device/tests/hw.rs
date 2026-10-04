@@ -54,7 +54,8 @@ fn writes_and_reads_back_a_block() {
         "destructive test not acknowledged"
     );
     let (paths, inspected) = test_drive();
-    let mut drive = ErasableDrive::open(&paths, &inspected.name).expect("opened for erasure");
+    let mut drive = ErasableDrive::open(&paths, &inspected.name, &inspected.profile.identity)
+        .expect("opened for erasure");
     let block = drive.block_size() as usize;
     let pattern: Vec<u8> = (0..block).map(|index| index as u8).collect();
     let last = drive.block_count() - 1;
