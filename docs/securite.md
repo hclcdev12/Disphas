@@ -117,14 +117,12 @@ Corrigés le 2026-10-04 :
 - **L9 copies du mot de passe ATA** : supprimées dans le helper : décodage des requêtes sans arbre JSON intermédiaire (les arguments restent une tranche de la ligne, puis sont décodés depuis un tampon effacé), bloc ATA de 512 octets écrit directement dans un tampon effacé, enregistrement de récupération lu dans des chaînes effacées ; la ligne envoyée par l'application est effacée après écriture. Limites : la chaîne saisie dans l'interface (JavaScript) ne peut pas être effacée ; un mot de passe contenant des échappements JSON (`\\`, `\"`, `\u…`) passe par un tampon interne de `serde_json` non effacé.
 - **L10 enveloppe COSE ré-encodable** : l'enveloppe (attestation, licence, liste de révocation) doit se réencoder à l'octet près ; une variante d'encodage, qui changeait l'empreinte du fichier sans toucher la signature, est rejetée. Testé (le test échoue sans la correction).
 - **L11 `--root-key` officielle** : la clé officielle donnée explicitement reste officielle : la liste de révocation intégrée s'applique (elle était ignorée, un certificat d'une licence révoquée passait) et le rapport n'affiche plus l'avertissement « non officielle ». Testé.
+- **L12 temps d'effacement ATA « 255 »** : la valeur 255 du format court signifie « plus de 508 minutes » ; elle était lue 510 minutes, d'où un délai de commande de 17 h qui pouvait couper un effacement plus long et laisser le disque verrouillé. Elle compte désormais pour 36 h d'estimation (délai 72 h). Testé.
 
-Justification et libellé de lot : longueur maximale et caractères invisibles ou d'inversion de sens (Unicode
-« format ») à refuser ; une tâche qui panique laisse son disque « occupé » ; un verdict reste valide après
-l'effacement du même disque ; l'onglet *Vérifier* affiche « authentique » en vert même si le journal joint ne
-correspond pas ; un lot peut mêler plusieurs licences ; attente Sanitize sans délai maximal ; transfert ATA
-incomplet accepté ; quelques cas d'inventaire qui ne refusent pas (*fail open*) ; copies résiduelles du mot de
-passe ATA en mémoire ; enveloppe COSE ré-encodable sans la clé (signature intacte) ; `--root-key` avec la clé
-officielle ignore la liste de révocation intégrée ; libellé « 255 » du temps d'effacement ATA mal interprété.
+Constats d'origine (tous traités ci-dessus, L1 à L12) : textes déclaratifs non bornés, tâche qui panique, verdicts
+périmés, onglet *Vérifier* vert malgré un journal non conforme, lots multi-licences, attente Sanitize sans fin,
+transfert ATA incomplet, inventaire *fail open*, copies du mot de passe ATA, enveloppe COSE ré-encodable,
+`--root-key` officielle, temps d'effacement « 255 ».
 
 ### 5.4 Contrôles jugés corrects
 

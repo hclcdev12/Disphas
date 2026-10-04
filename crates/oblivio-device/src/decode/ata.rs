@@ -38,16 +38,25 @@ pub struct IdentifyDevice {
     pub enhanced_erase_minutes: Option<u32>,
 }
 
+/// Estimate used for "more than 508 minutes" (255 in the short format):
+/// the real time has no upper bound, so assume 36 hours, which makes the
+/// command timeout (twice the estimate) 72 hours rather than 17.
+const BEYOND_SHORT_FORMAT_MINUTES: u32 = 36 * 60;
+
 /// Erase time of IDENTIFY words 89/90 (ACS-3 §7.12.7.30): bit 15 set, bits
 /// 14:0 × 2 minutes; otherwise bits 7:0 × 2 minutes, 0 meaning unknown and
-/// 255 meaning more than 508 minutes.
+/// 255 meaning more than 508 minutes (not 510). In the extended format,
+/// 32767 ("more than 65532 minutes") already saturates the timeout.
 fn erase_minutes(word: u16) -> Option<u32> {
-    let value = if word & 0x8000 != 0 {
-        u32::from(word & 0x7fff)
-    } else {
-        u32::from(word & 0x00ff)
-    };
-    (value != 0).then_some(value * 2)
+    if word & 0x8000 != 0 {
+        let value = u32::from(word & 0x7fff);
+        return (value != 0).then_some(value * 2);
+    }
+    match word & 0x00ff {
+        0 => None,
+        0xff => Some(BEYOND_SHORT_FORMAT_MINUTES),
+        value => Some(u32::from(value) * 2),
+    }
 }
 
 /// Decodes IDENTIFY DEVICE, checking its integrity word when present.
@@ -346,6 +355,13 @@ mod tests {
         assert_eq!(identify.enhanced_erase_minutes, Some(600));
         let unknown = identify_device(&ssd().signed()).expect("valid");
         assert_eq!(unknown.security_erase_minutes, None);
+        // 255: "more than 508 minutes", never read as 510.
+        let long = identify_device(&ssd().set(89, 0x00ff).signed()).expect("valid");
+        assert_eq!(long.security_erase_minutes, Some(36 * 60));
+        assert_eq!(
+            crate::security::erase_timeout_ms(long.security_erase_minutes),
+            72 * 3_600_000
+        );
     }
 
     #[test]
