@@ -180,7 +180,12 @@ pub fn spawn(
             timeline: Vec::new(),
             persist: None,
         };
-        let outcome = runner.run(spec, resumed);
+        // A panic must not leave the drive "running" for the whole session:
+        // it ends the job as a failure, without attestation, and its files
+        // stay for the next start (§10), like a crash.
+        let outcome =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| runner.run(spec, resumed)))
+                .unwrap_or_else(|_| Err("internal error: the job panicked".to_owned()));
         // Files of a job without attestation stay for the next start (§10).
         if outcome.is_ok()
             && let Some((handle, _)) = runner.persist.take()
@@ -188,10 +193,12 @@ pub fn spawn(
         {
             eprintln!("oblivio-helper: job {}: {error}", job_id.0);
         }
-        let mut table = match jobs.lock() {
-            Ok(table) => table,
-            Err(_) => return,
-        };
+        // A panic while the table was held poisons it; the record is still
+        // what this job last wrote, so it is updated and the poison cleared.
+        let mut table = jobs.lock().unwrap_or_else(|poisoned| {
+            jobs.clear_poison();
+            poisoned.into_inner()
+        });
         let Some(record) = table.get_mut(&job_id) else {
             return;
         };

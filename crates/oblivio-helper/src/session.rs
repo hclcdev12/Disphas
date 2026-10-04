@@ -151,6 +151,11 @@ impl<B: DeviceBackend> Session<B> {
         })
     }
 
+    #[cfg(test)]
+    pub(crate) fn drive_busy_for_tests(&self, serial: &str) -> bool {
+        self.drive_busy(serial)
+    }
+
     /// The drive backend, for tests that change drives between requests.
     pub fn backend_mut(&mut self) -> &mut B {
         &mut self.backend

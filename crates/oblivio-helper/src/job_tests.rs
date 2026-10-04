@@ -671,6 +671,19 @@ fn sanitize_interrupted_by_a_crash_is_finished_and_certified() {
             .iter()
             .any(|path| path.extension().is_some_and(|e| e == "cose"))
     );
+    // The panic ended the job as a failure: the drive is not left busy.
+    let result = bench.send(Command::GetJobResult(JobArgs {
+        job_id: started.job_id.clone(),
+    }));
+    assert_ne!(
+        result.map(|_| ()).map_err(|error| error.code),
+        Err(ErrorCode::Busy),
+        "the job is no longer running"
+    );
+    assert!(
+        !bench.session.drive_busy_for_tests("SN-C001"),
+        "the drive is free again"
+    );
 
     let mut bench = bench.restart(Firmware::Honest);
     let _: serde_json::Value = bench.ok(Command::ListJobs);
