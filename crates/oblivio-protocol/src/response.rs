@@ -201,6 +201,15 @@ pub struct JobSummary {
     pub status: Option<FinalStatus>,
 }
 
+/// Result of `DeleteReports`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct DeleteReportsResult {
+    /// Reports deleted (those already absent are not counted).
+    pub deleted: u32,
+}
+
 /// Result of `ListJobs`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]

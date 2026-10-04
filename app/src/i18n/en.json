@@ -226,7 +226,15 @@
     "allBatches": "All batches",
     "batchPdf": "Batch certificate (PDF)",
     "noAccessTitle": "Access to certificates denied",
-    "noAccessHint": "Certificates are reserved to members of the “oblivio” group. An administrator must add this account to it, then log out and back in:"
+    "noAccessHint": "Certificates are reserved to members of the “oblivio” group. An administrator must add this account to it, then log out and back in:",
+    "before": "Issued before",
+    "deleteShown_one": "Delete the certificate shown",
+    "deleteShown_other": "Delete the {{count}} certificates shown",
+    "deleteConfirm_one": "Permanently delete this certificate from the history? PDFs already exported are not affected.",
+    "deleteConfirm_other": "Permanently delete these {{count}} certificates from the history? PDFs already exported are not affected.",
+    "deleteNow": "Delete permanently",
+    "deletedCount_one": "{{count}} certificate deleted (recorded in the deletion log).",
+    "deletedCount_other": "{{count}} certificates deleted (recorded in the deletion log)."
   },
   "verify": {
     "title": "Verify a certificate",

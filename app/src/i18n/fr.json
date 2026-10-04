@@ -226,7 +226,15 @@
     "allBatches": "Tous les lots",
     "batchPdf": "Certificat de lot (PDF)",
     "noAccessTitle": "Accès aux certificats refusé",
-    "noAccessHint": "Les certificats sont réservés aux membres du groupe « oblivio ». Un administrateur doit y ajouter ce compte, puis il faut fermer et rouvrir la session :"
+    "noAccessHint": "Les certificats sont réservés aux membres du groupe « oblivio ». Un administrateur doit y ajouter ce compte, puis il faut fermer et rouvrir la session :",
+    "before": "Antérieurs au",
+    "deleteShown_one": "Supprimer le certificat affiché",
+    "deleteShown_other": "Supprimer les {{count}} certificats affichés",
+    "deleteConfirm_one": "Supprimer définitivement ce certificat de l'historique ? Les PDF déjà exportés ne sont pas touchés.",
+    "deleteConfirm_other": "Supprimer définitivement ces {{count}} certificats de l'historique ? Les PDF déjà exportés ne sont pas touchés.",
+    "deleteNow": "Supprimer définitivement",
+    "deletedCount_one": "{{count}} certificat supprimé (consigné dans le journal des suppressions).",
+    "deletedCount_other": "{{count}} certificats supprimés (consignés dans le journal des suppressions)."
   },
   "verify": {
     "title": "Vérifier un certificat",

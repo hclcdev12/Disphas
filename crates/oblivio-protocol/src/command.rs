@@ -35,6 +35,8 @@ pub enum Command {
     CreateActivationRequest,
     /// Installs a `.lic` license.
     InstallLicense(InstallLicenseArgs),
+    /// Deletes stored reports (retention chosen by the customer).
+    DeleteReports(DeleteReportsArgs),
     /// Stops the helper; refused while a job is running.
     Shutdown,
 }
@@ -53,8 +55,18 @@ impl Command {
         "LicenseStatus",
         "CreateActivationRequest",
         "InstallLicense",
+        "DeleteReports",
         "Shutdown",
     ];
+}
+
+/// Arguments of `DeleteReports`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct DeleteReportsArgs {
+    /// Report identifiers (UUID, lowercase), at most 5000.
+    pub ids: Vec<String>,
 }
 
 /// Arguments of `Hello`.

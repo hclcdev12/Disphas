@@ -119,6 +119,8 @@ export interface OblivioApi {
   listReports(): Promise<HistoryEntry[] | { error: string }>;
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
+  /** Deletes stored reports through the helper (retention), returns how many. */
+  deleteReports(ids: string[]): Promise<Outcome<{ deleted: number }>>;
   /** Renders and saves the batch certificate of a batch from the history. */
   renderBatch(batchId: string, lang: Language): Promise<Outcome<string | null>>;
   /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
@@ -171,6 +173,7 @@ const tauriApi: OblivioApi = {
       return { ok: false, error: asHelperError(error) };
     }
   },
+  deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
   renderBatch: async (batchId, lang) => {
     try {
       return { ok: true, value: await invoke<string | null>("render_batch", { batchId, lang }) };
@@ -212,6 +215,7 @@ const previewApi: OblivioApi = {
   listReports: async () => previewHistory.entries as HistoryEntry[],
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
+  deleteReports: async () => unavailable,
   // The browser cannot verify: shows a fictional verified report, for layout only.
   verifyCertificate: async () => previewVerification.report as VerificationReport,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],

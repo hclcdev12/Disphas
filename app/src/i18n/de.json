@@ -226,7 +226,15 @@
     "allBatches": "Alle Lose",
     "batchPdf": "Loszertifikat (PDF)",
     "noAccessTitle": "Zugriff auf die Bescheinigungen verweigert",
-    "noAccessHint": "Die Bescheinigungen sind Mitgliedern der Gruppe „oblivio“ vorbehalten. Ein Administrator muss dieses Konto hinzufügen; danach ab- und wieder anmelden:"
+    "noAccessHint": "Die Bescheinigungen sind Mitgliedern der Gruppe „oblivio“ vorbehalten. Ein Administrator muss dieses Konto hinzufügen; danach ab- und wieder anmelden:",
+    "before": "Ausgestellt vor dem",
+    "deleteShown_one": "Angezeigte Bescheinigung löschen",
+    "deleteShown_other": "Die {{count}} angezeigten Bescheinigungen löschen",
+    "deleteConfirm_one": "Diese Bescheinigung endgültig aus dem Verlauf löschen? Bereits exportierte PDFs bleiben unberührt.",
+    "deleteConfirm_other": "Diese {{count}} Bescheinigungen endgültig aus dem Verlauf löschen? Bereits exportierte PDFs bleiben unberührt.",
+    "deleteNow": "Endgültig löschen",
+    "deletedCount_one": "{{count}} Bescheinigung gelöscht (im Löschprotokoll vermerkt).",
+    "deletedCount_other": "{{count}} Bescheinigungen gelöscht (im Löschprotokoll vermerkt)."
   },
   "verify": {
     "title": "Bescheinigung prüfen",

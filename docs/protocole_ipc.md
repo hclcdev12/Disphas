@@ -89,6 +89,7 @@ Avant toute action, le helper retrouve le disque **par son identité**. Si l'ide
 | `Sanitize` | voir §7 | `job_id` |
 | `Cancel` | `job_id` | OK, ou `NOT_CANCELLABLE` pendant une phase firmware |
 | `ListJobs` | — | Tâches en cours et terminées non encore récupérées |
+| `DeleteReports` | `ids` (≤ 5000 identifiants de rapport) | Supprime des rapports stockés (durée de conservation du client, RGPD art. 5(1)(e)) ; renvoie le nombre supprimé. Chaque suppression est consignée (identifiant et date, sans donnée personnelle) dans `reports-deletions.log`, réservé à root. Ajouté le 2026-10-04 |
 | `GetJobResult` | `job_id` | Statut final, attestation COSE (base64), journal JSON |
 | `LicenseStatus` | — | Offre, validité, identifiant |
 | `CreateActivationRequest` | — | Demande d'activation (contient la clé publique du poste) |

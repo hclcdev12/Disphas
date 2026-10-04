@@ -24,7 +24,9 @@ use std::thread::JoinHandle;
 
 use oblivio_protocol::ServerMessage;
 use oblivio_protocol::command::JobId;
-use oblivio_protocol::response::{JobPhase, JobResult, JobSummary, SanitizeResult};
+use oblivio_protocol::response::{
+    DeleteReportsResult, JobPhase, JobResult, JobSummary, SanitizeResult,
+};
 
 use crate::backend::DeviceBackend;
 use crate::convert;
@@ -188,6 +190,7 @@ impl<B: DeviceBackend> Session<B> {
             Command::Inspect(args) => self.inspect(&args.device.identity, now),
             Command::Sanitize(args) => self.sanitize(&args, now),
             Command::ListJobs => self.list_jobs(),
+            Command::DeleteReports(args) => self.delete_reports(&args.ids),
             Command::GetJobResult(args) => self.job_result(&args.job_id),
             Command::Cancel(args) => {
                 let known = self
@@ -580,6 +583,41 @@ impl<B: DeviceBackend> Session<B> {
         }
     }
 
+    /// Deletes stored reports: the customer applies its retention period
+    /// (GDPR art. 5(1)(e)). Each deletion is recorded, identifier and date
+    /// only, in a root-only log next to the reports (art. 5(2)).
+    fn delete_reports(&self, ids: &[String]) -> Handled {
+        const MAX_IDS: usize = 5000;
+        if ids.len() > MAX_IDS || !ids.iter().all(|id| is_report_id(id)) {
+            return Err(Failure::new(
+                ErrorCode::BadRequest,
+                "invalid report identifiers",
+            ));
+        }
+        let dir = &self.config.reports_dir;
+        let log = dir.with_file_name("reports-deletions.log");
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_secs());
+        let internal = |error: std::io::Error| Failure::new(ErrorCode::Internal, error.to_string());
+        let mut deleted = 0u32;
+        for id in ids {
+            let mut existed = false;
+            for extension in ["cose", "json"] {
+                match std::fs::remove_file(dir.join(format!("{id}.{extension}"))) {
+                    Ok(()) => existed |= extension == "cose",
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(internal(error)),
+                }
+            }
+            if existed {
+                deleted += 1;
+                append_line(&log, &format!("{now} deleted {id}")).map_err(internal)?;
+            }
+        }
+        to_value(&DeleteReportsResult { deleted })
+    }
+
     fn list_jobs(&self) -> Handled {
         let jobs = self
             .jobs
@@ -679,6 +717,28 @@ fn last_chars(text: &str, count: usize) -> &str {
         .nth(count - 1)
         .map_or(0, |(index, _)| index);
     &text[start..]
+}
+
+/// Whether `id` is a report identifier: a lowercase UUID, as in file names.
+fn is_report_id(id: &str) -> bool {
+    id.len() == 36
+        && id.char_indices().all(|(index, c)| match index {
+            8 | 13 | 18 | 23 => c == '-',
+            _ => c.is_ascii_hexdigit() && !c.is_ascii_uppercase(),
+        })
+}
+
+/// Appends `line` to a root-only log, durably.
+fn append_line(path: &std::path::Path, line: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .mode(0o600)
+        .open(path)?;
+    writeln!(file, "{line}")?;
+    file.sync_all()
 }
 
 fn to_value<T: Serialize>(result: &T) -> Handled {

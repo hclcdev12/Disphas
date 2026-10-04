@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FileText, RefreshCw, Search, ShieldAlert } from "lucide-react";
+import { FileText, RefreshCw, Search, ShieldAlert, Trash2, TriangleAlert } from "lucide-react";
 import { api, type HelperError, type HistoryEntry } from "../lib/api";
 import { capacity } from "../lib/format";
 import type { Language } from "../i18n";
@@ -31,6 +31,9 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const [batch, setBatch] = useState("");
   const [batchPdf, setBatchPdf] = useState<{ path: string } | { empty: true } | { error: HelperError } | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
+  const [before, setBefore] = useState("");
+  const [deleting, setDeleting] = useState<"confirm" | "busy" | null>(null);
+  const [deleted, setDeleted] = useState<{ count: number } | { error: HelperError } | null>(null);
 
   // Batches present in the history, with their label and number of drives.
   const batches = useMemo(() => {
@@ -65,14 +68,28 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const inBatch = (entries ?? []).filter((entry) => batch === "" || entry.summary?.batch_id === batch);
+    // "Before" is a calendar day: certificates issued before that day, UTC.
+    const limit = before === "" ? null : Date.parse(`${before}T00:00:00Z`) / 1000;
+    const inBatch = (entries ?? []).filter(
+      (entry) =>
+        (batch === "" || entry.summary?.batch_id === batch) &&
+        (limit === null || (entry.summary !== null && entry.summary.issued_at < limit)),
+    );
     if (needle === "") return inBatch;
     return inBatch.filter((entry) =>
       [entry.id, entry.summary?.model, entry.summary?.serial, entry.summary?.operator, entry.summary?.organization]
         .filter((field): field is string => typeof field === "string")
         .some((field) => field.toLowerCase().includes(needle)),
     );
-  }, [entries, query, batch]);
+  }, [entries, query, batch, before]);
+
+  const deleteShown = async () => {
+    setDeleting("busy");
+    const result = await api.deleteReports(shown.map((entry) => entry.id));
+    setDeleting(null);
+    setDeleted(result.ok ? { count: result.value.deleted } : { error: result.error });
+    receive(await api.listReports());
+  };
 
   const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
   const label = (code: string) => labels[code] ?? code;
@@ -143,6 +160,48 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
             <p className="w-full text-sm text-sayno">
               {t(`errors.${batchPdf.error.code}`, { defaultValue: batchPdf.error.code })}
               {batchPdf.error.detail && <span className="block font-mono text-xs text-ash">{batchPdf.error.detail}</span>}
+            </p>
+          )}
+        </div>
+      )}
+      {entries !== null && entries.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-card px-4 py-3 text-sm">
+          <label className="flex items-center gap-2">
+            {t("history.before")}
+            <input
+              type="date"
+              className="rounded-md border border-edge bg-night px-2 py-1"
+              value={before}
+              onChange={(event) => {
+                setBefore(event.target.value);
+                setDeleting(null);
+              }}
+            />
+          </label>
+          {deleting === null && shown.length > 0 && (
+            <Button variant="danger" className="ml-auto flex items-center gap-2" onClick={() => setDeleting("confirm")}>
+              <Trash2 size={14} />
+              {t("history.deleteShown", { count: shown.length })}
+            </Button>
+          )}
+          {deleting !== null && (
+            <div className="flex w-full flex-wrap items-center gap-3 rounded-md border border-sayno/40 bg-sayno/10 p-3">
+              <TriangleAlert size={16} className="shrink-0 text-sayno" />
+              <span className="text-sayno">{t("history.deleteConfirm", { count: shown.length })}</span>
+              <Button className="ml-auto" disabled={deleting === "busy"} onClick={() => setDeleting(null)}>
+                {t("actions.cancel")}
+              </Button>
+              <Button variant="danger" disabled={deleting === "busy"} onClick={() => void deleteShown()}>
+                {t("history.deleteNow")}
+              </Button>
+            </div>
+          )}
+          {deleted && "count" in deleted && (
+            <p className="w-full text-xs text-ash">{t("history.deletedCount", { count: deleted.count })}</p>
+          )}
+          {deleted && "error" in deleted && (
+            <p className="w-full text-xs text-sayno">
+              {t(`errors.${deleted.error.code}`, { defaultValue: deleted.error.code })}
             </p>
           )}
         </div>

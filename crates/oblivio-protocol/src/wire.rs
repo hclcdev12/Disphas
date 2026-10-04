@@ -397,6 +397,9 @@ mod tests {
             Command::InstallLicense(InstallLicenseArgs {
                 license: "OBL1:…".to_owned(),
             }),
+            Command::DeleteReports(crate::command::DeleteReportsArgs {
+                ids: vec!["01928c3e-5a1b-7000-8000-000000004201".to_owned()],
+            }),
             Command::Shutdown,
         ]
     }

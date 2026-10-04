@@ -42,7 +42,7 @@ durée de conservation (art. 5(1)(e)).
 | # | Constat | Action | Statut |
 |---|---|---|---|
 | R1 | Certificats en `0644` dans `/var/lib/oblivio/reports` : lisibles par **tous** les comptes du poste (art. 25(2), accessibilité) | Dossier `0750` et fichiers `0640`, groupe `oblivio` (créé par le paquet, qui restreint aussi les certificats d'une installation antérieure) ; opérateurs ajoutés par l'administrateur (`usermod -aG oblivio`) ; l'historique explique un refus d'accès | **Fait** (2026-10-04) |
-| R2 | Aucune durée de conservation, aucune suppression possible depuis l'application | Suppression des certificats (et PDF) au-delà d'une durée choisie par le client | À faire |
+| R2 | Aucune durée de conservation, aucune suppression possible depuis l'application | Suppression **manuelle** depuis l'historique (un certificat, un lot ou tout ce qui précède une date), confirmée, exécutée par le helper (`DeleteReports`) et consignée sans donnée personnelle (art. 5(2)). Pas de suppression automatique en V1 (risque de perdre des preuves) ; les PDF exportés restent à la charge de l'utilisateur | **Fait** (2026-10-04) |
 | R3 | Champs opérateur/organisation à venir | Facultatifs, identifiant plutôt que nom accepté, mention d'information | À faire avec ces champs |
 | R4 | Justification libre | Avertissement dans la boîte de forçage | À faire |
 | R5 | Registre de licences de l'éditeur | Base légale (contrat), durée de conservation, mention dans les CGV ; **registre des traitements** probablement requis (art. 30(5) : traitement non occasionnel) ; registre gardé sur la machine hors ligne | À faire (éditeur) |

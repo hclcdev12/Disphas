@@ -756,3 +756,39 @@ fn batch_is_certified_in_the_attestation() {
         .expect_err("invalid batch refused");
     assert_eq!(error.code, ErrorCode::BadRequest);
 }
+
+#[test]
+fn reports_are_deleted_on_request_and_logged() {
+    let mut bench = Bench::new(vec![drive("SN-R001", nvme())], Firmware::Honest);
+    let inspection = bench.inspect("SN-R001");
+    let (_, result) = bench.erase(sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    ));
+    let id = result.job_id.0.clone();
+    assert_eq!(bench.reports().len(), 2);
+
+    let deleted: oblivio_protocol::response::DeleteReportsResult = bench.ok(
+        Command::DeleteReports(oblivio_protocol::command::DeleteReportsArgs {
+            ids: vec![
+                id.clone(),
+                "01928c3e-5a1b-7000-8000-00000000ffff".to_owned(),
+            ],
+        }),
+    );
+    assert_eq!(deleted.deleted, 1, "an absent report is not counted");
+    assert!(bench.reports().is_empty());
+    let log = std::fs::read_to_string(bench.dir.path().join("reports-deletions.log")).expect("log");
+    assert!(log.trim_end().ends_with(&format!("deleted {id}")));
+    assert!(!log.contains("SN-R001"), "no personal data in the log");
+
+    let error = bench
+        .send(Command::DeleteReports(
+            oblivio_protocol::command::DeleteReportsArgs {
+                ids: vec!["../../etc/passwd".to_owned()],
+            },
+        ))
+        .expect_err("refused");
+    assert_eq!(error.code, ErrorCode::BadRequest);
+}
