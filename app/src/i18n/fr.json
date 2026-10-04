@@ -97,7 +97,9 @@
     "submit": "Effacer définitivement",
     "submitForce": "Forcer et certifier non conforme",
     "sent": "Demande transmise au helper.",
-    "refused": "Le helper a refusé la demande :"
+    "refused": "Le helper a refusé la demande :",
+    "zeroPass": "Terminer par une passe de zéros",
+    "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique."
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
@@ -308,7 +310,8 @@
     "batchAuthentic": "Lot authentique",
     "batchRejected": "Lot NON authentique",
     "batchDrives_one": "{{count}} support",
-    "batchDrives_other": "{{count}} supports"
+    "batchDrives_other": "{{count}} supports",
+    "zeroFinish": "Passe finale de zéros, validée"
   },
   "batch": {
     "current": "Lot en cours :",

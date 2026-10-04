@@ -64,3 +64,5 @@ capacity-short = { $gb } GB
 batch-drives-title = Datenträger dieses Loses
 batch-status = Status
 batch-verify-hint = Jeder Datenträger ist durch seine eigene signierte Bescheinigung belegt, die diesem PDF beigefügt ist („<Bericht>.cose“ mit Protokoll „<Bericht>.json“) und die Losnummer unter ihrer Signatur trägt. Prüfen Sie dieses PDF offline mit Oblivio oder oblivio-verify. Dieses Dokument ist nur eine Darstellung: Maßgeblich sind die signierten Bescheinigungen.
+finish = Abschluss
+finish-zero = abschließender Durchgang mit Nullen, validiert

@@ -81,6 +81,9 @@ pub fn authentic(
             .map_or_else(|| m(Msg::None).to_owned(), |method| labelled(method, lang)),
     );
     line(Msg::Standards, &a.sanitization.references.join(", "));
+    if a.sanitization.zero_finish {
+        line(Msg::ZeroFinish, m(Msg::ZeroFinishValue));
+    }
     line(
         Msg::Verification,
         m(match a.verified {

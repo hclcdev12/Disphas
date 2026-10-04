@@ -64,6 +64,7 @@ export type VerificationReport = {
     status: "CONFORME" | "NON_CONFORME" | "REFUS";
     category: "Clear" | "Purge" | "None";
     method: string | null;
+    zero_finish: boolean;
     verified: boolean | null;
     validation: { method: string; samples: number; passed: boolean } | null;
     disposition: "Reuse" | "DestroyRecommended" | null;

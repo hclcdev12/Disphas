@@ -388,6 +388,7 @@ mod tests {
                     id: "LOT-2026-001".to_owned(),
                     label: Some("PO 4512".to_owned()),
                 }),
+                zero_pass: false,
             }),
             Command::Cancel(job.clone()),
             Command::ListJobs,

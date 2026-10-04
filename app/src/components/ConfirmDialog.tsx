@@ -28,6 +28,7 @@ export function ConfirmDialog({
     confirmation: string;
     acknowledged: Acknowledgement[];
     justification: string | null;
+    zeroPass: boolean;
   }) => Promise<HelperError | null>;
 }) {
   const { t } = useTranslation();
@@ -36,6 +37,7 @@ export function ConfirmDialog({
   const [checked, setChecked] = useState<Set<Acknowledgement>>(new Set());
   const [justification, setJustification] = useState("");
   const [busy, setBusy] = useState(false);
+  const [zeroPass, setZeroPass] = useState(false);
   const [answer, setAnswer] = useState<HelperError | "sent" | null>(null);
 
   const { inspection, choice, forced } = request;
@@ -72,6 +74,7 @@ export function ConfirmDialog({
       confirmation,
       acknowledged: [...checked],
       justification: forced ? justification : null,
+      zeroPass: choice.method === "HostOverwrite" && zeroPass,
     });
     setAnswer(error ?? "sent");
     setBusy(false);
@@ -96,6 +99,20 @@ export function ConfirmDialog({
         {t("confirm.method")} <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
         {label(choice.method)}
       </p>
+      {choice.method === "HostOverwrite" && (
+        <label className="mt-2 flex cursor-pointer items-start gap-2 text-sm text-ash">
+          <input
+            type="checkbox"
+            className="mt-1 accent-brand"
+            checked={zeroPass}
+            onChange={(event) => setZeroPass(event.target.checked)}
+          />
+          <span>
+            {t("confirm.zeroPass")}
+            <span className="block text-xs">{t("confirm.zeroPassHint")}</span>
+          </span>
+        </label>
+      )}
 
       {warnings.length > 0 && (
         <fieldset className="mt-4">

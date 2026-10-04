@@ -473,6 +473,14 @@ impl<B: DeviceBackend> Session<B> {
                 ));
             }
         };
+        // The zero finish only applies to a host overwrite.
+        if args.zero_pass && !plan.option().method.is_host_write() {
+            return Err(Failure::new(
+                ErrorCode::BadRequest,
+                "the zero pass applies to a host overwrite only",
+            ));
+        }
+
         let signer = self.config.licensing.signer().map_err(Failure::from)?;
         let id = job::uuid_v7().map_err(|error| Failure::new(ErrorCode::Internal, error))?;
         let target = self
@@ -496,6 +504,7 @@ impl<B: DeviceBackend> Session<B> {
             operator: args.operator.clone(),
             organization: args.organization.clone(),
             batch,
+            zero_pass: args.zero_pass,
             binary_sha256: self.config.binary_sha256,
             reports_dir: self.config.reports_dir.clone(),
             jobs_dir: self.config.jobs_dir.clone(),
@@ -946,6 +955,7 @@ mod tests {
             operator: None,
             organization: None,
             batch: None,
+            zero_pass: false,
         }
     }
 

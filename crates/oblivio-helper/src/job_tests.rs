@@ -377,6 +377,7 @@ fn sanitize(
         operator: Some("J. Martin".to_owned()),
         organization: Some("Atelier XYZ".to_owned()),
         batch: None,
+        zero_pass: false,
     }
 }
 
@@ -789,6 +790,43 @@ fn reports_are_deleted_on_request_and_logged() {
                 ids: vec!["../../etc/passwd".to_owned()],
             },
         ))
+        .expect_err("refused");
+    assert_eq!(error.code, ErrorCode::BadRequest);
+}
+
+#[test]
+fn zero_finish_proves_both_passes_and_leaves_a_blank_drive() {
+    let mut bench = Bench::new(
+        vec![drive("SN-Z001", nvme()), drive("SN-Z002", nvme())],
+        Firmware::Honest,
+    );
+    let inspection = bench.inspect("SN-Z001");
+    let mut args = sanitize(
+        &inspection,
+        Some(Method::HostOverwrite),
+        vec![Acknowledgement::Reserve(ReserveCode::HostWriteCoverage)],
+    );
+    args.zero_pass = true;
+    let (verified, result) = bench.erase(args);
+    assert_eq!(verified.attestation.status, Status::Compliant);
+    assert!(verified.attestation.sanitization.zero_finish);
+    let image = std::fs::read(bench.dir.path().join("SN-Z001.img")).expect("image");
+    assert!(
+        image.iter().all(|&byte| byte == 0),
+        "blank after the zero pass"
+    );
+    let _ = result;
+
+    // With a firmware method, the option is refused.
+    let other = bench.inspect("SN-Z002");
+    let mut firmware = sanitize(
+        &other,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    firmware.zero_pass = true;
+    let error = bench
+        .send(Command::Sanitize(firmware))
         .expect_err("refused");
     assert_eq!(error.code, ErrorCode::BadRequest);
 }

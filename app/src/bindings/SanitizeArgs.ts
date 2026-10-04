@@ -45,4 +45,9 @@ organization: string | null,
 /**
  * Batch the drive is erased in, certified in its attestation.
  */
-batch: BatchArgs | null, };
+batch: BatchArgs | null, 
+/**
+ * Host overwrite only: end with a validated pass of zeros, so the
+ * drive looks blank; doubles the duration. Refused with other methods.
+ */
+zero_pass: boolean, };

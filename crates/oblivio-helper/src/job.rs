@@ -59,7 +59,7 @@ pub enum Plan {
 }
 
 impl Plan {
-    fn option(&self) -> MethodOption {
+    pub(crate) fn option(&self) -> MethodOption {
         match self {
             Self::Ready { option, .. } => *option,
             Self::Forced(forced) => forced.option,
@@ -91,6 +91,8 @@ pub struct JobSpec {
     pub organization: Option<String>,
     /// Batch the drive is erased in.
     pub batch: Option<oblivio_attestation::model::Batch>,
+    /// Host overwrite only: end with a validated pass of zeros.
+    pub zero_pass: bool,
     /// SHA-256 of the helper binary.
     pub binary_sha256: [u8; 32],
     /// Where signed reports are stored.
@@ -416,16 +418,42 @@ impl Runner {
 
         self.phase(JobPhase::Executing);
         let started = Instant::now();
+        // With the zero finish, the pseudo-random pass is validated before
+        // the zero pass erases its trace: both passes are proven.
+        let mut first_pass = Validation::Passed;
         let verification_passed = if host {
+            let passes: u64 = if spec.zero_pass { 2 } else { 1 };
             let mut last_percent = None;
-            let result = erasure::host_overwrite(spec.target.io(), seed, &mut |progress| {
-                let percent = (progress.bytes_done * 100 / progress.bytes_total.max(1)) as u8;
+            let mut report = |pass: u64, progress: HostProgress| {
+                let total = progress.bytes_total.max(1) * passes;
+                let done = progress.bytes_total * pass + progress.bytes_done;
+                let percent = (done * 100 / total) as u8;
                 if last_percent != Some(percent) {
                     last_percent = Some(percent);
                     let seconds = started.elapsed().as_secs_f64();
-                    self.progress(percent, ProgressSource::Host, Some((progress, seconds)));
+                    let overall = HostProgress {
+                        bytes_done: done,
+                        bytes_total: total,
+                    };
+                    self.progress(percent, ProgressSource::Host, Some((overall, seconds)));
                 }
+            };
+            let mut result = erasure::host_overwrite(spec.target.io(), seed, &mut |progress| {
+                report(0, progress)
             });
+            if result.is_ok() && spec.zero_pass {
+                first_pass = erasure::validate(spec.target.io(), seed, lbas, Check::Pattern);
+                self.log(
+                    if first_pass == Validation::Passed {
+                        LogLevel::Info
+                    } else {
+                        LogLevel::Error
+                    },
+                    "validation_random_pass",
+                    &[("result", format!("{first_pass:?}"))],
+                );
+                result = erasure::zero_fill(spec.target.io(), &mut |progress| report(1, progress));
+            }
             result
                 .map_err(|failure| error = Some(format!("write: {failure}")))
                 .is_ok()
@@ -471,7 +499,15 @@ impl Runner {
         );
 
         self.phase(JobPhase::Validating);
-        let validation = erasure::validate(spec.target.io(), seed, lbas, check);
+        let final_check = if host && spec.zero_pass {
+            Check::Zeros
+        } else {
+            check
+        };
+        let validation = match erasure::validate(spec.target.io(), seed, lbas, final_check) {
+            Validation::Passed => first_pass,
+            failed => failed,
+        };
         self.log(
             if validation == Validation::Passed {
                 LogLevel::Info
@@ -573,6 +609,7 @@ fn job_file(
             .batch
             .as_ref()
             .map(|batch| (batch.id.clone(), batch.label.clone())),
+        zero_pass: spec.zero_pass,
         phase: JobPhase::Preparing,
         seed: hex(seed),
         samples: lbas.to_vec(),
@@ -618,6 +655,7 @@ pub fn resumed_spec(
                 id: id.clone(),
                 label: label.clone(),
             }),
+        zero_pass: file.zero_pass,
         binary_sha256,
         reports_dir,
         jobs_dir,
@@ -724,6 +762,7 @@ fn attestation(
             category: sanitized,
             method: Some(code(&format!("{:?}", option.method))?),
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
+            zero_finish: spec.zero_pass && option.method.is_host_write() && last.is_some(),
         },
         verified: last.map(|report| report.verification_passed),
         validation: last.map(|report| AttValidation {

@@ -147,9 +147,34 @@ pub fn host_overwrite(
     io.sync()
 }
 
+/// Overwrites every block with zeros, then makes it durable: the optional
+/// final pass after the pseudo-random one, for a drive that looks blank.
+pub fn zero_fill(
+    io: &mut dyn BlockIo,
+    progress: &mut dyn FnMut(HostProgress),
+) -> std::io::Result<()> {
+    let block_size = io.block_size();
+    let total = io.block_count();
+    let blocks_per_chunk = (CHUNK_BYTES / block_size).max(1);
+    let zeros = vec![0u8; (blocks_per_chunk * block_size) as usize];
+    let mut lba = 0;
+    while lba < total {
+        let count = blocks_per_chunk.min(total - lba);
+        io.write_blocks(lba, &zeros[..(count * block_size) as usize])?;
+        lba += count;
+        progress(HostProgress {
+            bytes_done: lba * block_size,
+            bytes_total: total * block_size,
+        });
+    }
+    io.sync()
+}
+
 /// How the result is validated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Check {
+    /// Every sample reads back as zeros (after the final zero pass).
+    Zeros,
     /// Every sample holds the overwrite stream expected there (host overwrite).
     Pattern,
     /// No sample still holds its canary (firmware methods).
@@ -167,6 +192,7 @@ pub fn validate(io: &mut dyn BlockIo, seed: &[u8; 32], lbas: &[u64], check: Chec
         }
         let failed = match check {
             Check::Pattern => buffer != overwrite_block(seed, lba, block_size),
+            Check::Zeros => buffer.iter().any(|&byte| byte != 0),
             Check::NoCanary => buffer == canary(seed, lba, block_size),
         };
         mismatch |= failed;

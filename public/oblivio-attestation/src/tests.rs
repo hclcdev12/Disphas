@@ -63,6 +63,7 @@ fn attestation(license: Vec<u8>) -> Attestation {
         sanitization: Sanitization {
             category: Category::Purge,
             method: Some(code("NvmeSanitizeBlockErase")),
+            zero_finish: false,
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
         },
         verified: Some(true),
@@ -380,4 +381,28 @@ mod batch_verification {
 
         assert!(!verify_batch(&[], &root().verifying_key(), &[]).authentic());
     }
+}
+
+#[test]
+fn zero_finish_is_present_only_when_true() {
+    let mut finished = attestation(vec![1]);
+    finished.sanitization.zero_finish = true;
+    assert_eq!(
+        Attestation::from_cbor(&finished.to_cbor()),
+        Ok(finished.clone())
+    );
+    // An explicit `z: false` is not canonical: rejected.
+    let mut entries = as_map(&finished.to_cbor());
+    for (key, value) in &mut entries {
+        if key.as_text() == Some("san")
+            && let Value::Map(san) = value
+        {
+            for (field, flag) in san.iter_mut() {
+                if field.as_text() == Some("z") {
+                    *flag = Value::Bool(false);
+                }
+            }
+        }
+    }
+    assert!(Attestation::from_cbor(&raw_encode(entries)).is_err());
 }

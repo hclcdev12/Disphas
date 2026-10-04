@@ -345,16 +345,17 @@ fn inputs(
         )?,
         None => t.text("not-run")?,
     };
-    let sanitization = section(
-        t.text("section-sanitization")?,
-        vec![
-            row(t.text("category")?, vec![category.to_owned()], false),
-            row(t.text("method")?, vec![method], false),
-            row(t.text("standards")?, vec![san.references.join(", ")], false),
-            row(t.text("verification")?, vec![verification], false),
-            row(t.text("validation")?, vec![validation], false),
-        ],
-    );
+    let mut sanitization_rows = vec![
+        row(t.text("category")?, vec![category.to_owned()], false),
+        row(t.text("method")?, vec![method], false),
+        row(t.text("standards")?, vec![san.references.join(", ")], false),
+        row(t.text("verification")?, vec![verification], false),
+        row(t.text("validation")?, vec![validation], false),
+    ];
+    if san.zero_finish {
+        sanitization_rows.push(row(t.text("finish")?, vec![t.text("finish-zero")?], false));
+    }
+    let sanitization = section(t.text("section-sanitization")?, sanitization_rows);
 
     // Future and reserves.
     let mut future_rows = Vec::new();

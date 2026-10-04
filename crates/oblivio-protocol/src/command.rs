@@ -137,6 +137,10 @@ pub struct SanitizeArgs {
     /// Batch the drive is erased in, certified in its attestation.
     #[serde(default)]
     pub batch: Option<BatchArgs>,
+    /// Host overwrite only: end with a validated pass of zeros, so the
+    /// drive looks blank; doubles the duration. Refused with other methods.
+    #[serde(default)]
+    pub zero_pass: bool,
 }
 
 /// Batch of a `Sanitize`, chosen by the operator.

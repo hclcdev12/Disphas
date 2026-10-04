@@ -97,7 +97,9 @@
     "submit": "Endgültig löschen",
     "submitForce": "Erzwingen und als nicht konform zertifizieren",
     "sent": "Anfrage an den Helper übermittelt.",
-    "refused": "Der Helper hat die Anfrage abgelehnt:"
+    "refused": "Der Helper hat die Anfrage abgelehnt:",
+    "zeroPass": "Mit einem Durchgang mit Nullen abschließen",
+    "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es."
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
@@ -308,7 +310,8 @@
     "batchAuthentic": "Echtes Los",
     "batchRejected": "Los NICHT echt",
     "batchDrives_one": "{{count}} Datenträger",
-    "batchDrives_other": "{{count}} Datenträger"
+    "batchDrives_other": "{{count}} Datenträger",
+    "zeroFinish": "Abschließender Durchgang mit Nullen, validiert"
   },
   "batch": {
     "current": "Aktuelles Los:",

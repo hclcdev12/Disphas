@@ -59,6 +59,7 @@ fn signed_attestation() -> Vec<u8> {
         sanitization: Sanitization {
             category: Category::Purge,
             method: Some(code("NvmeSanitizeBlockErase")),
+            zero_finish: false,
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
         },
         verified: Some(true),

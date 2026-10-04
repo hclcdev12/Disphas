@@ -58,6 +58,9 @@ pub struct JobFile {
     /// Batch identifier and label.
     #[serde(default)]
     pub batch: Option<(String, Option<String>)>,
+    /// Host overwrite ends with a pass of zeros.
+    #[serde(default)]
+    pub zero_pass: bool,
     /// Last phase entered.
     pub phase: JobPhase,
     /// Validation seed, hex.

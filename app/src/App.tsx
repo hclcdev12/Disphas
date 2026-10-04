@@ -160,6 +160,7 @@ export default function App() {
     confirmation: string;
     acknowledged: Acknowledgement[];
     justification: string | null;
+    zeroPass: boolean;
   }): Promise<HelperError | null> => {
     if (!request) return null;
     const result = await api.sanitize({
@@ -172,6 +173,7 @@ export default function App() {
       operator: null,
       organization: null,
       batch,
+      zero_pass: input.zeroPass,
     });
     if (!result.ok) return result.error;
     const { model, serial } = request.inspection.device.identity;

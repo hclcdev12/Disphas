@@ -196,7 +196,10 @@ function Result({
           {" · "}
           {t("verify.field.firmware")} <Mono>{d.firmware}</Mono>
         </Row>
-        <Row label={t("verify.field.method")}>{d.method ? label(d.method) : "—"}</Row>
+        <Row label={t("verify.field.method")}>
+          {d.method ? label(d.method) : "—"}
+          {d.zero_finish && <span className="block text-xs text-ash">{t("verify.zeroFinish")}</span>}
+        </Row>
         <Row label={t("verify.field.verified")}>{yesNo(d.verified)}</Row>
         <Row label={t("verify.field.validation")}>
           {d.validation

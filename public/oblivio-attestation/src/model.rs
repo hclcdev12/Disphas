@@ -154,6 +154,9 @@ pub struct Sanitization {
     pub method: Option<Code>,
     /// Standards referred to, e.g. `NIST SP 800-88r2`, `IEEE 2883-2022`.
     pub references: Vec<String>,
+    /// A host overwrite ended with a validated pass of zeros (`z`, present
+    /// only when true).
+    pub zero_finish: bool,
 }
 
 /// How the result was validated (`val`).
@@ -382,6 +385,10 @@ impl Attestation {
         let sanitization = MapBuilder::default()
             .field("cat", self.sanitization.category.to_value())
             .optional("m", self.sanitization.method.as_ref().map(code))
+            .optional(
+                "z",
+                self.sanitization.zero_finish.then_some(Value::Bool(true)),
+            )
             .field(
                 "ref",
                 Value::Array(
@@ -488,6 +495,13 @@ impl Attestation {
                 .into_iter()
                 .map(|value| cbor::text(value, "ref"))
                 .collect::<Result<_, _>>()?,
+            // Canonical form: present only when true.
+            zero_finish: match san.optional("z").map(|value| cbor::boolean(value, "z")) {
+                None => false,
+                Some(Ok(true)) => true,
+                Some(Ok(false)) => return Err(CborError::Invalid("z")),
+                Some(Err(error)) => return Err(error),
+            },
         };
         san.finish()?;
 

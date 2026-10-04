@@ -234,7 +234,7 @@ contenu attendu de chaque bloc échantillon et l'exige **à l'identique** (un bl
 échoue). Remplace la passe de zéros. Débit mesuré du générateur : ~2 Go/s sur un cœur (Ryzen AI 9 365),
 au-dessus d'un disque dur ou d'un SSD SATA ; sur un NVMe rapide il peut limiter la réécriture (méthode de
 repli) — parallélisation possible plus tard.
-**Option « finir par une passe de zéros »** (décidée le 2026-10-04, **à implémenter**) : pour les clients
+**Option « finir par une passe de zéros »** (décidée et implémentée le 2026-10-04 ; `Sanitize.zero_pass`, refusée hors réécriture hôte ; champ signé `san.z`) : pour les clients
 qui veulent un disque d'apparence vide. Passe pseudo-aléatoire, **validation**, puis passe de zéros et
 seconde validation : les deux passes sont prouvées et le certificat l'indique. Désactivée par défaut
 (elle double la durée : ~11 h au lieu de ~5 h 30 pour un disque dur de 4 To à 200 Mo/s, estimation à

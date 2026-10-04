@@ -70,6 +70,8 @@ pub struct Details {
     pub category: String,
     /// Method code, if one ran.
     pub method: Option<String>,
+    /// The host overwrite ended with a validated pass of zeros.
+    pub zero_finish: bool,
     /// Firmware verification, if it ran.
     pub verified: Option<bool>,
     /// Validation, if it ran.
@@ -212,6 +214,7 @@ fn details(verified: &Verified) -> Details {
             .method
             .as_ref()
             .map(|code| code.as_str().to_owned()),
+        zero_finish: a.sanitization.zero_finish,
         verified: a.verified,
         validation: a.validation.as_ref().map(|validation| Validation {
             method: validation.method.as_str().to_owned(),

@@ -72,6 +72,7 @@ fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Ba
                 Status::NonCompliant => Some(code("HostOverwrite")),
                 Status::Refused => None,
             },
+            zero_finish: false,
             references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
         },
         verified: ran.then_some(true),

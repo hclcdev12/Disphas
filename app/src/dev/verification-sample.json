@@ -37,7 +37,8 @@
       "license_id": "DEV-0001",
       "customer": "Atelier XYZ",
       "batch_id": "LOT-2026-001",
-      "batch_label": "PO 4512"
+      "batch_label": "PO 4512",
+      "zero_finish": false
     },
     "batch": null
   }

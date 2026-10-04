@@ -64,3 +64,5 @@ capacity-short = { $gb } Go
 batch-drives-title = Supports du lot
 batch-status = Statut
 batch-verify-hint = Chaque support est prouvé par sa propre attestation signée, jointe à ce PDF (« <rapport>.cose », avec son journal « <rapport>.json ») et portant le numéro de lot sous sa signature. Vérifiez ce PDF avec Oblivio ou oblivio-verify, hors ligne. Ce document n'est qu'un rendu : les attestations signées font foi.
+finish = Finition
+finish-zero = passe finale de zéros, validée

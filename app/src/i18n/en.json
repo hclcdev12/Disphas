@@ -97,7 +97,9 @@
     "submit": "Erase permanently",
     "submitForce": "Force and certify non-compliant",
     "sent": "Request sent to the helper.",
-    "refused": "The helper refused the request:"
+    "refused": "The helper refused the request:",
+    "zeroPass": "Finish with a pass of zeros",
+    "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so."
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"
@@ -308,7 +310,8 @@
     "batchAuthentic": "Authentic batch",
     "batchRejected": "Batch NOT authentic",
     "batchDrives_one": "{{count}} drive",
-    "batchDrives_other": "{{count}} drives"
+    "batchDrives_other": "{{count}} drives",
+    "zeroFinish": "Final pass of zeros, validated"
   },
   "batch": {
     "current": "Current batch:",

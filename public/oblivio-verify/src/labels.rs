@@ -65,6 +65,8 @@ pub enum Msg {
     JournalFromPdf,
     RevocationList,
     Batch,
+    ZeroFinish,
+    ZeroFinishValue,
     BatchAuthentic,
     BatchNotAuthentic,
     Drives,
@@ -194,6 +196,12 @@ pub fn msg(message: Msg) -> Text {
             "die Lizenz wurde vor dem Datum der Bescheinigung widerrufen",
         ),
         Msg::Batch => t("Batch", "Lot", "Los"),
+        Msg::ZeroFinish => t("Finish", "Finition", "Abschluss"),
+        Msg::ZeroFinishValue => t(
+            "final pass of zeros, validated",
+            "passe finale de zéros, validée",
+            "abschließender Durchgang mit Nullen, validiert",
+        ),
         Msg::BatchAuthentic => t(
             "AUTHENTIC BATCH: every drive is signed by a licensed Oblivio workstation",
             "LOT AUTHENTIQUE : chaque support est signé par un poste Oblivio sous licence",
