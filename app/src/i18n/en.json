@@ -159,6 +159,10 @@
     },
     "rate": "{{rate}}/s",
     "eta": "{{eta}} left",
+    "elapsed": "Elapsed: {{elapsed}}",
+    "estimateLeft": "about {{eta}} left",
+    "estimateExceeded": "The drive's estimate is exceeded: the erasure goes on, do not interrupt it (time limit: {{max}}).",
+    "firmwareSilent": "The drive does not report its progress: the time left is the drive's own estimate.",
     "log": "Audit log",
     "logCodes": {
       "samples_selected": "{{count}} sample blocks selected",

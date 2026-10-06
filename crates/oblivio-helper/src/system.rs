@@ -316,6 +316,17 @@ fn wait_with(
 }
 
 impl ErasureTarget for DriveTarget {
+    fn firmware_estimate(&mut self, method: Method) -> Option<u64> {
+        // IDENTIFY words 89/90: the drive's estimate for SECURITY ERASE UNIT.
+        let identify = AtaDevice::new(self.drive.file()).identify().ok()?;
+        let minutes = match method {
+            Method::AtaSecurityEraseEnhanced => identify.enhanced_erase_minutes,
+            Method::AtaSecurityEraseNormal => identify.security_erase_minutes,
+            _ => None,
+        }?;
+        Some(u64::from(minutes) * 60)
+    }
+
     fn io(&mut self) -> &mut dyn BlockIo {
         &mut self.drive
     }

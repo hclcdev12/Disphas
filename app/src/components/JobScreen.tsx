@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, FileText, History, LoaderCircle, TriangleAlert, XCircle } from "lucide-react";
 import type { JobPhase } from "../bindings/JobPhase";
@@ -46,6 +46,20 @@ export function JobScreen({
   const current = phases.indexOf(job.phase);
   const finished = job.status !== null;
   const progress = job.progress;
+
+  // ATA Security Erase reports nothing until it ends: count down from the
+  // drive's own estimate (IDENTIFY words 89/90), sent with its start.
+  const estimate =
+    !finished && progress?.source === "firmware" && progress.percent === 0 && progress.remaining_seconds !== null
+      ? progress.remaining_seconds
+      : null;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (estimate === null) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [estimate]);
+  const elapsed = estimate !== null && job.progressAt !== null ? Math.max(0, Math.floor((now - job.progressAt) / 1000)) : 0;
 
   const exportPdf = async () => {
     setExporting(true);
@@ -103,7 +117,27 @@ export function JobScreen({
         })}
       </ol>
 
-      {!finished && progress && (
+      {estimate !== null && (
+        <div className="mt-5">
+          <div className="h-2 overflow-hidden rounded-full bg-night">
+            <div
+              className="h-full animate-pulse bg-brand/50 transition-all duration-1000"
+              style={{ width: `${Math.min(99, Math.round((elapsed * 100) / Math.max(1, estimate)))}%` }}
+            />
+          </div>
+          <p className="mt-1.5 flex flex-wrap gap-3 text-xs text-ash">
+            <span>{t("job.elapsed", { elapsed: duration(elapsed) })}</span>
+            {elapsed < estimate ? (
+              <span>{t("job.estimateLeft", { eta: duration(estimate - elapsed) })}</span>
+            ) : (
+              <span className="text-blocked">{t("job.estimateExceeded", { max: duration(estimate * 2) })}</span>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-ash">{t("job.firmwareSilent")}</p>
+        </div>
+      )}
+
+      {!finished && progress && estimate === null && (
         <div className="mt-5">
           <div className="h-2 overflow-hidden rounded-full bg-night">
             <div className="h-full bg-brand transition-all duration-300" style={{ width: `${progress.percent}%` }} />

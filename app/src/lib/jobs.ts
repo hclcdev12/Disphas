@@ -9,11 +9,13 @@ import type { JobSummary } from "../bindings/JobSummary";
 export type JobView = {
   phase: JobPhase;
   progress: JobProgressData | null;
+  /** When `progress` arrived (ms since epoch): a drive's estimate counts down from it. */
+  progressAt: number | null;
   logs: JobLogData[];
   status: FinalStatus | null;
 };
 
-const EMPTY: JobView = { phase: "Preparing", progress: null, logs: [], status: null };
+const EMPTY: JobView = { phase: "Preparing", progress: null, progressAt: null, logs: [], status: null };
 
 /** Applies one helper event to the known jobs. */
 export function applyEvent(jobs: Record<string, JobView>, event: HelperEvent): Record<string, JobView> {
@@ -24,7 +26,7 @@ export function applyEvent(jobs: Record<string, JobView>, event: HelperEvent): R
     case "JobPhase":
       return { ...jobs, [id]: { ...job, phase: event.data.phase, progress: event.data.phase === job.phase ? job.progress : null } };
     case "JobProgress":
-      return { ...jobs, [id]: { ...job, progress: event.data } };
+      return { ...jobs, [id]: { ...job, progress: event.data, progressAt: Date.now() } };
     case "JobLog":
       return { ...jobs, [id]: { ...job, logs: [...job.logs, event.data] } };
     case "JobFinished":

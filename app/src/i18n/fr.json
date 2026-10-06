@@ -159,6 +159,10 @@
     },
     "rate": "{{rate}}/s",
     "eta": "{{eta}} restantes",
+    "elapsed": "Écoulé : {{elapsed}}",
+    "estimateLeft": "environ {{eta}} restantes",
+    "estimateExceeded": "Estimation du disque dépassée : l'effacement continue, n'interrompez pas (délai maximal : {{max}}).",
+    "firmwareSilent": "Le disque ne communique pas son avancement : le temps restant est l'estimation fournie par le disque.",
     "log": "Journal d'audit",
     "logCodes": {
       "samples_selected": "{{count}} blocs échantillons sélectionnés",

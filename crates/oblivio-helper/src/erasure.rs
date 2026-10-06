@@ -18,6 +18,13 @@ pub trait ErasureTarget: Send {
     /// `progress` receives percentages.
     fn firmware(&mut self, method: Method, progress: &mut dyn FnMut(u8)) -> Result<bool, String>;
 
+    /// The drive's own estimate of `method`'s duration, in seconds, for a
+    /// firmware method that reports no progress while it runs (ATA Security
+    /// Erase). Shown to the operator only, never certified.
+    fn firmware_estimate(&mut self, _method: Method) -> Option<u64> {
+        None
+    }
+
     /// Waits for a firmware Sanitize started by a helper that crashed, and
     /// returns whether the firmware reports success. Refuses by default.
     fn resume_firmware(

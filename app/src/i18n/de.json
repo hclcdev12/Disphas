@@ -159,6 +159,10 @@
     },
     "rate": "{{rate}}/s",
     "eta": "noch {{eta}}",
+    "elapsed": "Vergangen: {{elapsed}}",
+    "estimateLeft": "noch etwa {{eta}}",
+    "estimateExceeded": "Schätzung des Laufwerks überschritten: Das Löschen läuft weiter, nicht unterbrechen (Höchstdauer: {{max}}).",
+    "firmwareSilent": "Das Laufwerk meldet keinen Fortschritt: Die Restzeit ist die Schätzung des Laufwerks.",
     "log": "Prüfprotokoll",
     "logCodes": {
       "samples_selected": "{{count}} Stichprobenblöcke ausgewählt",

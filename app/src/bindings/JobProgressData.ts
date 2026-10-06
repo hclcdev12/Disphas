@@ -27,6 +27,8 @@ bytes_done: number | null,
  */
 bytes_per_second: number | null, 
 /**
- * Host overwrite: estimated seconds left.
+ * Estimated seconds left: measured during a host overwrite; for a
+ * firmware command that reports nothing until it ends (ATA Security
+ * Erase), the drive's own estimate, sent once at its start.
  */
 remaining_seconds: number | null, };

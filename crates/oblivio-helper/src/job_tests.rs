@@ -22,7 +22,7 @@ use oblivio_protocol::command::{
     Command, DeviceArgs, DeviceIdentity as WireIdentity, DeviceRef, ForceArgs, HelloArgs,
     InstallLicenseArgs, JobArgs, SanitizeArgs,
 };
-use oblivio_protocol::event::Event;
+use oblivio_protocol::event::{Event, JobProgressData};
 use oblivio_protocol::response::{
     ActivationRequestResult, ErrorCode, FinalStatus, InspectResult, JobPhase, JobResult,
     SanitizeResult,
@@ -117,6 +117,8 @@ impl ErasureTarget for TestTarget {
     }
 
     fn firmware(&mut self, _: CoreMethod, progress: &mut dyn FnMut(u8)) -> Result<bool, String> {
+        // Like ATA Security Erase: 0 at the start, nothing more until done.
+        progress(0);
         if let Some(gate) = &self.gate {
             gate.wait();
         }
@@ -151,6 +153,10 @@ impl ErasureTarget for TestTarget {
 
     fn simulated(&self) -> bool {
         false
+    }
+
+    fn firmware_estimate(&mut self, _method: CoreMethod) -> Option<u64> {
+        Some(78 * 60)
     }
 }
 
@@ -391,6 +397,16 @@ impl Bench {
         (verified, result)
     }
 
+    fn progress(&self) -> Vec<JobProgressData> {
+        self.events
+            .try_iter()
+            .filter_map(|message| match message {
+                ServerMessage::Event(Event::JobProgress(data)) => Some(data),
+                _ => None,
+            })
+            .collect()
+    }
+
     fn phases(&self) -> Vec<JobPhase> {
         self.events
             .try_iter()
@@ -513,6 +529,25 @@ fn a_drive_silent_on_its_media_type_is_certified_sata_not_ssd() {
     let (verified, _) = bench.erase(args);
     assert_eq!(verified.attestation.device.drive_type, DriveType::Sata);
     assert_eq!(verified.attestation.sanitization.category, Category::Clear);
+}
+
+#[test]
+fn a_firmware_command_starts_with_the_drive_estimate_only() {
+    let mut bench = Bench::new(vec![drive("SN-T001", nvme())], Firmware::Honest);
+    let inspection = bench.inspect("SN-T001");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    bench.erase(args);
+    let progress = bench.progress();
+    let firmware: Vec<(u8, Option<u64>)> = progress
+        .iter()
+        .filter(|p| p.source == oblivio_protocol::event::ProgressSource::Firmware)
+        .map(|p| (p.percent, p.remaining_seconds))
+        .collect();
+    assert_eq!(firmware, [(0, Some(78 * 60)), (100, None)]);
 }
 
 #[test]

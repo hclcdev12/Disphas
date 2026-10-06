@@ -483,6 +483,13 @@ impl Runner {
         } else {
             let job_id = self.job_id.clone();
             let events = self.events.clone();
+            // A command that reports nothing until it ends: the drive's own
+            // estimate goes with its start, for the operator.
+            let estimate = if resuming {
+                None
+            } else {
+                spec.target.firmware_estimate(method)
+            };
             let mut report = |percent: u8| {
                 if let Some(events) = &events {
                     let _ = events.try_send(ServerMessage::Event(Event::JobProgress(
@@ -492,7 +499,7 @@ impl Runner {
                             source: ProgressSource::Firmware,
                             bytes_done: None,
                             bytes_per_second: None,
-                            remaining_seconds: None,
+                            remaining_seconds: estimate.filter(|_| percent == 0),
                         },
                     )));
                 }

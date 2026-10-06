@@ -145,7 +145,7 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 | `DeviceAdded` / `DeviceRemoved` | Identité, indice de chemin (surveillance udev) |
 | `DeviceChanged` | Identité ; **invalide** les verdicts en cours sur ce disque |
 | `JobPhase` | `Preparing` → `Canaries` → `Executing` → `Verifying` → `Validating` → `Signing` → `Done` ; ou `Interrupted` (tâche perdue dans un plantage, sans attestation, §10) |
-| `JobProgress` | Pourcentage ; pour une réécriture : octets traités, débit, temps restant ; source (`firmware` / `host`) |
+| `JobProgress` | Pourcentage ; pour une réécriture : octets traités, débit, temps restant ; source (`firmware` / `host`). Pour ATA Security Erase, qui ne renvoie rien avant la fin : l'estimation du disque (IDENTIFY mots 89/90) en `remaining_seconds`, envoyée une fois au départ ; l'interface en tire un compte à rebours (affichage seulement, jamais certifié) |
 | `JobLog` | Niveau + **code de message** + paramètres (traduit côté app, jamais de texte en dur) |
 | `JobFinished` | `job_id`, statut final (CONFORME / NON CONFORME / REFUS) |
 
