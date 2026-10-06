@@ -177,7 +177,8 @@ L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (rè
 - Mot 217 non renseigné : disque traité comme **SSD** (jamais d'Overwrite proposé, Security Erase certifié Clear
   seulement). L'indice `rotational` de sysfs n'est **pas** utilisé (corrigé le 2026-10-06, banc de test) : pour un
   disque SATA, le noyau le tire du même mot 217 et répond « rotatif » quand il manque, ce qui aurait fait certifier
-  Purge le Security Erase d'un SSD muet sur son type.
+  Purge le Security Erase d'un SSD muet sur son type. Le certificat ne prétend pas pour autant que c'est un SSD :
+  il porte le type `SATA` (type non déclaré).
 - Attributs SMART lus en brut 48 bits, comme `smartctl` par défaut : un constructeur qui y range autre chose
   gonfle la valeur, ce qui va dans le sens prudent (D4). La base de quirks corrigera les modèles connus.
 - ⚠️ Offsets et bits issus des normes (NVMe Base 2.0, ACS-3/4), pas encore confrontés à de vrais disques :

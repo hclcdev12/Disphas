@@ -123,6 +123,7 @@ pub fn drive_kind(inspection: &Inspection) -> Option<DriveKind> {
     match inspection {
         Inspection::Failed => None,
         Inspection::Nvme(_) => Some(DriveKind::Nvme),
+        Inspection::Ata(ata) if ata.media_type_unknown => Some(DriveKind::Sata),
         Inspection::Ata(ata) if ata.solid_state => Some(DriveKind::SataSsd),
         Inspection::Ata(_) => Some(DriveKind::SataHdd),
     }

@@ -93,6 +93,8 @@ pub enum DriveKind {
     SataSsd,
     /// SATA hard disk drive.
     SataHdd,
+    /// SATA drive that does not report its media type (handled as an SSD).
+    Sata,
 }
 
 /// One entry of `ListDevices`.

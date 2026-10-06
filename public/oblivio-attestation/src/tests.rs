@@ -482,6 +482,14 @@ fn every_namespace_is_certified_only_for_an_nvme_firmware_method() {
 }
 
 #[test]
+fn a_sata_drive_of_unreported_media_round_trips() {
+    let mut sata = host_write(signed_license(&license(None), &root()));
+    sata.device.drive_type = DriveType::Sata;
+    assert_eq!(DriveType::Sata.as_str(), "SATA");
+    assert_eq!(Attestation::from_cbor(&sata.to_cbor()), Ok(sata));
+}
+
+#[test]
 fn zero_finish_is_present_only_when_true() {
     let mut finished = host_write(vec![1]);
     finished.sanitization.zero_finish = true;

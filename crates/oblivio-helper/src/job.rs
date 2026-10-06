@@ -764,6 +764,8 @@ fn attestation(
     let identity = &spec.profile.identity;
     let drive_type = match &spec.profile.inspection {
         Inspection::Nvme(_) => DriveType::Nvme,
+        // Erased as an SSD, but never certified as one without the drive saying so.
+        Inspection::Ata(ata) if ata.media_type_unknown => DriveType::Sata,
         Inspection::Ata(ata) if ata.solid_state => DriveType::SataSsd,
         Inspection::Ata(_) => DriveType::SataHdd,
         Inspection::Failed => DriveType::Unknown,

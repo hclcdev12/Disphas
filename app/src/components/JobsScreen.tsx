@@ -4,7 +4,14 @@ import type { JobView } from "../lib/jobs";
 import { Badge, Mono } from "./ui";
 
 /** What the app knows about a job besides its events. */
-export type JobInfo = { model: string; serial: string; resumed: boolean; batch: string | null };
+export type JobInfo = {
+  model: string;
+  serial: string;
+  resumed: boolean;
+  batch: string | null;
+  /** A host overwrite: no canaries are written (docs/moteur_decision.md §5). */
+  hostWrite: boolean;
+};
 
 /** Thin progress line of a running job. */
 export function JobProgress({ job }: { job: JobView }) {

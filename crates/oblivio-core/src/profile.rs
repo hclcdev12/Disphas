@@ -154,8 +154,13 @@ impl CriticalWarning {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AtaProfile {
-    /// Non-rotational medium (IDENTIFY word 217 = 1).
+    /// Non-rotational medium (IDENTIFY word 217 = 1), or treated as such
+    /// because the drive does not report its media type.
     pub solid_state: bool,
+    /// IDENTIFY word 217 is not reported: `solid_state` is an assumption
+    /// for the choice of method, not a fact to certify.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub media_type_unknown: bool,
     /// Sanitize feature set capabilities (IDENTIFY word 59).
     pub sanitize: AtaSanitizeCaps,
     /// Sanitize Freeze Lock active (B3).

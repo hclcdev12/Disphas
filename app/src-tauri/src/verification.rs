@@ -96,7 +96,7 @@ pub struct Details {
     pub firmware: String,
     /// Capacity in bytes.
     pub capacity_bytes: u64,
-    /// `NVMe`, `SATA-SSD`, `SATA-HDD` or `Unknown`.
+    /// `NVMe`, `SATA-SSD`, `SATA-HDD`, `SATA` (media type not reported) or `Unknown`.
     pub drive_type: String,
     /// WWN, EUI-64 or NGUID, whichever is present first.
     pub hardware_id: Option<String>,

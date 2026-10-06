@@ -64,7 +64,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 | Clé | Sous-clés | Notes |
 |---|---|---|
 | `id` | — | UUID v7 en 16 octets bruts (pas en texte : économise ~20 octets dans le QR) |
-| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) |
+| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `SATA` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) ; `SATA` (2026-10-06, banc de test) : disque SATA qui ne déclare pas son type de média (mot 217), effacé comme un SSD par prudence mais jamais certifié SSD ni HDD |
 | `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `z`? (`true` : réécriture hôte terminée par une passe de zéros validée — absent sinon, `false` explicite rejeté), `nsa`? (`true` : la méthode a effacé **tous les namespaces** du contrôleur NVMe, pas seulement celui certifié — absent sinon, `false` explicite rejeté), `ref` (liste de référentiels) | `z` et `nsa` ajoutés le 2026-10-04 (avant toute mise sur le marché, d'où pas de nouvelle version de schéma) |
 | `ver` | — | booléen, absent si rien n'a été exécuté |
 | `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |

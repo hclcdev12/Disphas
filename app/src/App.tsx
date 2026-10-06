@@ -147,6 +147,8 @@ export default function App() {
                   serial: job.device.identity.serial,
                   resumed: true,
                   batch: null,
+                  // Only firmware erasures are resumed.
+                  hostWrite: false,
                 };
               }
               return next;
@@ -185,7 +187,13 @@ export default function App() {
     const { model, serial } = request.inspection.device.identity;
     setJobInfo((current) => ({
       ...current,
-      [result.value.job_id]: { model, serial, resumed: false, batch: batch?.id ?? null },
+      [result.value.job_id]: {
+        model,
+        serial,
+        resumed: false,
+        batch: batch?.id ?? null,
+        hostWrite: request.choice.method === "HostOverwrite",
+      },
     }));
     setRequest(null);
     setOpenJob(null);
@@ -238,6 +246,7 @@ export default function App() {
             jobId={openJob}
             model={jobInfo[openJob].model}
             resumed={jobInfo[openJob].resumed}
+            hostWrite={jobInfo[openJob].hostWrite}
             job={jobs[openJob] ?? emptyJob()}
             onBack={() => setOpenJob(null)}
           />

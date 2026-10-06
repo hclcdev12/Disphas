@@ -25,6 +25,7 @@ export function JobScreen({
   job,
   model,
   resumed = false,
+  hostWrite = false,
   onBack,
 }: {
   jobId: string;
@@ -32,13 +33,17 @@ export function JobScreen({
   model: string;
   /** Resumed by the helper after a crash (docs/protocole_ipc.md §10). */
   resumed?: boolean;
+  /** A host overwrite has no canaries step. */
+  hostWrite?: boolean;
   onBack: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [exporting, setExporting] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<HelperError | null>(null);
-  const current = PHASES.indexOf(job.phase);
+  // Only the steps this method goes through: a host overwrite writes no canaries.
+  const phases = hostWrite ? PHASES.filter((phase) => phase !== "Canaries") : PHASES;
+  const current = phases.indexOf(job.phase);
   const finished = job.status !== null;
   const progress = job.progress;
 
@@ -76,8 +81,11 @@ export function JobScreen({
         </div>
       )}
 
-      <ol className="mt-5 grid grid-cols-7 gap-2 text-center text-xs">
-        {PHASES.map((phase, index) => {
+      <ol
+        className="mt-5 grid gap-2 text-center text-xs"
+        style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}
+      >
+        {phases.map((phase, index) => {
           const done = finished || index < current;
           const active = !finished && index === current;
           return (

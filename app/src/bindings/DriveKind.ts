@@ -3,4 +3,4 @@
 /**
  * Kind of drive.
  */
-export type DriveKind = "Nvme" | "SataSsd" | "SataHdd";
+export type DriveKind = "Nvme" | "SataSsd" | "SataHdd" | "Sata";

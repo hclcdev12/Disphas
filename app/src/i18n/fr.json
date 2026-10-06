@@ -27,6 +27,7 @@
     "Nvme": "NVMe",
     "SataSsd": "SSD SATA",
     "SataHdd": "HDD SATA",
+    "Sata": "SATA (type non déclaré)",
     "unknown": "Inconnu"
   },
   "state": {

@@ -224,9 +224,11 @@ pub fn profile(
     sanitize: SanitizeStatus,
 ) -> AtaProfile {
     let solid_state = identify.solid_state.unwrap_or(true);
+    let media_type_unknown = identify.solid_state.is_none();
     let (failing, attributes) = smart.unwrap_or_default();
     AtaProfile {
         solid_state,
+        media_type_unknown,
         sanitize: identify.sanitize,
         sanitize_frozen: sanitize.frozen,
         sanitize_state: sanitize.state,
@@ -462,9 +464,15 @@ mod tests {
         let identify = identify_device(&ssd().set(217, 0).signed()).expect("valid");
         let idle = sanitize_status(0, false);
         assert!(profile(&identify, None, idle).solid_state);
+        assert!(
+            profile(&identify, None, idle).media_type_unknown,
+            "never certified as an SSD"
+        );
         let rotating = identify_device(&ssd().set(217, 7200).signed()).expect("valid");
         assert!(!profile(&rotating, None, idle).solid_state);
         let solid = identify_device(&ssd().set(217, 1).signed()).expect("valid");
         assert!(profile(&solid, None, idle).solid_state);
+        assert!(!profile(&solid, None, idle).media_type_unknown);
+        assert!(!profile(&rotating, None, idle).media_type_unknown);
     }
 }

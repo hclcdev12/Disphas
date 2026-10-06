@@ -497,6 +497,25 @@ fn firmware_erasure_is_compliant_purge() {
 }
 
 #[test]
+fn a_drive_silent_on_its_media_type_is_certified_sata_not_ssd() {
+    let silent = Inspection::Ata(oblivio_core::profile::AtaProfile {
+        solid_state: true,
+        media_type_unknown: true,
+        ..Default::default()
+    });
+    let mut bench = Bench::new(vec![drive("SN-S001", silent)], Firmware::Honest);
+    let inspection = bench.inspect("SN-S001");
+    let args = sanitize(
+        &inspection,
+        Some(Method::HostOverwrite),
+        vec![Acknowledgement::Reserve(ReserveCode::HostWriteCoverage)],
+    );
+    let (verified, _) = bench.erase(args);
+    assert_eq!(verified.attestation.device.drive_type, DriveType::Sata);
+    assert_eq!(verified.attestation.sanitization.category, Category::Clear);
+}
+
+#[test]
 fn host_overwrite_is_compliant_clear_with_r7() {
     let mut bench = Bench::new(vec![drive("SN-B002", nvme())], Firmware::Honest);
     let inspection = bench.inspect("SN-B002");

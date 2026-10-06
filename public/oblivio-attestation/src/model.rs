@@ -99,6 +99,9 @@ text_enum! {
         SataSsd = "SATA-SSD",
         /// SATA hard disk drive.
         SataHdd = "SATA-HDD",
+        /// SATA drive that does not report its media type (IDENTIFY word
+        /// 217): erased as an SSD, the prudent case, but not claimed to be one.
+        Sata = "SATA",
         /// Not identified: the inspection failed (forced N1).
         Unknown = "Unknown",
     }
