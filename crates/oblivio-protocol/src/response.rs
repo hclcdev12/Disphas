@@ -212,6 +212,44 @@ pub struct DeleteReportsResult {
     pub deleted: u32,
 }
 
+/// One stored report, as listed: enough to verify it and show its content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct StoredReport {
+    /// Report identifier (UUID, lowercase).
+    pub id: String,
+    /// Signed attestation, COSE_Sign1, base64; `None` when unreadable.
+    pub attestation: Option<String>,
+    /// SHA-256 of the journal next to it, hex; `None` when unreadable.
+    /// The journal itself is fetched with `GetReport` only when needed.
+    pub journal_sha256: Option<String>,
+}
+
+/// Result of `ListReports`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct ListReportsResult {
+    /// Reports, newest first.
+    pub reports: Vec<StoredReport>,
+    /// Older reports remain: ask again with `before` = the last identifier.
+    pub more: bool,
+}
+
+/// Result of `GetReport`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct ReportResult {
+    /// Report identifier.
+    pub id: String,
+    /// Signed attestation, COSE_Sign1, base64.
+    pub attestation: String,
+    /// Detailed journal, JSON text.
+    pub journal: String,
+}
+
 /// Result of `ListJobs`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]

@@ -37,6 +37,10 @@ pub enum Command {
     InstallLicense(InstallLicenseArgs),
     /// Deletes stored reports (retention chosen by the customer).
     DeleteReports(DeleteReportsArgs),
+    /// Lists stored reports, newest first, a page at a time.
+    ListReports(ListReportsArgs),
+    /// Returns one stored report: signed attestation and journal.
+    GetReport(ReportArgs),
     /// Stops the helper; refused while a job is running.
     Shutdown,
 }
@@ -56,6 +60,8 @@ impl Command {
         "CreateActivationRequest",
         "InstallLicense",
         "DeleteReports",
+        "ListReports",
+        "GetReport",
         "Shutdown",
     ];
 }
@@ -67,6 +73,25 @@ impl Command {
 pub struct DeleteReportsArgs {
     /// Report identifiers (UUID, lowercase), at most 5000.
     pub ids: Vec<String>,
+}
+
+/// Arguments of `ListReports`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct ListReportsArgs {
+    /// Only reports older than this identifier (the last of the previous
+    /// page); `None` for the newest page.
+    pub before: Option<String>,
+}
+
+/// Arguments of `GetReport`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct ReportArgs {
+    /// Report identifier (UUID, lowercase).
+    pub id: String,
 }
 
 /// Arguments of `Hello`.

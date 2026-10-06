@@ -52,8 +52,9 @@ HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir 
 - Reprise d'un Sanitize après une **coupure de courant** (NVMe et ATA) : le disque doit reprendre seul,
   l'inspection (IDENTIFY) doit répondre pendant le Sanitize, et la tâche doit finir CONFORME au redémarrage.
 - Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.
-- Paquet `.deb` (non testable sur le poste de développement) : installation → groupe `oblivio` créé,
-  certificats d'une version antérieure passés en 0750/0640 ; opérateur hors groupe → message de l'historique ;
+- Paquet `.deb` : installation → `/var/lib/oblivio` root seul (0700), certificats d'une version antérieure passés en
+  0600 ; historique et PDF de lot lus par le helper, sans groupe (constat du banc le 2026-10-06 : avec le groupe
+  `oblivio`, la clôture d'un lot échouait tant que l'opérateur n'en était pas membre) ;
   `apt remove` garde `/var/lib/oblivio` ; `apt purge` le supprime avec le groupe.
 - Effacement parallèle sur plusieurs vrais disques (SATA et NVMe en même temps), puis certificat de lot.
 - B5 (Sanitize en échec) : ajouter et valider la commande « Exit Failure Mode » (NVMe Sanitize action 1,

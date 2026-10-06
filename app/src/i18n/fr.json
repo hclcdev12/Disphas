@@ -236,8 +236,6 @@
     },
     "allBatches": "Tous les lots",
     "batchPdf": "Certificat de lot (PDF)",
-    "noAccessTitle": "Accès aux certificats refusé",
-    "noAccessHint": "Les certificats sont réservés aux membres du groupe « oblivio ». Un administrateur doit y ajouter ce compte, puis il faut fermer et rouvrir la session :",
     "before": "Antérieurs au",
     "deleteShown_one": "Supprimer le certificat affiché",
     "deleteShown_other": "Supprimer les {{count}} certificats affichés",

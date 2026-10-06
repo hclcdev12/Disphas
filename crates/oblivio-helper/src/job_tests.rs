@@ -551,6 +551,109 @@ fn a_firmware_command_starts_with_the_drive_estimate_only() {
 }
 
 #[test]
+fn stored_reports_are_listed_and_read_through_the_helper() {
+    use oblivio_protocol::command::{ListReportsArgs, ReportArgs};
+    use oblivio_protocol::response::{ListReportsResult, ReportResult};
+    use sha2::Digest;
+    let mut bench = Bench::new(vec![drive("SN-R001", nvme())], Firmware::Honest);
+    let inspection = bench.inspect("SN-R001");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    let (_, result) = bench.erase(args);
+    let id = result.job_id.0.clone();
+
+    let page: ListReportsResult = bench.ok(Command::ListReports(ListReportsArgs { before: None }));
+    assert!(!page.more);
+    assert_eq!(page.reports.len(), 1);
+    let listed = &page.reports[0];
+    assert_eq!(listed.id, id);
+    let attestation = base64::engine::general_purpose::STANDARD
+        .decode(listed.attestation.as_deref().expect("readable"))
+        .expect("base64");
+    assert_eq!(
+        attestation,
+        base64::engine::general_purpose::STANDARD
+            .decode(&result.attestation)
+            .expect("b64")
+    );
+    let journal_hash: String = sha2::Sha256::digest(result.journal.as_bytes())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    assert_eq!(
+        listed.journal_sha256.as_deref(),
+        Some(journal_hash.as_str())
+    );
+
+    let report: ReportResult = bench.ok(Command::GetReport(ReportArgs { id: id.clone() }));
+    assert_eq!(report.journal, result.journal);
+    assert_eq!(report.attestation, result.attestation);
+
+    // Strict identifiers; a link is never followed.
+    for bad in [
+        "../keys/workstation",
+        "01A11152-2F07-7973-B606-2CFAEEB58B2D",
+    ] {
+        let error = bench
+            .send(Command::GetReport(ReportArgs { id: bad.to_owned() }))
+            .expect_err("refused");
+        assert_eq!(error.code, ErrorCode::BadRequest);
+    }
+    let reports = bench.dir.path().join("reports");
+    let linked = "01a11152-0000-7000-8000-000000000001";
+    std::os::unix::fs::symlink(
+        reports.join(format!("{id}.cose")),
+        reports.join(format!("{linked}.cose")),
+    )
+    .expect("link");
+    std::os::unix::fs::symlink(
+        reports.join(format!("{id}.json")),
+        reports.join(format!("{linked}.json")),
+    )
+    .expect("link");
+    assert!(
+        bench
+            .send(Command::GetReport(ReportArgs {
+                id: linked.to_owned()
+            }))
+            .is_err()
+    );
+}
+
+#[test]
+fn stored_reports_come_in_pages_newest_first() {
+    use oblivio_protocol::command::ListReportsArgs;
+    use oblivio_protocol::response::ListReportsResult;
+    let mut bench = Bench::new(Vec::new(), Firmware::Honest);
+    let reports = bench.dir.path().join("reports");
+    std::fs::create_dir_all(&reports).expect("reports");
+    for index in 0..450u32 {
+        let id = format!("01a11152-0000-7000-8000-{index:012}");
+        std::fs::write(reports.join(format!("{id}.cose")), b"x").expect("cose");
+        std::fs::write(reports.join(format!("{id}.json")), b"{}").expect("json");
+    }
+    let mut seen = Vec::new();
+    let mut before = None;
+    loop {
+        let page: ListReportsResult = bench.ok(Command::ListReports(ListReportsArgs { before }));
+        assert!(page.reports.len() <= 200);
+        seen.extend(page.reports.iter().map(|report| report.id.clone()));
+        if !page.more {
+            break;
+        }
+        before = page.reports.last().map(|report| report.id.clone());
+    }
+    assert_eq!(seen.len(), 450);
+    assert!(
+        seen.windows(2).all(|pair| pair[0] > pair[1]),
+        "newest first, no repeat"
+    );
+}
+
+#[test]
 fn host_overwrite_is_compliant_clear_with_r7() {
     let mut bench = Bench::new(vec![drive("SN-B002", nvme())], Firmware::Honest);
     let inspection = bench.inspect("SN-B002");

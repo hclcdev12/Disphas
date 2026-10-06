@@ -207,16 +207,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
         </div>
       )}
       {entries === null && <p className="text-ash">{t("history.loading")}</p>}
-      {listError === "PermissionDenied" && (
-        <div className="rounded-lg border border-blocked/40 bg-blocked/10 p-4 text-sm">
-          <p className="font-bold text-blocked">{t("history.noAccessTitle")}</p>
-          <p className="mt-1">{t("history.noAccessHint")}</p>
-          <p className="mt-2">
-            <Mono>sudo usermod -aG oblivio $USER</Mono>
-          </p>
-        </div>
-      )}
-      {listError !== null && listError !== "PermissionDenied" && <p className="text-sayno">{listError}</p>}
+      {listError !== null && <p className="text-sayno">{listError}</p>}
       {listError === null && entries?.length === 0 && <p className="text-ash">{t("history.empty")}</p>}
       {entries && entries.length > 0 && shown.length === 0 && <p className="text-ash">{t("history.noMatch")}</p>}
 

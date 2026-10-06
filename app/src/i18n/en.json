@@ -236,8 +236,6 @@
     },
     "allBatches": "All batches",
     "batchPdf": "Batch certificate (PDF)",
-    "noAccessTitle": "Access to certificates denied",
-    "noAccessHint": "Certificates are reserved to members of the “oblivio” group. An administrator must add this account to it, then log out and back in:",
     "before": "Issued before",
     "deleteShown_one": "Delete the certificate shown",
     "deleteShown_other": "Delete the {{count}} certificates shown",

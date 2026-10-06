@@ -76,7 +76,7 @@ jobs:
           apt-get install -y ./deb/*.deb
           dpkg-query -W -f='${Package} ${Version} ${Status}\n' oblivio
 
-      - name: Every library resolves, files and group are in place
+      - name: Every library resolves, files are in place
         run: |
           for program in /usr/bin/oblivio-app /usr/libexec/oblivio/oblivio-helper; do
             ldd "$program" | tee ldd.txt
@@ -84,15 +84,13 @@ jobs:
           done
           test -f /usr/share/polkit-1/actions/org.oblivio.helper.policy
           test -f /usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt
-          getent group oblivio
 
       - name: State tree is root-owned with the expected modes
         run: |
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 755"
-          for sub in keys license jobs recovery; do
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 700"
+          for sub in keys license jobs recovery reports; do
             test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
           done
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio/reports)" = "root:oblivio 750"
 
       - name: The release helper refuses to run outside pkexec
         run: |
@@ -108,7 +106,6 @@ jobs:
           test -f /var/lib/oblivio/reports/example.cose
           apt-get purge -y oblivio
           test ! -e /var/lib/oblivio
-          if getent group oblivio; then echo "group left after purge"; exit 1; fi
 
   install-rpm:
     needs: build
@@ -133,22 +130,20 @@ jobs:
           rpm -qp --requires ./rpm/*.rpm
           ${{ matrix.install }}
 
-      - name: Every library resolves, files and group are in place
+      - name: Every library resolves, files are in place
         run: |
           for program in /usr/bin/oblivio-app /usr/libexec/oblivio/oblivio-helper; do
             ldd "$program" | tee ldd.txt
             if grep -q "not found" ldd.txt; then echo "missing library for $program"; exit 1; fi
           done
           test -f /usr/share/polkit-1/actions/org.oblivio.helper.policy
-          getent group oblivio
 
       - name: State tree is root-owned with the expected modes
         run: |
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 755"
-          for sub in keys license jobs recovery; do
+          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 700"
+          for sub in keys license jobs recovery reports; do
             test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
           done
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio/reports)" = "root:oblivio 750"
 
       - name: The release helper refuses to run outside pkexec
         run: |

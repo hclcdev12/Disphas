@@ -1,27 +1,19 @@
 //! History of certificates: the signed reports the helper stored in
-//! `<state>/reports/` (0755, files 0644), read here as the normal user
-//! (`docs/protocole_ipc.md` §10). Every entry is verified before it is shown:
-//! the content of a report that does not verify is never displayed.
+//! `<state>/reports/` (root only), listed and read through the helper
+//! (`ListReports`, `GetReport`, docs/protocole_ipc.md §10). Every entry is
+//! verified here before it is shown: the content of a report that does not
+//! verify is never displayed.
 
-use std::path::{Path, PathBuf};
-
+use base64::Engine;
 use oblivio_attestation::display::uuid;
 use oblivio_attestation::{VerifyError, verify};
+use oblivio_protocol::response::StoredReport;
 
 use crate::trust::Trust;
 use serde::Serialize;
 
-/// Largest signed attestation read.
-const MAX_ATTESTATION_BYTES: u64 = 1 << 20;
-/// Largest journal read.
-const MAX_JOURNAL_BYTES: u64 = 16 << 20;
 /// Most recent reports listed.
 pub const MAX_ENTRIES: usize = 5000;
-
-/// The reports folder.
-pub fn reports_dir() -> PathBuf {
-    oblivio_license::state_dir().join("reports")
-}
 
 /// Outcome of the checks on one report.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -85,26 +77,22 @@ pub fn is_report_id(id: &str) -> bool {
         })
 }
 
-fn read_bounded(path: &Path, limit: u64) -> Option<Vec<u8>> {
-    let metadata = std::fs::metadata(path).ok()?;
-    if !metadata.is_file() || metadata.len() > limit {
-        return None;
-    }
-    std::fs::read(path).ok()
-}
-
-/// The signed attestation and journal of report `id`.
-pub fn read(dir: &Path, id: &str) -> Option<(Vec<u8>, Vec<u8>)> {
-    if !is_report_id(id) {
-        return None;
-    }
-    let signed = read_bounded(&dir.join(format!("{id}.cose")), MAX_ATTESTATION_BYTES)?;
-    let journal = read_bounded(&dir.join(format!("{id}.json")), MAX_JOURNAL_BYTES)?;
-    Some((signed, journal))
-}
-
-/// Checks one report against `trust`.
-pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
+/// Checks one listed report against `trust`; the journal is checked
+/// through its SHA-256, computed by the helper next to the file.
+pub fn check(report: &StoredReport, trust: &Trust) -> Entry {
+    let id = report.id.as_str();
+    let unreadable = || Entry {
+        id: id.to_owned(),
+        check: Check::Unreadable,
+        summary: None,
+    };
+    let (Some(signed), Some(journal_sha256)) = (&report.attestation, &report.journal_sha256) else {
+        return unreadable();
+    };
+    let Ok(signed) = base64::engine::general_purpose::STANDARD.decode(signed) else {
+        return unreadable();
+    };
+    let signed = signed.as_slice();
     let mut revoked = false;
     let verified = trust.roots.iter().find_map(|root| {
         verify(signed, root, &trust.revocations)
@@ -123,7 +111,12 @@ pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
         };
     };
     let attestation = &verified.attestation;
-    if !verified.matches_journal(journal) || uuid(&attestation.id) != id {
+    let hex: String = attestation
+        .journal_sha256
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    if hex != *journal_sha256 || uuid(&attestation.id) != id {
         return Entry {
             id: id.to_owned(),
             check: Check::JournalMismatch,
@@ -156,38 +149,13 @@ pub fn check(id: &str, signed: &[u8], journal: &[u8], trust: &Trust) -> Entry {
     }
 }
 
-/// Reports in `dir`, newest first (identifiers are UUID v7, ordered by time).
-/// `Err("PermissionDenied")` when this account may not read them: it is not
-/// in the `oblivio` group (docs/conformite.md, R1).
-pub fn list(dir: &Path, trust: &Trust) -> Result<Vec<Entry>, String> {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err("PermissionDenied".to_owned());
-        }
-        Err(_) => return Ok(Vec::new()),
-    };
-    let mut ids: Vec<String> = entries
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let name = entry.file_name().into_string().ok()?;
-            let id = name.strip_suffix(".cose")?;
-            is_report_id(id).then(|| id.to_owned())
-        })
-        .collect();
-    ids.sort_unstable_by(|a, b| b.cmp(a));
-    ids.truncate(MAX_ENTRIES);
-    Ok(ids
-        .into_iter()
-        .map(|id| match read(dir, &id) {
-            Some((signed, journal)) => check(&id, &signed, &journal, trust),
-            None => Entry {
-                id,
-                check: Check::Unreadable,
-                summary: None,
-            },
-        })
-        .collect())
+/// Checks every listed report, newest first as the helper sends them.
+pub fn check_all(reports: &[StoredReport], trust: &Trust) -> Vec<Entry> {
+    reports
+        .iter()
+        .take(MAX_ENTRIES)
+        .map(|report| check(report, trust))
+        .collect()
 }
 
 #[cfg(test)]
@@ -195,6 +163,7 @@ mod tests {
     use super::*;
     use oblivio_attestation::model::Status;
     use oblivio_report::fixture::{JOURNAL, root, signed};
+    use sha2::Digest;
 
     fn trust_in(
         roots: Vec<oblivio_attestation::ed25519_dalek::VerifyingKey>,
@@ -211,46 +180,47 @@ mod tests {
         trust_in(vec![root().verifying_key()], vec![])
     }
 
-    #[test]
-    fn report_of_a_revoked_license_is_flagged() {
-        let dir = tempfile::tempdir().expect("temporary directory");
-        store(dir.path(), &signed(Status::Compliant, "x"), JOURNAL);
-        let revoked = oblivio_attestation::Revocation {
-            license_id: "LIC-0001".to_owned(),
-            revoked_at: 0,
-        };
-        let listed = list(
-            dir.path(),
-            &trust_in(vec![root().verifying_key()], vec![revoked]),
-        )
-        .expect("listed");
-        assert_eq!(listed[0].check, Check::Revoked);
-        assert!(listed[0].summary.is_none());
-    }
-
-    fn store(dir: &Path, signed: &[u8], journal: &[u8]) -> String {
+    /// A report as `ListReports` sends it.
+    fn stored(signed: &[u8], journal: &[u8]) -> StoredReport {
         let id = uuid(
             &verify(signed, &root().verifying_key(), &[])
                 .expect("fixture verifies")
                 .attestation
                 .id,
         );
-        std::fs::write(dir.join(format!("{id}.cose")), signed).expect("cose");
-        std::fs::write(dir.join(format!("{id}.json")), journal).expect("json");
-        id
+        StoredReport {
+            id,
+            attestation: Some(base64::engine::general_purpose::STANDARD.encode(signed)),
+            journal_sha256: Some(
+                sha2::Sha256::digest(journal)
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect(),
+            ),
+        }
+    }
+
+    #[test]
+    fn report_of_a_revoked_license_is_flagged() {
+        let report = stored(&signed(Status::Compliant, "x"), JOURNAL);
+        let revoked = oblivio_attestation::Revocation {
+            license_id: "LIC-0001".to_owned(),
+            revoked_at: 0,
+        };
+        let entry = check(
+            &report,
+            &trust_in(vec![root().verifying_key()], vec![revoked]),
+        );
+        assert_eq!(entry.check, Check::Revoked);
+        assert!(entry.summary.is_none());
     }
 
     #[test]
     fn valid_report_is_listed_with_its_content() {
-        let dir = tempfile::tempdir().expect("temporary directory");
-        let id = store(
-            dir.path(),
-            &signed(Status::Compliant, "Atelier XYZ"),
-            JOURNAL,
-        );
-        let listed = list(dir.path(), &fixture_trust()).expect("listed");
+        let report = stored(&signed(Status::Compliant, "Atelier XYZ"), JOURNAL);
+        let listed = check_all(std::slice::from_ref(&report), &fixture_trust());
         assert_eq!(listed.len(), 1);
-        assert_eq!(listed[0].id, id);
+        assert_eq!(listed[0].id, report.id);
         assert_eq!(listed[0].check, Check::Valid);
         let summary = listed[0].summary.as_ref().expect("content");
         assert_eq!(summary.status, "CONFORME");
@@ -259,51 +229,35 @@ mod tests {
 
     #[test]
     fn untrusted_or_tampered_reports_show_no_content() {
-        let dir = tempfile::tempdir().expect("temporary directory");
-        store(dir.path(), &signed(Status::Compliant, "x"), JOURNAL);
+        let report = stored(&signed(Status::Compliant, "x"), JOURNAL);
         let stranger =
             oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]).verifying_key();
-        let listed = list(dir.path(), &trust_in(vec![stranger], vec![])).expect("listed");
-        assert_eq!(listed[0].check, Check::Invalid);
-        assert!(listed[0].summary.is_none());
+        let entry = check(&report, &trust_in(vec![stranger], vec![]));
+        assert_eq!(entry.check, Check::Invalid);
+        assert!(entry.summary.is_none());
 
-        let id = listed[0].id.clone();
-        std::fs::write(dir.path().join(format!("{id}.json")), b"{}").expect("tamper");
-        let listed = list(dir.path(), &fixture_trust()).expect("listed");
-        assert_eq!(listed[0].check, Check::JournalMismatch);
-        assert!(listed[0].summary.is_none());
-    }
+        let mut tampered = report.clone();
+        tampered.journal_sha256 = Some("00".repeat(32));
+        let entry = check(&tampered, &fixture_trust());
+        assert_eq!(entry.check, Check::JournalMismatch);
+        assert!(entry.summary.is_none());
 
-    #[test]
-    fn missing_journal_and_foreign_files_are_handled() {
-        let dir = tempfile::tempdir().expect("temporary directory");
-        let id = store(dir.path(), &signed(Status::Refused, "x"), JOURNAL);
-        std::fs::remove_file(dir.path().join(format!("{id}.json"))).expect("removed");
-        std::fs::write(dir.path().join("notes.cose"), b"x").expect("foreign");
-        let listed = list(dir.path(), &fixture_trust()).expect("listed");
-        assert_eq!(listed.len(), 1, "only report-shaped names");
-        assert_eq!(listed[0].check, Check::Unreadable);
-    }
-
-    #[test]
-    fn unreadable_reports_folder_is_reported() {
-        use std::os::unix::fs::PermissionsExt;
-        let dir = tempfile::tempdir().expect("temporary directory");
-        let reports = dir.path().join("reports");
-        std::fs::create_dir(&reports).expect("folder");
-        std::fs::set_permissions(&reports, std::fs::Permissions::from_mode(0o000)).expect("chmod");
-        let result = list(&reports, &fixture_trust());
-        std::fs::set_permissions(&reports, std::fs::Permissions::from_mode(0o700)).expect("chmod");
-        // Root reads anything: the check only means something for a user.
-        if !std::fs::read_to_string("/proc/self/status")
-            .is_ok_and(|status| status.lines().any(|line| line.starts_with("Uid:\t0\t")))
-        {
-            assert_eq!(result, Err("PermissionDenied".to_owned()));
-        }
+        let mut renamed = report;
+        renamed.id = "01923456-789a-7bcd-8ef0-123456789abc".to_owned();
         assert_eq!(
-            list(&dir.path().join("missing"), &fixture_trust()),
-            Ok(Vec::new())
+            check(&renamed, &fixture_trust()).check,
+            Check::JournalMismatch
         );
+    }
+
+    #[test]
+    fn unreadable_reports_are_flagged() {
+        let mut report = stored(&signed(Status::Refused, "x"), JOURNAL);
+        report.journal_sha256 = None;
+        assert_eq!(check(&report, &fixture_trust()).check, Check::Unreadable);
+        report.attestation = Some("not base64 !".to_owned());
+        report.journal_sha256 = Some("00".repeat(32));
+        assert_eq!(check(&report, &fixture_trust()).check, Check::Unreadable);
     }
 
     #[test]
@@ -312,6 +266,5 @@ mod tests {
         assert!(!is_report_id("../../etc/passwd"));
         assert!(!is_report_id("01923456-789A-7bcd-8ef0-123456789abc"));
         assert!(!is_report_id("01923456-789a-7bcd-8ef0-123456789ab"));
-        assert!(read(Path::new("/"), "../etc/passwd").is_none());
     }
 }

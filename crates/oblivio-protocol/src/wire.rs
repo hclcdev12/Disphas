@@ -405,6 +405,12 @@ mod tests {
             Command::DeleteReports(crate::command::DeleteReportsArgs {
                 ids: vec!["01928c3e-5a1b-7000-8000-000000004201".to_owned()],
             }),
+            Command::ListReports(crate::command::ListReportsArgs {
+                before: Some("01928c3e-5a1b-7000-8000-000000004201".to_owned()),
+            }),
+            Command::GetReport(crate::command::ReportArgs {
+                id: "01928c3e-5a1b-7000-8000-000000004201".to_owned(),
+            }),
             Command::Shutdown,
         ]
     }

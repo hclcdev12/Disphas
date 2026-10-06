@@ -81,12 +81,14 @@ pub fn save_signed(
     Ok(path)
 }
 
-/// Renders the batch certificate of `batch_id` from the history: every
-/// report of that batch, each verified again by the renderer. Saved as
-/// `oblivio-lot-<batch>-<lang>.pdf`. `None` when the history holds no
-/// verified certificate of that batch (an empty batch).
+/// Renders the batch certificate of `batch_id` from `files`, the signed
+/// attestation and journal of each report of that batch (fetched through
+/// the helper), each verified again by the renderer. Saved as
+/// `oblivio-lot-<batch>-<lang>.pdf`. `None` for a batch without any
+/// certificate.
 pub fn save_batch(
     batch_id: &str,
+    files: &[(Vec<u8>, Vec<u8>)],
     lang: Lang,
     trust: &Trust,
     logo: &CustomLogo,
@@ -96,18 +98,6 @@ pub fn save_batch(
     if !Batch::valid_id(batch_id) {
         return Err("invalid batch identifier".to_owned());
     }
-    let dir = crate::history::reports_dir();
-    let files: Vec<(Vec<u8>, Vec<u8>)> = crate::history::list(&dir, trust)?
-        .into_iter()
-        .filter(|entry| {
-            entry.check == crate::history::Check::Valid
-                && entry
-                    .summary
-                    .as_ref()
-                    .is_some_and(|summary| summary.batch_id.as_deref() == Some(batch_id))
-        })
-        .filter_map(|entry| crate::history::read(&dir, &entry.id))
-        .collect();
     if files.is_empty() {
         return Ok(None);
     }

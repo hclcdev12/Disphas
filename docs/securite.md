@@ -12,7 +12,7 @@
 | **La clé du poste** (`/var/lib/oblivio/keys`) | Elle signe les certificats ; volée, elle permet de forger des certificats au nom du poste jusqu'à révocation |
 | **La clé racine** (hors ligne, chez l'éditeur) | Elle signe licences et listes de révocation ; volée, elle permet tout |
 | **Le poste lui-même** | Le helper tourne en root : il ne doit pas devenir une porte d'entrée vers root |
-| **Les données des certificats** | Données personnelles possibles (opérateur, n° de série) : accès limité (groupe `oblivio`) |
+| **Les données des certificats** | Données personnelles possibles (opérateur, n° de série) : root seul, lues par le helper (authentification administrateur) |
 
 ## 2. Qui pourrait attaquer
 
@@ -62,7 +62,7 @@ de la licence ou du refus des disques PROTÉGÉS depuis le protocole, aucune inj
 
 ### 5.1 Élevés (✅ corrigés le 2026-10-04)
 
-- **S1** : le paquet crée `/var/lib/oblivio` (root 0755) et ses sous-dossiers (root 0700, `reports` root:oblivio 0750) et s'arrête s'il y trouve un lien symbolique ; le helper fixe `umask 077` au démarrage et **refuse de démarrer** si le dossier d'état ou un sous-dossier n'est pas un vrai dossier appartenant au compte du helper et fermé en écriture aux autres ; les certificats reçoivent leurs droits (0640) et leur groupe sur le fichier ouvert (`fchmod`/`fchown`). Vérifié : refus réel sur un dossier 0777, démarrage normal sinon ; droits contrôlés après installation par le workflow *Package*.
+- **S1** : le paquet crée `/var/lib/oblivio` et ses sous-dossiers (root 0700 ; depuis le 2026-10-06 `reports` aussi, lu par le helper) et s'arrête s'il y trouve un lien symbolique ; le helper fixe `umask 077` au démarrage et **refuse de démarrer** si le dossier d'état ou un sous-dossier n'est pas un vrai dossier appartenant au compte du helper et fermé en écriture aux autres ; les certificats sont créés en 0600, root seul. Vérifié : refus réel sur un dossier 0777, démarrage normal sinon ; droits contrôlés après installation par le workflow *Package*.
 - **S2** : après l'ouverture exclusive, le numéro de périphérique doit être celui de l'inventaire et l'identité relue par IDENTIFY sur le descripteur ouvert doit être exactement celle confirmée ; même contrôle avant un déverrouillage.
 
 

@@ -120,7 +120,7 @@ export interface OblivioApi {
   /** Opens a saved certificate with the desktop's PDF viewer. */
   openCertificate(path: string): Promise<void>;
   /** Signed reports stored by the helper, newest first, each one verified. */
-  /** `error` is "PermissionDenied" when this account is not in the oblivio group. */
+  /** Through the helper: the reports are root-only (docs/protocole_ipc.md §10). */
   listReports(): Promise<HistoryEntry[] | { error: string }>;
   /** Renders and saves the PDF certificate of a report from the history. */
   renderReport(id: string, lang: Language): Promise<Outcome<string>>;
@@ -182,7 +182,10 @@ const tauriApi: OblivioApi = {
     }
   },
   openCertificate: (path) => invoke<void>("open_certificate", { path }),
-  listReports: () => invoke<HistoryEntry[]>("list_reports").catch((error) => ({ error: String(error) })),
+  listReports: () =>
+    invoke<HistoryEntry[]>("list_reports").catch((error: { detail?: string | null; code?: string } | string) => ({
+      error: typeof error === "string" ? error : (error.detail ?? error.code ?? "helper error"),
+    })),
   renderReport: async (id, lang) => {
     try {
       return { ok: true, value: await invoke<string>("render_report", { id, lang }) };

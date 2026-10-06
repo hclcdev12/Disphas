@@ -12,8 +12,7 @@ use std::path::Path;
 /// Subfolders the helper uses.
 pub const SUBFOLDERS: &[&str] = &["keys", "license", "jobs", "recovery", "reports"];
 
-/// Restricts every file the process creates to its owner: modes requested
-/// explicitly (reports 0640, state folder 0755) are set after creation.
+/// Restricts every file the process creates to its owner.
 pub fn restrict_umask() {
     rustix::process::umask(rustix::fs::Mode::from_raw_mode(0o077));
 }
@@ -45,13 +44,13 @@ fn check(path: &Path, owner: u32) -> Result<(), String> {
     Ok(())
 }
 
-/// Creates the state folder if needed (0755: operators traverse it to read
-/// their reports), then checks it and every existing subfolder.
+/// Creates the state folder if needed (0700: root only; operators read the
+/// reports through the helper), then checks it and every existing subfolder.
 pub fn prepare(dir: &Path, owner: u32) -> Result<(), String> {
     let exists = fs::symlink_metadata(dir).is_ok();
     if !exists {
         fs::create_dir_all(dir).map_err(|error| format!("{}: {error}", dir.display()))?;
-        fs::set_permissions(dir, fs::Permissions::from_mode(0o755))
+        fs::set_permissions(dir, fs::Permissions::from_mode(0o700))
             .map_err(|error| format!("{}: {error}", dir.display()))?;
     }
     check(dir, owner)?;
@@ -74,12 +73,12 @@ mod tests {
     }
 
     #[test]
-    fn a_new_state_folder_is_created_0755_and_accepted() {
+    fn a_new_state_folder_is_created_0700_and_accepted() {
         let dir = tempfile::tempdir().expect("temporary directory");
         let state = dir.path().join("oblivio");
         prepare(&state, own_uid()).expect("prepared");
         let mode = fs::metadata(&state).expect("metadata").permissions().mode() & 0o777;
-        assert_eq!(mode, 0o755);
+        assert_eq!(mode, 0o700);
         fs::create_dir(state.join("keys")).expect("keys");
         fs::set_permissions(state.join("keys"), fs::Permissions::from_mode(0o700)).expect("chmod");
         prepare(&state, own_uid()).expect("still fine");

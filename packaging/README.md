@@ -8,21 +8,19 @@
 | `/usr/libexec/oblivio/oblivio-helper` | `crates/oblivio-helper` (release) | Root helper, launched by pkexec |
 | `/usr/share/polkit-1/actions/org.oblivio.helper.policy` | `packaging/polkit/` | Administrator authentication (`auth_admin`, never kept, active local session only) |
 | `/usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt` | `packaging/` (generated) | Licenses of third-party components |
-| postinst | `packaging/debian/postinst` | Creates the `oblivio` group; restricts certificates of an earlier version |
-| postrm | `packaging/debian/postrm` | `purge` deletes `/var/lib/oblivio` and the `oblivio` group |
+| postinst | `packaging/debian/postinst` | Creates the root-only state tree; restricts certificates of an earlier version |
+| postrm | `packaging/debian/postrm` | `purge` deletes `/var/lib/oblivio` |
 
 **Uninstalling.** `sudo apt remove oblivio` removes the program and keeps the data
 (workstation key, license, certificates). `sudo apt purge oblivio` deletes every data and
-setting: `/var/lib/oblivio` and the `oblivio` group (Cyber Resilience Act, Annex I, Part I
+setting: `/var/lib/oblivio` (Cyber Resilience Act, Annex I, Part I
 (2)(m)). Certificates exported to `~/Documents/Oblivio` belong to the user and are not
 touched. Files are deleted, not sanitized: on an SSD the workstation key may remain in
 unmapped cells; erase the drive itself to destroy it for sure.
 
 At runtime the helper keeps its state in `/var/lib/oblivio` (`keys/`, `license/` root-only;
-`reports/` 0750/0640, group `oblivio`).
-
-Operators who use the application must be in that group:
-`sudo usermod -aG oblivio <user>`, then log out and in again.
+`reports/` root-only too: the application reads the certificates through the helper,
+so no group and no account setting is needed).
 
 A release helper refuses to start unless it runs as root and was started by pkexec.
 Release builds contain neither the demo drives nor the development root key: until the
@@ -44,13 +42,12 @@ the release helper refusing to start outside pkexec, and removal (`.deb`: `remov
 `/var/lib/oblivio`, `purge` deletes it and the group; `.rpm`: removal keeps the data).
 
 - `.deb` `Depends`: every library found by `dpkg-shlibdeps` (old and `t64` names as
-  alternatives), plus `pkexec`, `xdg-utils` (opening certificates) and `passwd`
-  (`groupadd` in the scripts). `tools/check_package.py --max-glibc 2.35` fails the build if a
-  library is undeclared or a program needs a newer glibc. A `.deb` built on a newer system
+  alternatives), plus `pkexec` and `xdg-utils` (opening certificates). `tools/check_package.py --max-glibc 2.35`
+  fails the build if a library is undeclared or a program needs a newer glibc. A `.deb` built on a newer system
   (e.g. a developer's Pop!_OS 24.04) needs glibc 2.39 and must not be distributed.
 - `.rpm` `Requires`: shared-library capabilities (`libwebkit2gtk-4.1.so.0()(64bit)`…) and
   file paths (`/usr/bin/pkexec`, `/usr/bin/xdg-open`…), so they resolve whatever each
   distribution names its packages. RPM has no purge: to delete every data and setting,
-  `sudo rm -rf /var/lib/oblivio && sudo groupdel oblivio` (documented in `packaging/rpm/post`).
+  `sudo rm -rf /var/lib/oblivio` (documented in `packaging/rpm/post`).
 - AppImage is not offered: its root helper would live in a user-writable file, so an
   administrator could be led to run a tampered helper as root.

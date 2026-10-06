@@ -1,18 +1,13 @@
 #!/bin/sh
-# Oblivio postinst: the "oblivio" group may read erasure certificates
-# (/var/lib/oblivio/reports, 0750 root:oblivio, files 0640).
-# Operators are added by the administrator:
-#     sudo usermod -aG oblivio <user>    (then log out and in again)
+# Oblivio postinst: the helper's state tree, root only. Certificates are read
+# through the helper (docs/protocole_ipc.md §10): no group, no account to add.
 set -e
 
 case "$1" in
     configure)
-        if ! getent group oblivio >/dev/null; then
-            groupadd --system oblivio
-        fi
         state=/var/lib/oblivio
-        # The helper's state tree, owned by root (docs/securite.md, S1). A symbolic
-        # link where a folder is expected means tampering: stop.
+        # Owned by root (docs/securite.md, S1). A symbolic link where a folder
+        # is expected means tampering: stop.
         for path in "$state" "$state/keys" "$state/license" "$state/jobs" "$state/recovery" "$state/reports"; do
             if [ -L "$path" ]; then
                 echo "oblivio: $path is a symbolic link, refusing to continue" >&2
@@ -21,19 +16,15 @@ case "$1" in
         done
         mkdir -p "$state"
         chown root:root "$state"
-        chmod 0755 "$state"
-        for sub in keys license jobs recovery; do
+        chmod 0700 "$state"
+        for sub in keys license jobs recovery reports; do
             mkdir -p "$state/$sub"
             chown root:root "$state/$sub"
             chmod 0700 "$state/$sub"
         done
-        reports="$state/reports"
-        mkdir -p "$reports"
-        chown root:oblivio "$reports"
-        chmod 0750 "$reports"
-        # Certificates stored by an earlier version (0755/0644): restrict them.
-        find "$reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
-            -exec chgrp oblivio {} + -exec chmod 0640 {} +
+        # Certificates stored by an earlier version (group-readable): root only.
+        find "$state/reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
+            -exec chown root:root {} + -exec chmod 0600 {} +
         ;;
 esac
 

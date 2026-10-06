@@ -27,7 +27,8 @@ use std::thread::JoinHandle;
 use oblivio_protocol::ServerMessage;
 use oblivio_protocol::command::JobId;
 use oblivio_protocol::response::{
-    DeleteReportsResult, JobPhase, JobResult, JobSummary, SanitizeResult,
+    DeleteReportsResult, JobPhase, JobResult, JobSummary, ListReportsResult, ReportResult,
+    SanitizeResult, StoredReport,
 };
 
 use crate::backend::DeviceBackend;
@@ -198,6 +199,8 @@ impl<B: DeviceBackend> Session<B> {
             Command::Sanitize(args) => self.sanitize(&args, now),
             Command::ListJobs => self.list_jobs(),
             Command::DeleteReports(args) => self.delete_reports(&args.ids),
+            Command::ListReports(args) => self.list_reports(args.before.as_deref()),
+            Command::GetReport(args) => self.get_report(&args.id),
             Command::GetJobResult(args) => self.job_result(&args.job_id),
             Command::Cancel(args) => {
                 let known = self
@@ -659,6 +662,83 @@ impl<B: DeviceBackend> Session<B> {
         to_value(&DeleteReportsResult { deleted })
     }
 
+    /// A page of stored reports, newest first (identifiers are UUID v7,
+    /// ordered by time). The application reads the history through the
+    /// helper: the reports stay root-only, and no account needs a group.
+    fn list_reports(&self, before: Option<&str>) -> Handled {
+        use base64::Engine;
+        if before.is_some_and(|id| !is_report_id(id)) {
+            return Err(Failure::new(
+                ErrorCode::BadRequest,
+                "invalid report identifier",
+            ));
+        }
+        let dir = &self.config.reports_dir;
+        let mut ids: Vec<String> = match std::fs::read_dir(dir) {
+            Ok(entries) => entries
+                .filter_map(Result::ok)
+                .filter_map(|entry| {
+                    let name = entry.file_name().into_string().ok()?;
+                    let id = name.strip_suffix(".cose")?;
+                    (is_report_id(id) && before.is_none_or(|before| id < before))
+                        .then(|| id.to_owned())
+                })
+                .collect(),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(error) => return Err(Failure::new(ErrorCode::Internal, error.to_string())),
+        };
+        ids.sort_unstable_by(|a, b| b.cmp(a));
+        let more = ids.len() > REPORTS_PAGE;
+        ids.truncate(REPORTS_PAGE);
+        let reports = ids
+            .into_iter()
+            .map(|id| {
+                let attestation =
+                    read_bounded(&dir.join(format!("{id}.cose")), MAX_STORED_ATTESTATION);
+                let journal = read_bounded(&dir.join(format!("{id}.json")), MAX_STORED_JOURNAL);
+                let readable = attestation.is_some() && journal.is_some();
+                StoredReport {
+                    attestation: attestation
+                        .filter(|_| readable)
+                        .map(|bytes| base64::engine::general_purpose::STANDARD.encode(bytes)),
+                    journal_sha256: journal.filter(|_| readable).map(|bytes| {
+                        use sha2::Digest;
+                        sha2::Sha256::digest(&bytes)
+                            .iter()
+                            .map(|byte| format!("{byte:02x}"))
+                            .collect()
+                    }),
+                    id,
+                }
+            })
+            .collect();
+        to_value(&ListReportsResult { reports, more })
+    }
+
+    /// One stored report, to render or reprint its certificate.
+    fn get_report(&self, id: &str) -> Handled {
+        use base64::Engine;
+        if !is_report_id(id) {
+            return Err(Failure::new(
+                ErrorCode::BadRequest,
+                "invalid report identifier",
+            ));
+        }
+        let dir = &self.config.reports_dir;
+        let read = |extension: &str, limit| {
+            read_bounded(&dir.join(format!("{id}.{extension}")), limit).ok_or_else(|| {
+                Failure::new(ErrorCode::BadRequest, "report not found or unreadable")
+            })
+        };
+        let attestation = read("cose", MAX_STORED_ATTESTATION)?;
+        let journal = read("json", MAX_STORED_JOURNAL)?;
+        to_value(&ReportResult {
+            id: id.to_owned(),
+            attestation: base64::engine::general_purpose::STANDARD.encode(attestation),
+            journal: String::from_utf8_lossy(&journal).into_owned(),
+        })
+    }
+
     fn list_jobs(&self) -> Handled {
         let jobs = self
             .jobs
@@ -776,6 +856,24 @@ fn declarative(text: &Option<String>, max_chars: usize) -> Option<Option<String>
         return None;
     }
     Some((!text.is_empty()).then(|| text.to_owned()))
+}
+
+/// Reports per `ListReports` page: about 1.2 KB each, far below the 1 MiB
+/// message limit.
+const REPORTS_PAGE: usize = 200;
+/// Largest stored attestation served (they are about 1 KB).
+const MAX_STORED_ATTESTATION: u64 = 64 << 10;
+/// Largest stored journal served: it travels in one message of at most
+/// 1 MiB, JSON escapes included (journals are about 20 KB).
+const MAX_STORED_JOURNAL: u64 = 512 << 10;
+
+/// The content of `path` if it is a regular file of at most `limit` bytes.
+fn read_bounded(path: &std::path::Path, limit: u64) -> Option<Vec<u8>> {
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    if !metadata.is_file() || metadata.len() > limit {
+        return None;
+    }
+    std::fs::read(path).ok()
 }
 
 /// Whether `id` is a report identifier: a lowercase UUID, as in file names.

@@ -236,8 +236,6 @@
     },
     "allBatches": "Alle Lose",
     "batchPdf": "Loszertifikat (PDF)",
-    "noAccessTitle": "Zugriff auf die Bescheinigungen verweigert",
-    "noAccessHint": "Die Bescheinigungen sind Mitgliedern der Gruppe „oblivio“ vorbehalten. Ein Administrator muss dieses Konto hinzufügen; danach ab- und wieder anmelden:",
     "before": "Ausgestellt vor dem",
     "deleteShown_one": "Angezeigte Bescheinigung löschen",
     "deleteShown_other": "Die {{count}} angezeigten Bescheinigungen löschen",

@@ -4,10 +4,12 @@ import type { DeviceArgs } from "./DeviceArgs";
 import type { HelloArgs } from "./HelloArgs";
 import type { InstallLicenseArgs } from "./InstallLicenseArgs";
 import type { JobArgs } from "./JobArgs";
+import type { ListReportsArgs } from "./ListReportsArgs";
+import type { ReportArgs } from "./ReportArgs";
 import type { SanitizeArgs } from "./SanitizeArgs";
 import type { UnlockArgs } from "./UnlockArgs";
 
 /**
  * A command with its arguments. Serialized as `"cmd"` and `"args"`.
  */
-export type Command = { "cmd": "Hello", "args": HelloArgs } | { "cmd": "ListDevices" } | { "cmd": "Inspect", "args": DeviceArgs } | { "cmd": "Unlock", "args": UnlockArgs } | { "cmd": "Sanitize", "args": SanitizeArgs } | { "cmd": "Cancel", "args": JobArgs } | { "cmd": "ListJobs" } | { "cmd": "GetJobResult", "args": JobArgs } | { "cmd": "LicenseStatus" } | { "cmd": "CreateActivationRequest" } | { "cmd": "InstallLicense", "args": InstallLicenseArgs } | { "cmd": "DeleteReports", "args": DeleteReportsArgs } | { "cmd": "Shutdown" };
+export type Command = { "cmd": "Hello", "args": HelloArgs } | { "cmd": "ListDevices" } | { "cmd": "Inspect", "args": DeviceArgs } | { "cmd": "Unlock", "args": UnlockArgs } | { "cmd": "Sanitize", "args": SanitizeArgs } | { "cmd": "Cancel", "args": JobArgs } | { "cmd": "ListJobs" } | { "cmd": "GetJobResult", "args": JobArgs } | { "cmd": "LicenseStatus" } | { "cmd": "CreateActivationRequest" } | { "cmd": "InstallLicense", "args": InstallLicenseArgs } | { "cmd": "DeleteReports", "args": DeleteReportsArgs } | { "cmd": "ListReports", "args": ListReportsArgs } | { "cmd": "GetReport", "args": ReportArgs } | { "cmd": "Shutdown" };

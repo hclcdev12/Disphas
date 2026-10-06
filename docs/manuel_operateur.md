@@ -35,16 +35,8 @@ sudo zypper install --allow-unsigned-rpm ./Oblivio-0.1.0-1.x86_64.rpm        # o
 
 Le gestionnaire de paquets installe aussi tout ce dont Oblivio a besoin.
 
-### Autoriser un opérateur
-
-Les certificats sont réservés au groupe `oblivio`. Un administrateur y ajoute chaque compte opérateur :
-
-```bash
-sudo usermod -aG oblivio <compte>
-```
-
-L'opérateur doit ensuite **fermer puis rouvrir sa session**. Sans cela, l'onglet *Historique* affiche
-« Accès aux certificats refusé ».
+Aucun réglage de compte n'est nécessaire : l'historique des certificats est accessible à quiconque peut lancer
+Oblivio, c'est-à-dire avec le mot de passe administrateur du poste.
 
 ### Activer la licence (hors ligne)
 
@@ -263,11 +255,11 @@ de son constructeur avant de relancer l'inspection.
 
 ```bash
 sudo apt remove oblivio    # garde la clé du poste, la licence et les certificats
-sudo apt purge oblivio     # efface TOUT : /var/lib/oblivio et le groupe oblivio
+sudo apt purge oblivio     # efface TOUT : /var/lib/oblivio
 ```
 
 Sur Fedora / openSUSE, la désinstallation garde les données ; pour tout effacer :
-`sudo rm -rf /var/lib/oblivio && sudo groupdel oblivio`.
+`sudo rm -rf /var/lib/oblivio`.
 
 Les PDF exportés dans `~/Documents/Oblivio` vous appartiennent et ne sont jamais supprimés par la
 désinstallation. Avant `purge`, conservez les certificats dont vous avez besoin : ce sont vos preuves.

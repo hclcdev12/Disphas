@@ -162,22 +162,24 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 ├── keys/      clé privée du poste (0600, root)
 ├── license/   .lic installé
 ├── jobs/      état de chaque tâche, écrit à chaque changement de phase
-└── reports/   <id>.cose + <id>.json — historique, lisible par le groupe oblivio
+└── reports/   <id>.cose + <id>.json — historique, root seul, lu par le helper
 ```
 
-- `reports/` sert aussi d'**historique** : l'app peut le lire directement, sans passer par le helper.
-  Implémenté le 2026-10-04 (onglet *Historique*) : l'app vérifie **chaque** rapport (signature, chaîne de
-  licence vers une racine de confiance, empreinte du journal, identifiant = nom du fichier) avant de
-  l'afficher ; un rapport qui échoue n'est montré que par son identifiant, jamais par son contenu. Lecture
-  bornée (1 Mio par attestation, 16 Mio par journal, 5 000 rapports les plus récents). Le dossier d'état
-  est défini une seule fois, dans `oblivio_license::state_dir()`.
-  Arborescence créée par le paquet (root 0755, sous-dossiers 0700) ; le helper fixe `umask 077` et refuse de démarrer
-  si le dossier d'état ou un sous-dossier n'est pas à lui, est un lien ou est ouvert en écriture aux autres
-  ([sécurité](securite.md) S1).
-  Droits (2026-10-04, RGPD art. 25(2), voir [conformité](conformite.md) R1) : `reports/` **0750** et fichiers **0640**
-  (jamais écrasés), groupe **`oblivio`** — seuls root et les opérateurs membres du groupe les lisent ; `keys/` et
-  `license/` restent 0700/0600. Le groupe est créé par le paquet (`packaging/debian/postinst`) ; sans lui (build de
-  développement), les rapports ne sont lisibles que par leur propriétaire.
+- `reports/` sert aussi d'**historique**, lu **par le helper** (décidé le 2026-10-06, banc de test : un groupe
+  d'accès obligeait à ajouter chaque opérateur puis à rouvrir sa session, ce qui contredit la simplicité visée).
+  Commandes en lecture seule, sans licence requise :
+  - `ListReports {before?}` → `{reports: [{id, attestation?, journal_sha256?}], more}` : du plus récent au plus
+    ancien, pages de 200 ; `attestation` (base64) et `journal_sha256` (hex, calculé par le helper) absents si le
+    rapport est illisible, trop gros (64 Kio d'attestation, 512 Kio de journal) ou un lien symbolique ;
+  - `GetReport {id}` → `{id, attestation, journal}` : pour rendre ou réimprimer un certificat, ou un PDF de lot.
+  L'app vérifie **chaque** rapport elle-même (signature, chaîne de licence vers une racine de confiance, empreinte du
+  journal, identifiant = nom du fichier) avant de l'afficher ; un rapport qui échoue n'est montré que par son
+  identifiant, jamais par son contenu. 5 000 rapports les plus récents au plus. Le dossier d'état est défini une
+  seule fois, dans `oblivio_license::state_dir()`.
+  Arborescence créée par le paquet, **root seul** (dossier et sous-dossiers 0700, certificats 0600, jamais écrasés) ;
+  le helper fixe `umask 077` et refuse de démarrer si le dossier d'état ou un sous-dossier n'est pas à lui, est un lien
+  ou est ouvert en écriture aux autres ([sécurité](securite.md) S1). Le contrôle d'accès aux certificats est celui du
+  helper : l'authentification administrateur polkit exigée pour lancer Oblivio ([conformité](conformite.md) R1).
 - Si le helper plante en cours de tâche, le lancement suivant reprend depuis `jobs/` :
   - **Sanitize firmware** : lecture du journal de statut du disque, puis vérification, validation et signature ;
   - **réécriture hôte** : la tâche est marquée *interrompue*, sans attestation ; l'opérateur relance (nouvelle inspection).

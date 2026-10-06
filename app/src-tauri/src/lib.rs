@@ -65,16 +65,72 @@ async fn render_certificate(
     Ok(path.to_string_lossy().into_owned())
 }
 
+fn internal(detail: impl ToString) -> ErrorBody {
+    ErrorBody {
+        code: ErrorCode::Internal,
+        detail: Some(detail.to_string()),
+    }
+}
+
+fn helper_of(state: &HelperState) -> Result<&Helper, ErrorBody> {
+    state.0.as_ref().map_err(internal)
+}
+
+/// Every stored report, newest first, page by page through the helper:
+/// the reports are root-only (docs/protocole_ipc.md §10).
+async fn fetch_reports(
+    helper: &Helper,
+) -> Result<Vec<oblivio_protocol::response::StoredReport>, ErrorBody> {
+    use oblivio_protocol::command::ListReportsArgs;
+    use oblivio_protocol::response::ListReportsResult;
+    let mut reports = Vec::new();
+    let mut before = None;
+    loop {
+        let value = helper
+            .request(Command::ListReports(ListReportsArgs { before }))
+            .await?
+            .outcome?;
+        let page: ListReportsResult = serde_json::from_value(value).map_err(internal)?;
+        let more = page.more && !page.reports.is_empty();
+        before = page.reports.last().map(|report| report.id.clone());
+        reports.extend(page.reports);
+        if !more || reports.len() >= history::MAX_ENTRIES {
+            return Ok(reports);
+        }
+    }
+}
+
+/// The signed attestation and journal of report `id`, through the helper.
+async fn fetch_report(helper: &Helper, id: &str) -> Result<(Vec<u8>, Vec<u8>), ErrorBody> {
+    use base64::Engine;
+    use oblivio_protocol::command::ReportArgs;
+    use oblivio_protocol::response::ReportResult;
+    if !history::is_report_id(id) {
+        return Err(internal("invalid report identifier"));
+    }
+    let value = helper
+        .request(Command::GetReport(ReportArgs { id: id.to_owned() }))
+        .await?
+        .outcome?;
+    let report: ReportResult = serde_json::from_value(value).map_err(internal)?;
+    let signed = base64::engine::general_purpose::STANDARD
+        .decode(&report.attestation)
+        .map_err(internal)?;
+    Ok((signed, report.journal.into_bytes()))
+}
+
 /// The certificate history, newest first, each report verified.
 #[tauri::command]
-async fn list_reports() -> Result<Vec<history::Entry>, String> {
+async fn list_reports(state: State<'_, HelperState>) -> Result<Vec<history::Entry>, ErrorBody> {
+    let reports = fetch_reports(helper_of(&state)?).await?;
     // Verifying thousands of signatures: off the async runtime.
-    tauri::async_runtime::spawn_blocking(|| {
+    tauri::async_runtime::spawn_blocking(move || {
         let trust = trust::Trust::shipped()?;
-        history::list(&history::reports_dir(), &trust)
+        Ok::<_, String>(history::check_all(&reports, &trust))
     })
     .await
-    .map_err(|error| error.to_string())?
+    .map_err(internal)?
+    .map_err(internal)
 }
 
 /// Renders the PDF certificate of report `id` from the history, in `lang`.
@@ -82,23 +138,19 @@ async fn list_reports() -> Result<Vec<history::Entry>, String> {
 async fn render_report(
     id: String,
     lang: String,
+    state: State<'_, HelperState>,
     app: tauri::AppHandle,
 ) -> Result<String, ErrorBody> {
-    let failure = |detail: String| ErrorBody {
-        code: ErrorCode::Internal,
-        detail: Some(detail),
-    };
+    let (signed, journal) = fetch_report(helper_of(&state)?, &id).await?;
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
     let logo = custom_logo(&app);
     let path = tauri::async_runtime::spawn_blocking(move || {
-        let (signed, journal) =
-            history::read(&history::reports_dir(), &id).ok_or("report not found")?;
         let trust = trust::Trust::shipped()?;
         certificate::save_signed(&id, &signed, &journal, lang, &trust, &logo)
     })
     .await
-    .map_err(|error| failure(error.to_string()))?
-    .map_err(failure)?;
+    .map_err(internal)?
+    .map_err(internal)?;
     Ok(path.to_string_lossy().into_owned())
 }
 
@@ -108,21 +160,45 @@ async fn render_report(
 async fn render_batch(
     batch_id: String,
     lang: String,
+    state: State<'_, HelperState>,
     app: tauri::AppHandle,
 ) -> Result<Option<String>, ErrorBody> {
-    let failure = |detail: String| ErrorBody {
-        code: ErrorCode::Internal,
-        detail: Some(detail),
-    };
+    let helper = helper_of(&state)?;
+    let reports = fetch_reports(helper).await?;
+    // Only verified reports of this batch go into its certificate.
+    let wanted = batch_id.clone();
+    let ids: Vec<String> = tauri::async_runtime::spawn_blocking(move || {
+        let trust = trust::Trust::shipped()?;
+        Ok::<_, String>(
+            history::check_all(&reports, &trust)
+                .into_iter()
+                .filter(|entry| {
+                    entry.check == history::Check::Valid
+                        && entry
+                            .summary
+                            .as_ref()
+                            .is_some_and(|summary| summary.batch_id.as_deref() == Some(&wanted))
+                })
+                .map(|entry| entry.id)
+                .collect(),
+        )
+    })
+    .await
+    .map_err(internal)?
+    .map_err(internal)?;
+    let mut files = Vec::with_capacity(ids.len());
+    for id in &ids {
+        files.push(fetch_report(helper, id).await?);
+    }
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
     let logo = custom_logo(&app);
     let path = tauri::async_runtime::spawn_blocking(move || {
         let trust = trust::Trust::shipped()?;
-        certificate::save_batch(&batch_id, lang, &trust, &logo)
+        certificate::save_batch(&batch_id, &files, lang, &trust, &logo)
     })
     .await
-    .map_err(|error| failure(error.to_string()))?
-    .map_err(failure)?;
+    .map_err(internal)?
+    .map_err(internal)?;
     Ok(path.map(|path| path.to_string_lossy().into_owned()))
 }
 
