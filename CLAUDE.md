@@ -8,6 +8,9 @@ clairement, signale tout écart avec les specs, et demande avant toute décision
 
 ## 1. Documentation — à lire avant de coder
 
+**Commencer par `docs/reprise.md`** : état d'avancement, points ouverts, façon de travailler avec le propriétaire,
+pilotage du banc de test. Il ne remplace pas les specs ci-dessous.
+
 Ordre de lecture et **ordre de priorité** en cas de contradiction :
 
 1. `docs/cadre_projet.md` — **référence**. Périmètre V1, architecture, règles invariantes.
@@ -87,6 +90,9 @@ oblivio/
 - `unsafe` limité à `oblivio-device` (ioctl, buffers alignés), chaque bloc commenté par `// SAFETY:`.
 - Erreurs : `thiserror` dans les bibliothèques, pas de `unwrap()` hors tests.
 - Désérialisation stricte (`#[serde(deny_unknown_fields)]`) pour tout ce qui traverse le protocole.
+- **On n'invente rien** (règle universelle du propriétaire) : toute commande, option, chemin, API ou comportement
+  donné au propriétaire est vérifié avant (code, configuration, documentation officielle, exécution sans risque).
+  Ce qui ne peut pas être vérifié est présenté comme tel.
 - Commits : Conventional Commits (`feat:`, `fix:`, `docs:`…), petits et ciblés.
 - Toute décision qui modifie une spec → mettre à jour le document concerné dans `docs/` dans le même commit.
 - **Push GitHub** : autorisé vers `origin` (dépôt privé), uniquement après fmt + clippy + tests verts en local,
@@ -94,7 +100,7 @@ oblivio/
   jamais vers un autre dépôt, jamais de dépôt public, sans accord explicite. Après chaque push, vérifier le
   résultat de la CI et le signaler.
 
-## 6. Premières tâches
+## 6. Premières tâches (faites — l'état actuel est dans `docs/reprise.md`)
 
 1. **Nettoyage** — supprimer les doublons périmés à la racine (les versions de `docs/` font foi) :
    - `cahier_des_charges_logiciel_d_effacement_s_curis.md`
