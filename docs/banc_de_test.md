@@ -13,6 +13,10 @@
 **live PXE** (squashfs sur NFS, couche d'écriture en RAM) ; SSD SK hynix SC210 128 Go (sda), HDD Hitachi
 HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir sur carte PCIe → M.2 passive
 (un pont USB RTL9210B ne laisse passer qu'Identify et Get Log Page : inutilisable, cf. smartmontools).
+- **Pilotage à distance (2026-10-06)** : après chaque démarrage, le propriétaire lance `sudo sh tools/bench/setup.sh`
+  sur le banc (root sans mot de passe pour `goupil`, helper Oblivio sans demande polkit, `xdotool`). Claude voit l'écran
+  par SSH (`xwd` sur l'affichage `:0`), pilote l'interface (`xdotool`) et agit en root selon l'exception du banc
+  (CLAUDE.md §2). La licence reste à signer par le propriétaire après chaque redémarrage.
 - **Inspection en lecture seule (2026-10-06)** : identité, capacité, WWN, état Security, SMART et absence de
   Sanitize décodés par Oblivio identiques à `smartctl -x` et aux mots bruts de `smartctl --identify` sur les trois
   disques. Le Toshiba (sdc) ne renseigne pas le mot 217 : il était classé HDD via sysfs, il est désormais traité
