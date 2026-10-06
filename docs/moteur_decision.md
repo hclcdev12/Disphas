@@ -47,13 +47,20 @@ n'importe quel programme qui le lit ; s'il reste non monté, l'inventaire **éch
 - À l'ouverture pour effacement (S9) : refus si un autre processus a le disque, une de ses partitions ou un
   namespace voisin tenu ouvert (`/proc/<pid>/fd`) — `O_EXCL` n'arrête que les ouvertures exclusives.
 - **Échec fermé** : `mountinfo` ou `swaps` illisible, swap ou montage `/dev/…` introuvable, ou racine `/`
-  rattachée à aucun disque (ZFS, overlay d'un système live…) → l'inventaire **échoue** entièrement.
+  rattachée à aucun disque (ZFS, overlay qu'on ne sait pas suivre…) → l'inventaire **échoue** entièrement.
   Aussi (2026-10-04, revue de sécurité) : un montage dont le numéro de périphérique n'existe pas dans sysfs, une
   pile de périphériques illisible ou plus profonde que 16 niveaux, et **tout** montage ZFS (un pool ne se rattache
   pas à ses disques par la table des montages) : leurs disques auraient paru libres.
   Un dossier `holders/` illisible compte comme P4.
 - Périmètre V1 : seuls `nvme<N>n<M>` et `sd<lettres>` sont listés ; le transport (NVMe, ATA, USB) est signalé.
-  ⚠️ L'échec sur racine ZFS ou système live rendra l'application inutilisable sur ces systèmes : à revoir avec l'ISO (V2).
+  ⚠️ L'échec sur racine ZFS rend l'application inutilisable sur ces systèmes : à revoir avec l'ISO (V2).
+- **Système live** (décidé le 2026-10-06, banc de test démarré en PXE) : une racine `overlay` est suivie couche par
+  couche (`lowerdir`, `upperdir`, `lowerdir+`, `datadir+`) jusqu'au montage qui porte chaque couche, et un loop adossé
+  à un **fichier** jusqu'au montage qui porte ce fichier. Les disques trouvés sont le disque système (P1) : une clé live
+  USB, une partition de persistance. Si **toutes** les couches finissent en RAM ou sur une autre machine (`tmpfs`,
+  `ramfs`, `nfs`, `nfs4`, `cifs`, `smb3`), il n'y a **pas de disque système local** et l'inventaire l'accepte ; une
+  racine NFS directe aussi. Toute couche introuvable laisse la racine inconnue → échec (*fail closed*). Vérifié sur le
+  banc (live PXE : squashfs sur NFS, couche d'écriture en RAM) et sur le poste de développement.
 
 ## 2. Blocages → BLOQUÉ (orange)
 

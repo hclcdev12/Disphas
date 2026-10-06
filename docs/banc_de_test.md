@@ -9,6 +9,14 @@
   au minimum un SSD SATA avec Sanitize, un NVMe avec Sanitize, idéalement un HDD SATA et un SSD sans Sanitize.
 - `smartmontools` installé (oracle de test, cadre §9).
 
+**Banc actuel (2026-10-06)** : Dell Precision T3500 (SATA Intel ICH10 en AHCI, PCIe 2.0, pas de M.2), démarré en
+**live PXE** (squashfs sur NFS, couche d'écriture en RAM) ; SSD SK hynix SC210 128 Go (sda), HDD Hitachi
+HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir sur carte PCIe → M.2 passive
+(un pont USB RTL9210B ne laisse passer qu'Identify et Get Log Page : inutilisable, cf. smartmontools).
+- `/var/lib/oblivio` est en RAM : licence, clé du poste et enregistrements de récupération sont perdus à chaque
+  redémarrage (option (a), décidée le 2026-10-06). **Pas de test de Security Erase avec coupure** sur ce banc tant
+  que ce dossier n'est pas persistant.
+
 ## Étapes
 
 1. **Inspection** (lecture seule) du disque de test, en comparant à `smartctl --json -x` :

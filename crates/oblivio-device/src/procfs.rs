@@ -15,6 +15,8 @@ pub struct MountEntry {
     pub fs_type: String,
     /// Mount source, such as `/dev/nvme0n1p2`, escapes decoded.
     pub source: String,
+    /// Filesystem-specific options (overlay layers…), escapes decoded.
+    pub super_options: String,
 }
 
 /// One active swap area of `/proc/swaps`.
@@ -61,6 +63,10 @@ pub fn parse_mountinfo(text: &str) -> Result<Vec<MountEntry>, ParseError> {
                 mount_point: unescape(fields[4]),
                 fs_type: fields[separator + 1].to_owned(),
                 source: unescape(fields[separator + 2]),
+                super_options: fields
+                    .get(separator + 3)
+                    .map(|options| unescape(options))
+                    .unwrap_or_default(),
             })
         })
         .collect()

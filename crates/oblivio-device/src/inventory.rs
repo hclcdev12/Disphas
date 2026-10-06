@@ -24,6 +24,10 @@ const SYSTEM_MOUNT_POINTS: &[&str] = &["/", "/boot", "/boot/efi", "/efi"];
 /// Deepest device stack followed through `slaves/` (dm-crypt on LVM on md…).
 const MAX_STACK_DEPTH: usize = 16;
 
+/// Filesystems that live in RAM or on another machine: no local drive
+/// behind them. Only used to prove that a live system has no system drive.
+const DISKLESS_FILESYSTEMS: &[&str] = &["tmpfs", "ramfs", "nfs", "nfs4", "cifs", "smb3"];
+
 /// Filesystems that pool several drives without a traceable device number
 /// or source: their drives cannot be found from the mount table.
 const POOLED_FILESYSTEMS: &[&str] = &["zfs"];
@@ -174,9 +178,22 @@ pub fn scan(paths: &SystemPaths) -> Result<Vec<BlockDevice>, ScanError> {
     }
     let mut root_resolved = false;
     for mount in &mounts {
-        let disks = resolver.mount_disks(mount)?;
+        let disks = if mount.mount_point == "/" {
+            // Followed through overlay layers and loop files: a live system
+            // booted from the network has no system drive, a live USB stick
+            // is one. Anything that cannot be followed: the root is unknown.
+            let disks = resolver
+                .traced_disks(mount, &mounts, 0)
+                .map_err(|error| match error {
+                    ScanError::Untraceable(_) => ScanError::RootNotResolved,
+                    other => other,
+                })?;
+            root_resolved = true;
+            disks
+        } else {
+            resolver.mount_disks(mount)?
+        };
         let system = SYSTEM_MOUNT_POINTS.contains(&mount.mount_point.as_str());
-        root_resolved |= mount.mount_point == "/" && !disks.is_empty();
         for disk in disks {
             let facts = protection.entry(disk).or_default();
             facts.has_mounted_partition = true;
@@ -248,6 +265,69 @@ pub fn device_numbers(paths: &SystemPaths, drive: &BlockDevice) -> Result<Vec<De
         );
     }
     Ok(numbers)
+}
+
+/// Layers of an overlay mount (`lowerdir`, `upperdir`, also `lowerdir+`
+/// and `datadir+`), from its super options. Options are separated by `,`,
+/// lower layers by `:`; a literal separator is escaped with `\`.
+fn overlay_layers(options: &str) -> Vec<String> {
+    let split = |text: &str, separator: char| {
+        let mut parts = vec![String::new()];
+        let mut escaped = false;
+        for c in text.chars() {
+            match c {
+                '\\' if !escaped => escaped = true,
+                c if c == separator && !escaped => parts.push(String::new()),
+                c => {
+                    if let Some(part) = parts.last_mut() {
+                        // Escapes of the other separator stay for the next split.
+                        if escaped && c != separator {
+                            part.push('\\');
+                        }
+                        part.push(c);
+                    }
+                    escaped = false;
+                }
+            }
+        }
+        parts
+    };
+    let mut layers = Vec::new();
+    for option in split(options, ',') {
+        let Some((key, value)) = option.split_once('=') else {
+            continue;
+        };
+        match key {
+            "lowerdir" => layers.extend(split(value, ':')),
+            "lowerdir+" | "datadir+" | "upperdir" => layers.push(value.to_owned()),
+            _ => {}
+        }
+    }
+    layers.retain(|layer| !layer.is_empty());
+    layers
+}
+
+/// The mount a `path` lives on: the deepest mount point containing it (the
+/// last one when stacked), other than `except`.
+fn containing_mount<'a>(
+    mounts: &'a [MountEntry],
+    path: &str,
+    except: &MountEntry,
+) -> Option<&'a MountEntry> {
+    let path = path.trim_end_matches('/');
+    let inside = |point: &str| {
+        let point = point.trim_end_matches('/');
+        point.is_empty()
+            || path == point
+            || path
+                .strip_prefix(point)
+                .is_some_and(|rest| rest.starts_with('/'))
+    };
+    mounts
+        .iter()
+        .filter(|mount| !std::ptr::eq(*mount, except))
+        .filter(|mount| inside(&mount.mount_point))
+        .max_by_key(|mount| mount.mount_point.trim_end_matches('/').len())
 }
 
 /// System mount points whose only mount is an automount (autofs) trap.
@@ -479,6 +559,63 @@ impl<'a> Resolver<'a> {
         Ok(disks)
     }
 
+    /// Drives under a mount, followed through overlay layers and loop
+    /// devices backed by a file. Empty only when every part is proven to be
+    /// in RAM or on another machine ([`DISKLESS_FILESYSTEMS`]); a part that
+    /// cannot be followed fails.
+    fn traced_disks(
+        &self,
+        mount: &MountEntry,
+        mounts: &[MountEntry],
+        depth: usize,
+    ) -> Result<BTreeSet<String>, ScanError> {
+        let untraceable = || ScanError::Untraceable(mount.mount_point.clone());
+        if depth >= MAX_STACK_DEPTH {
+            return Err(untraceable());
+        }
+        if DISKLESS_FILESYSTEMS.contains(&mount.fs_type.as_str()) {
+            return Ok(BTreeSet::new());
+        }
+        let mut disks = BTreeSet::new();
+        if mount.fs_type == "overlay" {
+            let layers = overlay_layers(&mount.super_options);
+            if layers.is_empty() {
+                return Err(untraceable());
+            }
+            for layer in layers {
+                let holder = containing_mount(mounts, &layer, mount).ok_or_else(untraceable)?;
+                disks.extend(self.traced_disks(holder, mounts, depth + 1)?);
+            }
+            return Ok(disks);
+        }
+        if mount.dev.major != 0 {
+            let name = self.names.get(&mount.dev).ok_or_else(untraceable)?;
+            if let Some(file) = self.loop_file(name)? {
+                let holder = containing_mount(mounts, &file, mount).ok_or_else(untraceable)?;
+                return self.traced_disks(holder, mounts, depth + 1);
+            }
+            disks = self.disks_of(name)?;
+        } else {
+            disks = self.mount_disks(mount)?;
+        }
+        if disks.is_empty() {
+            return Err(untraceable());
+        }
+        Ok(disks)
+    }
+
+    /// Backing file of loop device `name`, when it is bound to a regular
+    /// file (not a `/dev/…` device).
+    fn loop_file(&self, name: &str) -> Result<Option<String>, ScanError> {
+        let dir = self.paths.sys.join("class/block").join(name).join("loop");
+        if !name.starts_with("loop") || !dir.is_dir() {
+            return Ok(None);
+        }
+        let backing = read_required(&dir.join("backing_file"))?;
+        let backing = backing.trim();
+        Ok((!backing.starts_with("/dev/")).then(|| backing.to_owned()))
+    }
+
     /// Backing devices (`/dev/…` paths) of the bound loop devices (those
     /// with a `loop/` directory). A loop over a regular file is left out:
     /// that file lives on a mounted filesystem, already traced. A bound loop
@@ -665,6 +802,21 @@ mod tests {
             let id = self.mounts.len() + 20;
             self.mounts.push(format!(
                 "{id} 1 {dev} / {mount_point} rw,relatime shared:1 - {fs_type} {source} rw"
+            ));
+            self
+        }
+
+        fn mount_with(
+            &mut self,
+            dev: &str,
+            mount_point: &str,
+            fs_type: &str,
+            source: &str,
+            options: &str,
+        ) -> &mut Self {
+            let id = self.mounts.len() + 20;
+            self.mounts.push(format!(
+                "{id} 1 {dev} / {mount_point} rw,relatime shared:1 - {fs_type} {source} {options}"
             ));
             self
         }
@@ -983,6 +1135,127 @@ mod tests {
         fixture.mount("259:4", "/boot/efi", "vfat", "/dev/nvme1n1p1");
         let devices = fixture.scan().expect("scan");
         assert!(protection_of(&devices, "nvme1n1").hosts_system);
+    }
+
+    // --- Live systems: the root is an overlay.
+
+    const LIVE_ROOT: &str = "rw,lowerdir=/run/live/rootfs/filesystem.squashfs/,upperdir=/run/live/overlay/rw,workdir=/run/live/overlay/work,redirect_dir=on,uuid=on,nouserxattr";
+
+    /// The bench as booted from the network: squashfs in a file on NFS,
+    /// writable layer in RAM, three SATA drives unused.
+    fn network_live() -> Fixture {
+        let mut fixture = Fixture::new();
+        fixture
+            .disk("sda", "8:0", "pci0000:00/ata1")
+            .partition("sda", "sda1", "8:1")
+            .partition("sda", "sda2", "8:2")
+            .disk("sdb", "8:16", "pci0000:00/ata2")
+            .disk("sdc", "8:32", "pci0000:00/ata3");
+        fixture.class_entry("loop0", "7:0");
+        fixture.write(
+            "sys/class/block/loop0/loop/backing_file",
+            "/run/live/medium/live/filesystem.squashfs",
+        );
+        fixture
+            .mount("0:24", "/run", "tmpfs", "tmpfs")
+            .mount("0:26", "/run/live/medium", "nfs", "192.168.1.49:/srv/os")
+            .mount(
+                "7:0",
+                "/run/live/rootfs/filesystem.squashfs",
+                "squashfs",
+                "/dev/loop0",
+            )
+            .mount("0:27", "/run/live/overlay", "tmpfs", "tmpfs")
+            .mount_with("0:28", "/", "overlay", "overlay", LIVE_ROOT)
+            .mount("0:40", "/tmp", "tmpfs", "tmpfs");
+        fixture
+    }
+
+    #[test]
+    fn a_network_live_system_has_no_system_drive() {
+        let devices = network_live().scan().expect("scan");
+        for name in ["sda", "sdb", "sdc"] {
+            assert_eq!(
+                protection_of(&devices, name),
+                ProtectionFacts::default(),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_live_usb_stick_is_the_system_drive() {
+        let mut fixture = network_live();
+        fixture.partition("sdb", "sdb1", "8:17");
+        // Same layout, but the medium is a partition of sdb.
+        let medium = fixture
+            .mounts
+            .iter()
+            .position(|line| line.contains("/run/live/medium "))
+            .expect("medium");
+        fixture.mounts[medium] = format!(
+            "{} 1 8:17 / /run/live/medium ro shared:1 - vfat /dev/sdb1 ro",
+            medium + 20
+        );
+        let devices = fixture.scan().expect("scan");
+        assert!(protection_of(&devices, "sdb").hosts_system);
+        assert!(!protection_of(&devices, "sda").hosts_system);
+    }
+
+    #[test]
+    fn a_persistence_layer_on_a_drive_makes_it_the_system_drive() {
+        let mut fixture = network_live();
+        let overlay = fixture
+            .mounts
+            .iter()
+            .position(|line| line.contains("/run/live/overlay "))
+            .expect("overlay");
+        fixture.mounts[overlay] = format!(
+            "{} 1 8:2 / /run/live/overlay rw shared:1 - ext4 /dev/sda2 rw",
+            overlay + 20
+        );
+        let devices = fixture.scan().expect("scan");
+        assert!(protection_of(&devices, "sda").hosts_system);
+    }
+
+    #[test]
+    fn an_overlay_layer_that_cannot_be_followed_leaves_the_root_unknown() {
+        let mut fixture = Fixture::new();
+        fixture.disk("sda", "8:0", "ata1");
+        // The lower layer is a directory of the overlay itself: no mount holds it.
+        fixture.mount_with(
+            "0:28",
+            "/",
+            "overlay",
+            "overlay",
+            "rw,lowerdir=/lower,upperdir=/upper,workdir=/work",
+        );
+        assert!(matches!(fixture.scan(), Err(ScanError::RootNotResolved)));
+        // A loop file whose holder is unknown: same.
+        let mut fixture = network_live();
+        fixture.write(
+            "sys/class/block/loop0/loop/backing_file",
+            "/nowhere/fs.squashfs",
+        );
+        let mut no_run = fixture.mounts.clone();
+        no_run.retain(|line| !line.contains(" /run ") && !line.contains("/run/live/medium "));
+        fixture.mounts = no_run;
+        assert!(matches!(fixture.scan(), Err(ScanError::RootNotResolved)));
+    }
+
+    #[test]
+    fn overlay_layers_are_read_with_their_escapes() {
+        assert_eq!(
+            overlay_layers(LIVE_ROOT),
+            [
+                "/run/live/rootfs/filesystem.squashfs/",
+                "/run/live/overlay/rw"
+            ]
+        );
+        assert_eq!(
+            overlay_layers(r"lowerdir=/a\:b:/c\,d,upperdir=/u,lowerdir+=/e,datadir+=/f"),
+            ["/a:b", "/c,d", "/u", "/e", "/f"]
+        );
     }
 
     // --- Fail closed.
