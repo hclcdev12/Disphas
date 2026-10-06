@@ -213,19 +213,17 @@ pub fn sanitize_status(count: u16, failed: bool) -> SanitizeStatus {
 
 /// Assembles the engine profile of a SATA drive.
 ///
-/// `rotational_hint` (sysfs) is used when word 217 is not reported; if both
-/// are unknown the drive is treated as an SSD, which never offers Sanitize
-/// Overwrite and certifies Security Erase as Clear only.
+/// A drive whose word 217 does not report its media is treated as an SSD,
+/// which never offers Sanitize Overwrite and certifies Security Erase as
+/// Clear only. The kernel's `queue/rotational` is no help: for a SATA drive
+/// libata derives it from the same word 217 and reports "rotational" when it
+/// is absent (observed on the test bench, 2026-10-06).
 pub fn profile(
     identify: &IdentifyDevice,
     smart: Option<(bool, SmartAttributes)>,
     sanitize: SanitizeStatus,
-    rotational_hint: Option<bool>,
 ) -> AtaProfile {
-    let solid_state = identify
-        .solid_state
-        .or(rotational_hint.map(|rotational| !rotational))
-        .unwrap_or(true);
+    let solid_state = identify.solid_state.unwrap_or(true);
     let (failing, attributes) = smart.unwrap_or_default();
     AtaProfile {
         solid_state,
@@ -459,12 +457,14 @@ mod tests {
     }
 
     #[test]
-    fn unknown_media_type_is_treated_as_ssd_unless_sysfs_knows() {
+    fn unknown_media_type_is_treated_as_ssd() {
+        // Word 217 = 0, as on the bench's Toshiba MK1655GSX.
         let identify = identify_device(&ssd().set(217, 0).signed()).expect("valid");
         let idle = sanitize_status(0, false);
-        assert!(profile(&identify, None, idle, None).solid_state);
-        assert!(!profile(&identify, None, idle, Some(true)).solid_state);
-        let rotating = identify_device(&ssd().set(217, 5400).signed()).expect("valid");
-        assert!(!profile(&rotating, None, idle, Some(false)).solid_state);
+        assert!(profile(&identify, None, idle).solid_state);
+        let rotating = identify_device(&ssd().set(217, 7200).signed()).expect("valid");
+        assert!(!profile(&rotating, None, idle).solid_state);
+        let solid = identify_device(&ssd().set(217, 1).signed()).expect("valid");
+        assert!(profile(&solid, None, idle).solid_state);
     }
 }

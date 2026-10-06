@@ -13,6 +13,10 @@
 **live PXE** (squashfs sur NFS, couche d'écriture en RAM) ; SSD SK hynix SC210 128 Go (sda), HDD Hitachi
 HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir sur carte PCIe → M.2 passive
 (un pont USB RTL9210B ne laisse passer qu'Identify et Get Log Page : inutilisable, cf. smartmontools).
+- **Inspection en lecture seule (2026-10-06)** : identité, capacité, WWN, état Security, SMART et absence de
+  Sanitize décodés par Oblivio identiques à `smartctl -x` et aux mots bruts de `smartctl --identify` sur les trois
+  disques. Le Toshiba (sdc) ne renseigne pas le mot 217 : il était classé HDD via sysfs, il est désormais traité
+  comme SSD (Security Erase certifié Clear). Temps estimés (mots 89/90) : sda 2/2 min, sdb 76/78 min, sdc 70 min/—.
 - `/var/lib/oblivio` est en RAM : licence, clé du poste et enregistrements de récupération sont perdus à chaque
   redémarrage (option (a), décidée le 2026-10-06). **Pas de test de Security Erase avec coupure** sur ce banc tant
   que ce dossier n'est pas persistant.

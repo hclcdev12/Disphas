@@ -113,10 +113,7 @@ fn nvme_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), Device
     ))
 }
 
-fn ata_profile(
-    file: &File,
-    rotational: Option<bool>,
-) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
+fn ata_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), DeviceError> {
     let device = AtaDevice::new(file);
     let identify = device.identify()?;
     // SMART may be unsupported or disabled: no attributes is not a failure.
@@ -126,7 +123,7 @@ fn ata_profile(
     } else {
         ata_decode::sanitize_status(0, false)
     };
-    let profile = ata_decode::profile(&identify, smart, sanitize, rotational);
+    let profile = ata_decode::profile(&identify, smart, sanitize);
     let identity = DeviceIdentity {
         model: identify.model.clone(),
         serial: identify.serial.clone(),
@@ -142,9 +139,7 @@ fn ata_profile(
 pub fn inspect(paths: &SystemPaths, drive: &BlockDevice) -> Option<Inspected> {
     let result = match drive.transport {
         Transport::Nvme => open_read_only(paths, &drive.name).and_then(|file| nvme_profile(&file)),
-        Transport::Ata => {
-            open_read_only(paths, &drive.name).and_then(|file| ata_profile(&file, drive.rotational))
-        }
+        Transport::Ata => open_read_only(paths, &drive.name).and_then(|file| ata_profile(&file)),
         Transport::Usb | Transport::Other => return None,
     };
     let (identity, capacity, inspection) = match result {
