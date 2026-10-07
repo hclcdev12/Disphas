@@ -58,7 +58,7 @@
     "P1": "Systemlaufwerk (/, /boot oder EFI)",
     "P2": "Eine Partition ist eingehängt",
     "P3": "Eine Partition ist aktiver Auslagerungsspeicher",
-    "P4": "Teil eines Volumes (LVM, RAID, Verschlüsselung)",
+    "P4": "Teil eines Volumes (LVM, RAID, Verschlüsselung) oder von einem Loop-Gerät verwendet",
     "P5": "Ein anderer Namespace desselben Controllers ist geschützt"
   },
   "block": {
@@ -127,7 +127,8 @@
     "JOB_INTERRUPTED": "Der Auftrag wurde durch einen Abbruch des Helpers unterbrochen: keine Bescheinigung",
     "INTERNAL": "Interner Helper-Fehler",
     "UNAVAILABLE": "Der Helper ist nicht verfügbar",
-    "LICENSE_INVALID": "Die Lizenz wurde abgelehnt"
+    "LICENSE_INVALID": "Die Lizenz wurde abgelehnt",
+    "DEVICE_IN_USE": "Dieses Laufwerk wird von einem anderen Programm verwendet (eingehängt, geöffnet oder über ein Loop-Gerät). Es wurde nichts gelöscht: Schließen Sie das Programm und versuchen Sie es erneut."
   },
   "license": {
     "title": "Lizenz",

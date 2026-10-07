@@ -45,6 +45,9 @@ pub enum ErrorCode {
     UnlockFailed,
     /// The job was interrupted by a helper crash: no attestation (§10).
     JobInterrupted,
+    /// Another program uses the drive (mounted, held open, loop device):
+    /// nothing was done; close it and try again (§9, added 2026-10-07).
+    DeviceInUse,
     /// Unexpected helper failure.
     Internal,
 }

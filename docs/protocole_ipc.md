@@ -153,7 +153,10 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 
 `PROTOCOL_MISMATCH`, `BAD_REQUEST`, `UNKNOWN_COMMAND`, `DEVICE_NOT_FOUND`, `DEVICE_CHANGED`, `PROTECTED`,
 `VERDICT_EXPIRED`, `VERDICT_MISMATCH`, `CONFIRMATION_MISMATCH`, `ACK_MISSING`, `FORCE_NOT_ALLOWED`,
-`LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `JOB_INTERRUPTED` (`GetJobResult` d'une tâche interrompue, ajouté le 2026-10-04), `INTERNAL`.
+`LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `JOB_INTERRUPTED` (`GetJobResult` d'une tâche interrompue, ajouté le 2026-10-04), `DEVICE_IN_USE` (`Sanitize` : à
+l'ouverture du disque, un autre programme l'utilise — monté, ouvert en exclusif, tenu ouvert par un processus ou un
+namespace voisin, [sécurité](securite.md) S9 ; rien n'a été fait, l'opérateur ferme ce programme et relance ; ajouté le
+2026-10-07 après le banc, où ce refus arrivait en `INTERNAL`), `INTERNAL`.
 
 ## 10. Persistance et reprise
 

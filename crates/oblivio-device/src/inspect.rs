@@ -57,7 +57,7 @@ pub fn open_exclusive(paths: &SystemPaths, name: &str) -> Result<File, DeviceErr
         .custom_flags(libc::O_NONBLOCK | libc::O_EXCL)
         .open(paths.dev.join(name))
         .map_err(|error| match error.raw_os_error() {
-            Some(libc::EBUSY) => DeviceError::Refused(format!("{name} is in use (O_EXCL)")),
+            Some(libc::EBUSY) => DeviceError::InUse(format!("{name} is in use (O_EXCL)")),
             _ => DeviceError::Io(error),
         })
 }

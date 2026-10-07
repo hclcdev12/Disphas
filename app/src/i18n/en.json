@@ -58,7 +58,7 @@
     "P1": "System drive (/, /boot or EFI)",
     "P2": "A partition is mounted",
     "P3": "A partition is active swap",
-    "P4": "Member of a volume (LVM, RAID, encryption)",
+    "P4": "Member of a volume (LVM, RAID, encryption) or used by a loop device",
     "P5": "Another namespace of the same controller is protected"
   },
   "block": {
@@ -127,7 +127,8 @@
     "JOB_INTERRUPTED": "The job was interrupted by a helper stop: no attestation",
     "INTERNAL": "Internal helper error",
     "UNAVAILABLE": "The helper is not available",
-    "LICENSE_INVALID": "The license was rejected"
+    "LICENSE_INVALID": "The license was rejected",
+    "DEVICE_IN_USE": "This drive is used by another program (mounted, open, or behind a loop device). Nothing was erased: close that program, then try again."
   },
   "license": {
     "title": "License",

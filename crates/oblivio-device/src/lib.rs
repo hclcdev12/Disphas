@@ -45,4 +45,9 @@ pub enum DeviceError {
     /// Oblivio refuses to touch this drive.
     #[error("refused: {0}")]
     Refused(String),
+    /// Another program uses the drive, a partition or a sibling namespace:
+    /// mounted or opened exclusively (`O_EXCL` fails), or held open by a
+    /// process (docs/securite.md, S9). The operator can act on it.
+    #[error("in use: {0}")]
+    InUse(String),
 }

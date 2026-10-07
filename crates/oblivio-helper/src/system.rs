@@ -18,7 +18,7 @@ use oblivio_device::security::{self, Password, SecurityDrive, SecurityState};
 use oblivio_device::{SystemPaths, scan};
 use oblivio_protocol::command::DeviceIdentity;
 
-use crate::backend::{Device, DeviceBackend};
+use crate::backend::{Device, DeviceBackend, OpenError};
 use crate::convert;
 use crate::erasure::ErasureTarget;
 use crate::recovery::{self, FileRecord};
@@ -157,15 +157,19 @@ impl DeviceBackend for SystemBackend {
         &mut self,
         identity: &DeviceIdentity,
         whole_controller: bool,
-    ) -> Result<Box<dyn ErasureTarget>, String> {
+    ) -> Result<Box<dyn ErasureTarget>, OpenError> {
         // One lookup: the node name and the full identity it must answer with.
         let (name, identity) = self
             .lookup(identity)
             .map(|(name, device)| (name, device.profile.identity))?;
         // Opening re-checks protections on a fresh inventory, uses O_EXCL, and
         // verifies on the opened node that it is still this very drive.
-        let drive = ErasableDrive::open(&self.paths, &name, &identity, whole_controller)
-            .map_err(|error| error.to_string())?;
+        let drive = ErasableDrive::open(&self.paths, &name, &identity, whole_controller).map_err(
+            |error| match error {
+                oblivio_device::DeviceError::InUse(_) => OpenError::InUse(error.to_string()),
+                _ => OpenError::Other(error.to_string()),
+            },
+        )?;
         Ok(Box::new(DriveTarget {
             drive,
             record: FileRecord::new(&self.recovery, &identity),

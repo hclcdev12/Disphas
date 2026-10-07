@@ -29,7 +29,7 @@ use oblivio_protocol::response::{
 };
 use oblivio_protocol::{PROTOCOL_VERSION, Request, ServerMessage};
 
-use crate::backend::{Device, DeviceBackend};
+use crate::backend::{Device, DeviceBackend, OpenError};
 use crate::convert;
 use crate::erasure::{self, ErasureTarget};
 use crate::licensing::StoreLicensing;
@@ -167,6 +167,8 @@ struct ImageBackend {
     gate: Option<std::sync::Arc<Gate>>,
     /// Every opening: serial and whether the whole controller was held.
     opened: Vec<(String, bool)>,
+    /// Another program holds every drive: opening fails as in use.
+    in_use: bool,
 }
 
 impl DeviceBackend for ImageBackend {
@@ -185,9 +187,15 @@ impl DeviceBackend for ImageBackend {
         &mut self,
         identity: &WireIdentity,
         whole_controller: bool,
-    ) -> Result<Box<dyn ErasureTarget>, String> {
+    ) -> Result<Box<dyn ErasureTarget>, OpenError> {
         self.opened
             .push((identity.serial.clone(), whole_controller));
+        if self.in_use {
+            return Err(OpenError::InUse(format!(
+                "{} is open in another process (pid [4242])",
+                identity.serial
+            )));
+        }
         let path = self.dir.join(format!("{}.img", identity.serial));
         if path.exists() {
             // Reopened after a crash: the drive keeps its content.
@@ -296,6 +304,7 @@ impl Bench {
             firmware,
             gate: None,
             opened: Vec::new(),
+            in_use: false,
         };
         let mut session = Session::new(
             backend,
@@ -744,6 +753,33 @@ fn forced_n1_is_non_compliant_with_justification() {
         .collect();
     assert_eq!(refusals, ["N1"]);
     assert!(image_is_erased(&bench.dir.path().join("SN-D004.img")));
+}
+
+#[test]
+fn a_drive_held_by_another_program_is_refused_as_in_use() {
+    // Found on the test bench (S9): the refusal came back as INTERNAL.
+    let mut bench = Bench::new(vec![drive("SN-E010", nvme())], Firmware::Honest);
+    let inspection = bench.inspect("SN-E010");
+    let args = sanitize(
+        &inspection,
+        None,
+        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+    );
+    bench.session.backend_mut().in_use = true;
+    let error = bench
+        .send(Command::Sanitize(args.clone()))
+        .expect_err("drive in use");
+    assert_eq!(error.code, ErrorCode::DeviceInUse);
+    assert!(
+        error
+            .detail
+            .as_deref()
+            .is_some_and(|detail| detail.contains("another process"))
+    );
+    // Nothing started: once the program is closed, the same verdict erases.
+    assert!(bench.reports().is_empty());
+    bench.session.backend_mut().in_use = false;
+    bench.erase(args);
 }
 
 #[test]

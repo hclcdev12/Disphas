@@ -8,6 +8,36 @@ use oblivio_protocol::command::DeviceIdentity;
 
 use crate::erasure::ErasureTarget;
 
+/// Why a drive could not be opened for erasure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OpenError {
+    /// Another program uses the drive (`DEVICE_IN_USE`): the operator can
+    /// close it and try again.
+    InUse(String),
+    /// Any other failure (`INTERNAL`).
+    Other(String),
+}
+
+impl From<String> for OpenError {
+    fn from(detail: String) -> Self {
+        Self::Other(detail)
+    }
+}
+
+impl From<&str> for OpenError {
+    fn from(detail: &str) -> Self {
+        Self::Other(detail.to_owned())
+    }
+}
+
+impl std::fmt::Display for OpenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InUse(detail) | Self::Other(detail) => f.write_str(detail),
+        }
+    }
+}
+
 /// A drive found by the backend.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Device {
@@ -35,8 +65,8 @@ pub trait DeviceBackend {
         &mut self,
         _identity: &DeviceIdentity,
         _whole_controller: bool,
-    ) -> Result<Box<dyn ErasureTarget>, String> {
-        Err("this backend cannot erase drives".to_owned())
+    ) -> Result<Box<dyn ErasureTarget>, OpenError> {
+        Err("this backend cannot erase drives".into())
     }
 
     /// Unlocks a Locked ATA drive (B2) with the operator's password, then

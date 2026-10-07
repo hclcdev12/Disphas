@@ -58,7 +58,7 @@
     "P1": "Disque système (/, /boot ou EFI)",
     "P2": "Une partition est montée",
     "P3": "Une partition est en swap actif",
-    "P4": "Membre d'un volume (LVM, RAID, chiffrement)",
+    "P4": "Membre d'un volume (LVM, RAID, chiffrement) ou utilisé par un périphérique loop",
     "P5": "Un autre namespace du même contrôleur est protégé"
   },
   "block": {
@@ -127,7 +127,8 @@
     "JOB_INTERRUPTED": "La tâche a été interrompue par un arrêt du helper : aucune attestation",
     "INTERNAL": "Erreur interne du helper",
     "UNAVAILABLE": "Le helper n'est pas disponible",
-    "LICENSE_INVALID": "La licence a été refusée"
+    "LICENSE_INVALID": "La licence a été refusée",
+    "DEVICE_IN_USE": "Ce disque est utilisé par un autre programme (monté, ouvert ou relié à un périphérique loop). Rien n'a été effacé : fermez ce programme puis réessayez."
   },
   "license": {
     "title": "Licence",

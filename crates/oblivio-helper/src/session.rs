@@ -31,7 +31,7 @@ use oblivio_protocol::response::{
     SanitizeResult, StoredReport,
 };
 
-use crate::backend::DeviceBackend;
+use crate::backend::{DeviceBackend, OpenError};
 use crate::convert;
 use crate::job::{self, JobRecord, JobSpec, JobTable, Plan};
 use crate::jobfile;
@@ -514,7 +514,10 @@ impl<B: DeviceBackend> Session<B> {
         let target = self
             .backend
             .open(&issued.identity, plan.erases_all_namespaces())
-            .map_err(|error| Failure::new(ErrorCode::Internal, error))?;
+            .map_err(|error| match error {
+                OpenError::InUse(detail) => Failure::new(ErrorCode::DeviceInUse, detail),
+                OpenError::Other(detail) => Failure::new(ErrorCode::Internal, detail),
+            })?;
         // A verdict is used once, and every other verdict of this drive
         // (same serial: an NVMe controller's namespaces share it) describes
         // a state the erasure is about to change.

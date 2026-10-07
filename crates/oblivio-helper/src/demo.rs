@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use oblivio_core::method::Method;
 use oblivio_device::block::{BlockIo, FileImage};
 
-use crate::backend::{Device, DeviceBackend};
+use crate::backend::{Device, DeviceBackend, OpenError};
 use crate::convert;
 use crate::erasure::{self, ErasureTarget};
 
@@ -339,12 +339,12 @@ impl DeviceBackend for DemoDevices {
         &mut self,
         identity: &WireIdentity,
         _whole_controller: bool,
-    ) -> Result<Box<dyn ErasureTarget>, String> {
+    ) -> Result<Box<dyn ErasureTarget>, OpenError> {
         let images = self.images.clone().ok_or("demo drives without images")?;
         let device = self.find(identity).ok_or("unknown demo drive")?;
         let serial = &device.profile.identity.serial;
         if !ERASABLE.contains(&serial.as_str()) {
-            return Err(format!("demo drive {serial} has no image"));
+            return Err(format!("demo drive {serial} has no image").into());
         }
         std::fs::create_dir_all(&images).map_err(|error| error.to_string())?;
         let image = FileImage::create(

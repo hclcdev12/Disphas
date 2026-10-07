@@ -95,7 +95,7 @@ impl ErasableDrive {
             .custom_flags(libc::O_DIRECT | libc::O_EXCL)
             .open(&path)
             .map_err(|error| match error.raw_os_error() {
-                Some(libc::EBUSY) => DeviceError::Refused(format!("{name} is in use (O_EXCL)")),
+                Some(libc::EBUSY) => DeviceError::InUse(format!("{name} is in use (O_EXCL)")),
                 _ => DeviceError::Io(error),
             })?;
         let rdev = file.metadata()?.rdev();
@@ -126,7 +126,7 @@ impl ErasableDrive {
             openers::block_device_of,
         )?;
         if !others.is_empty() {
-            return Err(DeviceError::Refused(format!(
+            return Err(DeviceError::InUse(format!(
                 "{name} is open in another process (pid {others:?})"
             )));
         }
@@ -197,7 +197,7 @@ fn hold(paths: &SystemPaths, name: &str) -> Result<File, DeviceError> {
         .custom_flags(libc::O_EXCL)
         .open(&path)
         .map_err(|error| match error.raw_os_error() {
-            Some(libc::EBUSY) => DeviceError::Refused(format!(
+            Some(libc::EBUSY) => DeviceError::InUse(format!(
                 "{name}, another namespace of the same controller, is in use (O_EXCL)"
             )),
             _ => DeviceError::Io(error),
