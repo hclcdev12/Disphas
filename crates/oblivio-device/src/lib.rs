@@ -50,4 +50,8 @@ pub enum DeviceError {
     /// process (docs/securite.md, S9). The operator can act on it.
     #[error("in use: {0}")]
     InUse(String),
+    /// The drive became protected (mounted, swap, volume member, system
+    /// drive) between the verdict and the opening for erasure.
+    #[error("protected: {0}")]
+    Protected(String),
 }

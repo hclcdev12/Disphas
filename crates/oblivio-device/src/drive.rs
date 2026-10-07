@@ -70,7 +70,7 @@ impl ErasableDrive {
             || facts.is_volume_member
             || facts.sibling_namespace_protected
         {
-            return Err(DeviceError::Refused(format!("{name} is protected")));
+            return Err(DeviceError::Protected(format!("{name} is protected")));
         }
         let interface = match drive.transport {
             Transport::Nvme => Interface::Nvme,

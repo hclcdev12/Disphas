@@ -167,8 +167,9 @@ struct ImageBackend {
     gate: Option<std::sync::Arc<Gate>>,
     /// Every opening: serial and whether the whole controller was held.
     opened: Vec<(String, bool)>,
-    /// Another program holds every drive: opening fails as in use.
-    in_use: bool,
+    /// Opening fails with this error, as when another program holds the
+    /// drive or it became protected since the verdict.
+    refuse: Option<OpenError>,
 }
 
 impl DeviceBackend for ImageBackend {
@@ -190,11 +191,8 @@ impl DeviceBackend for ImageBackend {
     ) -> Result<Box<dyn ErasureTarget>, OpenError> {
         self.opened
             .push((identity.serial.clone(), whole_controller));
-        if self.in_use {
-            return Err(OpenError::InUse(format!(
-                "{} is open in another process (pid [4242])",
-                identity.serial
-            )));
+        if let Some(error) = self.refuse.clone() {
+            return Err(error);
         }
         let path = self.dir.join(format!("{}.img", identity.serial));
         if path.exists() {
@@ -304,7 +302,7 @@ impl Bench {
             firmware,
             gate: None,
             opened: Vec::new(),
-            in_use: false,
+            refuse: None,
         };
         let mut session = Session::new(
             backend,
@@ -756,30 +754,36 @@ fn forced_n1_is_non_compliant_with_justification() {
 }
 
 #[test]
-fn a_drive_held_by_another_program_is_refused_as_in_use() {
-    // Found on the test bench (S9): the refusal came back as INTERNAL.
-    let mut bench = Bench::new(vec![drive("SN-E010", nvme())], Firmware::Honest);
-    let inspection = bench.inspect("SN-E010");
-    let args = sanitize(
-        &inspection,
-        None,
-        vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
-    );
-    bench.session.backend_mut().in_use = true;
-    let error = bench
-        .send(Command::Sanitize(args.clone()))
-        .expect_err("drive in use");
-    assert_eq!(error.code, ErrorCode::DeviceInUse);
-    assert!(
-        error
-            .detail
-            .as_deref()
-            .is_some_and(|detail| detail.contains("another process"))
-    );
-    // Nothing started: once the program is closed, the same verdict erases.
-    assert!(bench.reports().is_empty());
-    bench.session.backend_mut().in_use = false;
-    bench.erase(args);
+fn a_drive_held_or_protected_at_opening_is_refused_with_its_code() {
+    // Found on the test bench (S9): these refusals came back as INTERNAL.
+    for (refusal, code) in [
+        (
+            OpenError::InUse("sdz is open in another process (pid [4242])".to_owned()),
+            ErrorCode::DeviceInUse,
+        ),
+        (
+            OpenError::Protected("sdz is protected".to_owned()),
+            ErrorCode::Protected,
+        ),
+    ] {
+        let mut bench = Bench::new(vec![drive("SN-E010", nvme())], Firmware::Honest);
+        let inspection = bench.inspect("SN-E010");
+        let args = sanitize(
+            &inspection,
+            None,
+            vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
+        );
+        bench.session.backend_mut().refuse = Some(refusal.clone());
+        let error = bench
+            .send(Command::Sanitize(args.clone()))
+            .expect_err("refused at opening");
+        assert_eq!(error.code, code, "{refusal:?}");
+        assert_eq!(error.detail.as_deref(), Some(refusal.to_string().as_str()));
+        // Nothing started: once the cause is gone, the same verdict erases.
+        assert!(bench.reports().is_empty());
+        bench.session.backend_mut().refuse = None;
+        bench.erase(args);
+    }
 }
 
 #[test]

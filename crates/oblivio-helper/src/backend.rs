@@ -14,6 +14,8 @@ pub enum OpenError {
     /// Another program uses the drive (`DEVICE_IN_USE`): the operator can
     /// close it and try again.
     InUse(String),
+    /// The drive became protected since the verdict (`PROTECTED`).
+    Protected(String),
     /// Any other failure (`INTERNAL`).
     Other(String),
 }
@@ -33,7 +35,9 @@ impl From<&str> for OpenError {
 impl std::fmt::Display for OpenError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InUse(detail) | Self::Other(detail) => f.write_str(detail),
+            Self::InUse(detail) | Self::Protected(detail) | Self::Other(detail) => {
+                f.write_str(detail)
+            }
         }
     }
 }

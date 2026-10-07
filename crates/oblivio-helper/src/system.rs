@@ -167,6 +167,9 @@ impl DeviceBackend for SystemBackend {
         let drive = ErasableDrive::open(&self.paths, &name, &identity, whole_controller).map_err(
             |error| match error {
                 oblivio_device::DeviceError::InUse(_) => OpenError::InUse(error.to_string()),
+                oblivio_device::DeviceError::Protected(_) => {
+                    OpenError::Protected(error.to_string())
+                }
                 _ => OpenError::Other(error.to_string()),
             },
         )?;

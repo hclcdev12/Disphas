@@ -516,6 +516,7 @@ impl<B: DeviceBackend> Session<B> {
             .open(&issued.identity, plan.erases_all_namespaces())
             .map_err(|error| match error {
                 OpenError::InUse(detail) => Failure::new(ErrorCode::DeviceInUse, detail),
+                OpenError::Protected(detail) => Failure::new(ErrorCode::Protected, detail),
                 OpenError::Other(detail) => Failure::new(ErrorCode::Internal, detail),
             })?;
         // A verdict is used once, and every other verdict of this drive
