@@ -1,6 +1,6 @@
 # Oblivio — Reprise du projet (passation entre agents)
 
-État au **2026-10-06**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
+État au **2026-10-07**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
 dit où en est le projet, comment travailler avec le propriétaire et comment piloter le banc de test. Les
 specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les remplace pas.
 
@@ -20,6 +20,7 @@ Le produit V1 est **complet et testé sur du vrai matériel** pour SATA (SSD et 
 | sdb Hitachi HTS723232A7A364 | ATA Security Erase renforcé (68 min) | CONFORME, **Purge**, R6 |
 | sda SK hynix SC210 | ATA Security Erase renforcé (53 s) | CONFORME, Clear, R6 |
 | sda + sdc en parallèle, en lot | Security Erase + réécriture | lot authentique, PDF de lot produit |
+| sda, paquet de `472cec3`, lot sans groupe (2026-10-07) | ATA Security Erase renforcé (< 1 min) | CONFORME, Clear, R6 ; lot clos, PDF de lot authentique |
 
 Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 
@@ -36,8 +37,8 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 
 **À faire ensuite (banc)**
 
-1. Tester le paquet de `472cec3` sur le banc (artefact du workflow *Package* 37480035050) : certificats existants
-   passés en 0600, historique, réimpression et clôture d'un lot **sans** groupe `oblivio`.
+1. ~~Tester le paquet de `472cec3` sur le banc~~ → **fait le 2026-10-07**, tout est conforme (détail dans
+   [banc de test](banc_de_test.md)).
 2. NVMe : brancher un SSD NVMe via une **carte PCIe → M.2 passive** (le banc n'a pas de M.2 ; un pont USB
    RTL9210B ne laisse passer qu'Identify et Get Log Page, cf. smartmontools `scsinvme.cpp`). Puis Sanitize,
    Format, `nsa`, reprise après coupure. Le propriétaire doit déclarer le disque sacrifiable (CLAUDE.md §2).
@@ -54,6 +55,14 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    pas (constaté sur le banc). À traiter avec le processus de release.
 7. Petit défaut d'interface observé : après un effacement, la carte du disque revient à l'ancienne décision au lieu
    d'indiquer qu'il vient d'être effacé (il faudrait réinspecter).
+8. Le groupe `oblivio` d'une version antérieure à `472cec3` n'est supprimé ni par la mise à jour ni par `apt purge`.
+   Sans effet (certificats root seul) ; le supprimer dans `postinst` ? (constaté le 2026-10-07).
+
+**Défauts d'interface constatés le 2026-10-07 (banc)**
+
+9. Historique : le sélecteur de lot affiche son texte en blanc sur fond blanc (lot choisi illisible).
+10. Historique : liste triée par identifiant (début de l'opération) mais datée de la fin : une réécriture longue
+    apparaît sous un effacement plus court terminé après elle.
 
 **Plus tard** : dépôt public du vérificateur (depuis un **commit propre** : l'historique contient le n° de série
 d'un vrai SSD), signature des paquets et release, vérification niveau audit, USB en V2, ISO live en V2.
@@ -130,5 +139,11 @@ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
   - clé du banc et alias `oblivio-bench` (`HostName 192.168.1.6`, `User goupil`), installée avec `ssh-copy-id`.
 - **Clé racine** (`root.key`) et `issued-licenses.csv` : jamais dans le dépôt ; ne les placer sur un poste que si les
   licences y sont signées, transférés par le propriétaire lui-même.
+- Constaté sur Fedora 44 (2026-10-07) : `wget` est fourni par `wget2-wget` ; le poste n'a besoin d'aucun droit root
+  hors installation des dépendances. Au premier SSH vers le banc, comparer l'empreinte affichée à celle lue sur
+  l'écran du banc (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`). Le banc étant amnésique, la clé installée par
+  `ssh-copy-id` est sans doute perdue à chaque redémarrage (non vérifié) : piste, l'intégrer à l'image PXE avec `setup.sh`.
+- Les agents ne saisissent **aucun** mot de passe (règle de sécurité de Claude, indépendante de ce dépôt) : tout accès
+  passe par clé SSH ou `sudo` sans mot de passe préparé par le propriétaire.
 - Vérifier le poste : `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, puis dans
   `app/` `npm run lint` et `npm run build`. Démonstration sans matériel : `npm run demo` dans `app/` (port 1420 libre).

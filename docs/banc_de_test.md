@@ -52,10 +52,13 @@ HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir 
 - Reprise d'un Sanitize après une **coupure de courant** (NVMe et ATA) : le disque doit reprendre seul,
   l'inspection (IDENTIFY) doit répondre pendant le Sanitize, et la tâche doit finir CONFORME au redémarrage.
 - Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.
-- Paquet `.deb` : installation → `/var/lib/oblivio` root seul (0700), certificats d'une version antérieure passés en
-  0600 ; historique et PDF de lot lus par le helper, sans groupe (constat du banc le 2026-10-06 : avec le groupe
-  `oblivio`, la clôture d'un lot échouait tant que l'opérateur n'en était pas membre) ;
-  `apt remove` garde `/var/lib/oblivio` ; `apt purge` le supprime avec le groupe.
+- ~~Paquet `.deb` : installation → `/var/lib/oblivio` root seul (0700), certificats d'une version antérieure passés en
+  0600 ; historique et PDF de lot lus par le helper, sans groupe~~ → **validé le 2026-10-07** (paquet de `472cec3`,
+  mise à jour depuis une version à groupe `oblivio`, groupe ensuite supprimé) : dossiers 0700 et 5 certificats passés
+  de 0640 `root:oblivio` à 0600 root ; historique, réimpression, PDF de lot depuis l'historique ; effacement de sda
+  (Security Erase, CONFORME) dans un lot puis clôture, PDF de lot vérifié par `oblivio-verify`. Constat : le groupe
+  `oblivio` d'une ancienne version n'est supprimé ni par la mise à jour ni par `apt purge` (sans effet, à trancher).
+  `apt remove` / `apt purge` : contrôlés par la CI (*Package*), pas sur le banc.
 - Effacement parallèle sur plusieurs vrais disques (SATA et NVMe en même temps), puis certificat de lot.
 - B5 (Sanitize en échec) : ajouter et valider la commande « Exit Failure Mode » (NVMe Sanitize action 1,
   ATA SANITIZE STATUS EXT avec Clear Sanitize Operation Failed), avec un bouton dans l'application ;
