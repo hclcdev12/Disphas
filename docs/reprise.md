@@ -57,7 +57,8 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    réinspectait déjà, mais la nouvelle décision est la même ; la carte affiche désormais le dernier effacement de la
    session et son statut. Vérifié sur le banc (Security Erase de sda, CONFORME).
 8. ~~Groupe `oblivio` résiduel~~ → **décidé le 2026-10-07** : supprimé par le paquet à l'installation ou à la mise
-   à jour (groupe système seulement), vérifié par la CI *Package*.
+   à jour (groupe système seulement), vérifié par la CI *Package* et sur le banc (mise à jour `0.1.0` →
+   `0.1.0+build.11` sans `--reinstall`, groupe de test supprimé, historique intact).
 
 **Défauts d'interface constatés le 2026-10-07 (banc)**
 
