@@ -53,16 +53,19 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    Recommandation : le rendre tolérant comme les codes. Change le format public → décision du propriétaire.
 6. Chaque paquet doit avoir un **numéro de version distinct** : avec deux builds en 0.1.0, `apt` ne réinstalle
    pas (constaté sur le banc). À traiter avec le processus de release.
-7. Petit défaut d'interface observé : après un effacement, la carte du disque revient à l'ancienne décision au lieu
-   d'indiquer qu'il vient d'être effacé (il faudrait réinspecter).
+7. ~~Après un effacement, la carte du disque revient à l'ancienne décision~~ → corrigé le 2026-10-07 : l'app
+   réinspectait déjà, mais la nouvelle décision est la même ; la carte affiche désormais le dernier effacement de la
+   session et son statut. Vérifié sur le banc (Security Erase de sda, CONFORME).
 8. Le groupe `oblivio` d'une version antérieure à `472cec3` n'est supprimé ni par la mise à jour ni par `apt purge`.
    Sans effet (certificats root seul) ; le supprimer dans `postinst` ? (constaté le 2026-10-07).
 
 **Défauts d'interface constatés le 2026-10-07 (banc)**
 
-9. Historique : le sélecteur de lot affiche son texte en blanc sur fond blanc (lot choisi illisible).
-10. Historique : liste triée par identifiant (début de l'opération) mais datée de la fin : une réécriture longue
-    apparaît sous un effacement plus court terminé après elle.
+9. ~~Historique : sélecteur de lot blanc sur blanc~~ → corrigé le 2026-10-07 (WebKitGTK dessinait les `<select>`
+   avec le thème clair du système ; l'app les dessine elle-même, `color-scheme: dark`). Vérifié sur le banc ; le menu
+   déroulant natif lui-même n'apparaît pas dans les captures `xwd`, non vérifié.
+10. ~~Historique trié par identifiant (début) mais daté de la fin~~ → corrigé le 2026-10-07 : tri par la date affichée.
+    Vérifié sur le banc.
 
 **Plus tard** : dépôt public du vérificateur (depuis un **commit propre** : l'historique contient le n° de série
 d'un vrai SSD), signature des paquets et release, vérification niveau audit, USB en V2, ISO live en V2.
