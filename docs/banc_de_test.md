@@ -67,8 +67,12 @@ HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir 
 - NVMe à **plusieurs namespaces** (S5) : un Sanitize, ou un Format sur un contrôleur annonçant `FNA` bit 1,
   doit tenir les autres namespaces en `O_EXCL` (un `mount` d'un voisin pendant l'opération doit échouer) et
   être refusé si un voisin est utilisé avant le départ ; le bit `FNA` 1 décodé doit correspondre à la fiche du disque.
-- Loop (S9) : `losetup` d'une partition d'un disque de test → le disque doit passer PROTÉGÉ (P4) ; un `dd` ou une VM
-  qui garde le disque ouvert → refus à l'ouverture (« open in another process »).
+- ~~Loop (S9)~~ → **validé le 2026-10-07** sur sda (partition de 1 Gio créée pour le test, puis effacée) : loop sur
+  `/dev/sda1` → PROTÉGÉ (P4) ; loop sur `/dev/sda` entier → PROTÉGÉ (P4) ; loop détaché → PRÊT. Un processus qui tient
+  `/dev/sda1` ouvert (sans `O_EXCL`) → `Sanitize` refusé avant toute action (« sda is open in another process (pid …) ») :
+  ni tâche, ni certificat, partition intacte, sécurité ATA non activée. Constats : l'interface affiche ce refus comme
+  « Erreur interne du helper » (code `INTERNAL`) et le libellé de P4 (« Membre d'un volume (LVM, RAID, chiffrement) »)
+  ne mentionne pas le loop.
 - Automount (S11) : sur un système où `/boot/efi` est en automount systemd, l'inventaire doit déclencher le
   montage et protéger le disque de l'ESP (P1).
 - ATA (L7) : `resid` de SG_IO nul sur IDENTIFY, SMART et SANITIZE STATUS pour chaque contrôleur SATA du banc.

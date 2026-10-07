@@ -90,7 +90,7 @@ Corrigés le 2026-10-04 :
 | S6 ✅ | Identités en double (n° de série identique ou vide) : le premier disque correspondant est pris ; la reprise Security Erase ne compare que le n° de série | Oui | Refuser une identité ambiguë ou un n° de série vide ; comparer l'identité complète |
 | S7 ✅ | Rien ne revérifie la **cohérence** d'un certificat (ex. réécriture hôte certifiée Purge) ; l'option zéros est déclarée « validée » même si la validation échoue | Oui | Contrôle de cohérence avant signature et à la vérification ; `z` seulement si validé |
 | S8 ✅ | Outil éditeur : identifiants de licence sur 16 bits, unicité non vérifiée (la révocation porte sur l'identifiant) ; `revoke` sans `--list` oublie les révocations précédentes | Oui | Identifiants longs et uniques ; `--list` obligatoire dès qu'une liste existe |
-| S9 ✅ | Utilisateurs cachés d'un disque : périphérique loop adossé à une partition, swap sur loop, accès direct par un autre processus | *À confirmer* (comportement noyau) | Suivre les loop vers leur disque ; refuser si un processus tient le disque ouvert |
+| S9 ✅ | Utilisateurs cachés d'un disque : périphérique loop adossé à une partition, swap sur loop, accès direct par un autre processus | *À confirmer* (comportement noyau) — **confirmé sur le banc le 2026-10-07** ([banc de test](banc_de_test.md)) | Suivre les loop vers leur disque ; refuser si un processus tient le disque ouvert |
 | S10 ✅ | NVMe sur réseau (NVMe-oF) traité comme un disque local | Plausible | N'accepter que le transport `pcie` |
 | S11 ✅ | Partition EFI sur un autre disque, montée à la demande (autofs) : disque système non protégé | *À confirmer* | Traiter autofs sur les points système comme non traçable (refus) |
 

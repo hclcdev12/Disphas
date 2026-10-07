@@ -43,7 +43,9 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    RTL9210B ne laisse passer qu'Identify et Get Log Page, cf. smartmontools `scsinvme.cpp`). Puis Sanitize,
    Format, `nsa`, reprise après coupure. Le propriétaire doit déclarer le disque sacrifiable (CLAUDE.md §2).
 3. Reste de [banc de test](banc_de_test.md) : `Unlock` d'un disque verrouillé, disque *Frozen*, coupure de courant,
-   Exit Failure Mode (B5), loop (S9), automount (S11), NVMe multi-namespaces (S5).
+   Exit Failure Mode (B5), automount (S11), NVMe multi-namespaces (S5). Loop (S9) : validé le 2026-10-07.
+   Suites d'interface de S9 : un refus « disque ouvert par un autre programme » arrive comme `INTERNAL`
+   (« Erreur interne du helper ») ; le libellé de P4 ne cite pas le loop.
 4. Persistance de `/var/lib/oblivio` sur le banc (option (b) : NFS `no_root_squash`) : prérequis de tout test de
    coupure pendant un Security Erase.
 
