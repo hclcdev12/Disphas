@@ -90,20 +90,81 @@ text_enum! {
     }
 }
 
-text_enum! {
-    /// Kind of drive (`dev.typ`).
-    DriveType {
-        /// NVMe.
-        Nvme = "NVMe",
-        /// SATA solid-state drive.
-        SataSsd = "SATA-SSD",
-        /// SATA hard disk drive.
-        SataHdd = "SATA-HDD",
-        /// SATA drive that does not report its media type (IDENTIFY word
-        /// 217): erased as an SSD, the prudent case, but not claimed to be one.
-        Sata = "SATA",
-        /// Not identified: the inspection failed (forced N1).
-        Unknown = "Unknown",
+/// Kind of drive (`dev.typ`).
+///
+/// Open-ended, like the codes: a type added by a later Oblivio reads as
+/// [`DriveType::Other`] instead of making the whole attestation invalid
+/// (an older verifier rejected `SATA` when it appeared, docs/certificat.md §2).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum DriveType {
+    /// NVMe.
+    Nvme,
+    /// SATA solid-state drive.
+    SataSsd,
+    /// SATA hard disk drive.
+    SataHdd,
+    /// SATA drive that does not report its media type (IDENTIFY word
+    /// 217): erased as an SSD, the prudent case, but not claimed to be one.
+    Sata,
+    /// Not identified: the inspection failed (forced N1).
+    Unknown,
+    /// A type this version does not know, displayed as is.
+    Other(OtherDriveType),
+}
+
+/// Text of a drive type unknown to this version: 1 to 64 ASCII letters,
+/// digits, `-` or `_`, never one of the known types (so that a type has a
+/// single representation).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct OtherDriveType(String);
+
+impl OtherDriveType {
+    /// The type as signed.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl DriveType {
+    const KNOWN: [Self; 5] = [
+        Self::Nvme,
+        Self::SataSsd,
+        Self::SataHdd,
+        Self::Sata,
+        Self::Unknown,
+    ];
+
+    /// Stable text value.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Nvme => "NVMe",
+            Self::SataSsd => "SATA-SSD",
+            Self::SataHdd => "SATA-HDD",
+            Self::Sata => "SATA",
+            Self::Unknown => "Unknown",
+            Self::Other(other) => other.as_str(),
+        }
+    }
+
+    /// The type of that text: a known one, or [`DriveType::Other`] for a
+    /// well-formed unknown text. `None` for a malformed text.
+    pub fn parse(text: &str) -> Option<Self> {
+        if let Some(known) = Self::KNOWN.into_iter().find(|known| known.as_str() == text) {
+            return Some(known);
+        }
+        let valid = (1..=64).contains(&text.len())
+            && text
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_');
+        valid.then(|| Self::Other(OtherDriveType(text.to_owned())))
+    }
+
+    fn from_value(value: Value, name: &'static str) -> Result<Self, CborError> {
+        Self::parse(&cbor::text(value, name)?).ok_or(CborError::Invalid(name))
+    }
+
+    fn to_value(&self) -> Value {
+        Value::Text(self.as_str().to_owned())
     }
 }
 
@@ -692,9 +753,13 @@ impl Attestation {
         if san.zero_finish && !(host_write && validated) {
             return fail("zero pass without a validated host write");
         }
-        if san.all_namespaces
-            && (host_write || san.method.is_none() || self.device.drive_type != DriveType::Nvme)
-        {
+        // A type unknown to this version may be an NVMe variant: only a known
+        // non-NVMe type contradicts `nsa`.
+        let not_nvme = !matches!(
+            self.device.drive_type,
+            DriveType::Nvme | DriveType::Other(_)
+        );
+        if san.all_namespaces && (host_write || san.method.is_none() || not_nvme) {
             return fail("every namespace erased without an NVMe firmware method");
         }
         match self.status {

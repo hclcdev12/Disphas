@@ -64,7 +64,7 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 | Clé | Sous-clés | Notes |
 |---|---|---|
 | `id` | — | UUID v7 en 16 octets bruts (pas en texte : économise ~20 octets dans le QR) |
-| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `SATA` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) ; `SATA` (2026-10-06, banc de test) : disque SATA qui ne déclare pas son type de média (mot 217), effacé comme un SSD par prudence mais jamais certifié SSD ni HDD |
+| `dev` | `mdl`, `sn`, `fw`, `cap`, `typ` (`NVMe` / `SATA-SSD` / `SATA-HDD` / `SATA` / `Unknown`), `wwn`?, `eui`?, `ngu`? | `Unknown` : inspection impossible (N1 forcé) ; `SATA` (2026-10-06, banc de test) : disque SATA qui ne déclare pas son type de média (mot 217), effacé comme un SSD par prudence mais jamais certifié SSD ni HDD. **Liste ouverte** (décidé le 2026-10-07) : un type inconnu du vérificateur (1 à 64 caractères ASCII : lettres, chiffres, `-`, `_`) est accepté et affiché tel quel, comme un code ; un vérificateur ancien lit ainsi un type nouveau. Pour un tel type, `nsa` n'est pas tenu pour contradictoire |
 | `san` | `cat` (`Clear` / `Purge` / `None`), `m`? (nom de méthode), `z`? (`true` : réécriture hôte terminée par une passe de zéros validée — absent sinon, `false` explicite rejeté), `nsa`? (`true` : la méthode a effacé **tous les namespaces** du contrôleur NVMe, pas seulement celui certifié — absent sinon, `false` explicite rejeté), `ref` (liste de référentiels) | `z` et `nsa` ajoutés le 2026-10-04 (avant toute mise sur le marché, d'où pas de nouvelle version de schéma) |
 | `ver` | — | booléen, absent si rien n'a été exécuté |
 | `val` | `m` (`canaris` / `motif`), `n`, `seed` (32 octets), `ok` | absent si rien n'a été exécuté |
@@ -78,7 +78,8 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 - **Décodage strict** : l'attestation décodée doit se réencoder à l'octet près. Champ inconnu, `null`, clés
   non triées, entier non minimal ou octets en trop → rejet.
 - Codes et noms de méthode : 1 à 64 caractères `[A-Za-z0-9_]`. Les codes ne sont pas figés dans le format
-  public, pour qu'un vérificateur ancien lise un code nouveau (il l'affichera sans libellé).
+  public, pour qu'un vérificateur ancien lise un code nouveau (il l'affichera sans libellé). Même règle pour le
+  type de disque `dev.typ` (2026-10-07), avec `-` en plus.
 - COSE : en-tête protégé `{alg: EdDSA}` **seul**, en-tête non protégé vide, message étiqueté (tag 18).
   Toute autre forme est rejetée (pas de confusion d'algorithme). Ed25519 en vérification stricte.
   L'enveloppe doit se **réencoder à l'octet près** (2026-10-04, revue de sécurité) : une même attestation signée
@@ -89,7 +90,8 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
   avant de signer et préfère alors l'échec de la tâche à un certificat contradictoire. Règles :
   une réécriture hôte (`m` = `HostOverwrite`, ou validation `motif`) n'est jamais `Purge` ;
   `z` seulement après une réécriture hôte vérifiée et validée ;
-  `nsa` seulement sur un disque NVMe avec une méthode firmware (jamais une réécriture hôte) ;
+  `nsa` seulement sur un disque NVMe, ou d'un type inconnu du vérificateur, avec une méthode firmware (jamais une
+  réécriture hôte) ;
   `CONFORME` : méthode, `ver` vrai, `val.ok` vrai, catégorie ≠ `None`, `dis` présent, `rsn` vide, pas de `frc` ;
   `NON_CONFORME` : `frc` et `rsn` non vide, catégorie ≠ `Purge` ;
   `REFUS` : catégorie `None`, `rsn` non vide, ni `dis` ni `z`.

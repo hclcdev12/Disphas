@@ -30,6 +30,10 @@ fn root_hex(key: &SigningKey) -> String {
 }
 
 fn signed_attestation() -> Vec<u8> {
+    signed_attestation_of(DriveType::Nvme)
+}
+
+fn signed_attestation_of(drive_type: DriveType) -> Vec<u8> {
     let workstation = SigningKey::from_bytes(&[2; 32]);
     let license = License {
         id: "LIC-0001".to_owned(),
@@ -51,7 +55,7 @@ fn signed_attestation() -> Vec<u8> {
             serial: "SN-TEST-4567".to_owned(),
             firmware: "1.0".to_owned(),
             capacity_bytes: 1_000_204_886_016,
-            drive_type: DriveType::Nvme,
+            drive_type,
             wwn: None,
             eui64: Some("0011223344556677".to_owned()),
             nguid: None,
@@ -150,6 +154,17 @@ fn authentic_binary_cose_in_german() {
     assert_eq!(output.status.code(), Some(0));
     assert!(stdout(&output).contains("ECHT"));
     assert!(stdout(&output).contains("KONFORM"));
+}
+
+#[test]
+fn a_drive_type_from_a_newer_oblivio_is_authentic_and_shown_as_is() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let newer = DriveType::parse("NVMe-ZNS").expect("well-formed type");
+    let cose = write(dir.path(), "cert.cose", &signed_attestation_of(newer));
+    let output = verify_cli(&["--lang", "en", "--root-key", &root_hex(&root()), &cose]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(stdout(&output).contains("AUTHENTIC"));
+    assert!(stdout(&output).contains("NVMe-ZNS"));
 }
 
 #[test]

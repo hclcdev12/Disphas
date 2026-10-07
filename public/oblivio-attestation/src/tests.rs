@@ -490,6 +490,36 @@ fn a_sata_drive_of_unreported_media_round_trips() {
 }
 
 #[test]
+fn a_drive_type_unknown_to_this_version_is_read_and_shown_as_is() {
+    // A later Oblivio may sign a new type: this version still reads it.
+    let typ = DriveType::parse("NVMe-ZNS").expect("well-formed");
+    assert!(matches!(typ, DriveType::Other(_)));
+    assert_eq!(typ.as_str(), "NVMe-ZNS");
+    let mut newer = host_write(signed_license(&license(None), &root()));
+    newer.device.drive_type = typ;
+    assert_eq!(Attestation::from_cbor(&newer.to_cbor()), Ok(newer));
+    // A known text always parses to its own variant: one representation.
+    for known in ["NVMe", "SATA-SSD", "SATA-HDD", "SATA", "Unknown"] {
+        let parsed = DriveType::parse(known).expect("known");
+        assert!(!matches!(parsed, DriveType::Other(_)), "{known}");
+        assert_eq!(parsed.as_str(), known);
+    }
+    // Malformed: empty, too long, outside the alphabet.
+    for bad in ["", &"A".repeat(65), "SATA SSD", "NVMe/ZNS", "é"] {
+        assert_eq!(DriveType::parse(bad), None, "{bad:?}");
+    }
+}
+
+#[test]
+fn every_namespace_on_an_unknown_type_is_not_a_contradiction() {
+    // The newer type may be an NVMe variant: `nsa` is not rejected for it.
+    let mut newer = attestation(vec![1]);
+    newer.sanitization.all_namespaces = true;
+    newer.device.drive_type = DriveType::parse("NVMe-ZNS").expect("well-formed");
+    assert_eq!(Attestation::from_cbor(&newer.to_cbor()), Ok(newer));
+}
+
+#[test]
 fn zero_finish_is_present_only_when_true() {
     let mut finished = host_write(vec![1]);
     finished.sanitization.zero_finish = true;
