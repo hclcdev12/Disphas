@@ -45,7 +45,9 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 3. Reste de [banc de test](banc_de_test.md) : `Unlock` d'un disque verrouillé, disque *Frozen*, coupure de courant,
    Exit Failure Mode (B5), automount (S11), NVMe multi-namespaces (S5). Loop (S9) : validé le 2026-10-07.
    Suites d'interface de S9, corrigées le 2026-10-07 : nouveau code `DEVICE_IN_USE` (message clair au lieu de
-   « Erreur interne du helper ») ; le libellé de P4 cite le périphérique loop.
+   « Erreur interne du helper ») ; le libellé de P4 cite le périphérique loop. Vérifié sur le banc (paquet
+   `0.1.0+build.12`) ; un disque devenu protégé entre verdict et ouverture répond `PROTECTED` (test du helper
+   seulement : la course n'est pas reproductible à la main).
 4. Persistance de `/var/lib/oblivio` sur le banc (option (b) : NFS `no_root_squash`) : prérequis de tout test de
    coupure pendant un Security Erase.
 
