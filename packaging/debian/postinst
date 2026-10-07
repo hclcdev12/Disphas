@@ -25,6 +25,13 @@ case "$1" in
         # Certificates stored by an earlier version (group-readable): root only.
         find "$state/reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \) \
             -exec chown root:root {} + -exec chmod 0600 {} +
+        # The "oblivio" system group of a version earlier than 2026-10-06 (members
+        # could read certificates) grants nothing any more: removed at install or
+        # upgrade. A group in the range of user ids is someone else's: kept.
+        gid=$(getent group oblivio | cut -d: -f3)
+        if [ -n "$gid" ] && [ "$gid" -lt 1000 ]; then
+            groupdel oblivio || echo "oblivio: the former oblivio group could not be removed" >&2
+        fi
         ;;
 esac
 

@@ -57,7 +57,8 @@ HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir 
   mise à jour depuis une version à groupe `oblivio`, groupe ensuite supprimé) : dossiers 0700 et 5 certificats passés
   de 0640 `root:oblivio` à 0600 root ; historique, réimpression, PDF de lot depuis l'historique ; effacement de sda
   (Security Erase, CONFORME) dans un lot puis clôture, PDF de lot vérifié par `oblivio-verify`. Constat : le groupe
-  `oblivio` d'une ancienne version n'est supprimé ni par la mise à jour ni par `apt purge` (sans effet, à trancher).
+  `oblivio` d'une ancienne version n'était supprimé ni par la mise à jour ni par `apt purge` → supprimé par le
+  paquet depuis le 2026-10-07 (vérifié par la CI *Package*).
   `apt remove` / `apt purge` : contrôlés par la CI (*Package*), pas sur le banc.
 - Effacement parallèle sur plusieurs vrais disques (SATA et NVMe en même temps), puis certificat de lot.
 - B5 (Sanitize en échec) : ajouter et valider la commande « Exit Failure Mode » (NVMe Sanitize action 1,

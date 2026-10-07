@@ -38,12 +38,16 @@ manual or on a `v*` tag) on **Ubuntu 22.04**, so the binaries need **glibc 2.35*
 
 Each run checks, per system: installation from a clean image, every library of both
 programs resolved (`ldd`), polkit policy and notices in place, `/var/lib/oblivio` and its
-sub-folders owned by root in `0700`, the release helper refusing to start outside pkexec,
-and removal (`.deb`: `remove` keeps `/var/lib/oblivio`, `purge` deletes it; `.rpm`: removal
-keeps the data).
+sub-folders owned by root in `0700`, the `oblivio` system group of an earlier version
+removed (it no longer grants anything: certificates are root-only), the release helper
+refusing to start outside pkexec, and removal (`.deb`: `remove` keeps `/var/lib/oblivio`,
+`purge` deletes it; `.rpm`: removal keeps the data).
 
-An `oblivio` group left by a build earlier than commit `472cec3` (2026-10-06) is not removed, by upgrade or
-purge: it no longer grants anything (certificates are root-only).
+**Version.** A build from a `v*` tag carries the workspace version, which must match the tag
+(`v0.1.0` → `0.1.0`). Any other build carries `+build.<run number>` (`0.1.0+build.42`): each
+package has its own version, so `apt` upgrades without `--reinstall` and `dpkg-query -W oblivio`
+tells which build is installed. The program's own version (certificates, `Hello`) stays the
+workspace version; the certificate identifies the exact build by the helper's SHA-256.
 
 - `.deb` `Depends`: every library found by `dpkg-shlibdeps` (old and `t64` names as
   alternatives), plus `pkexec` and `xdg-utils` (opening certificates). `tools/check_package.py --max-glibc 2.35`

@@ -38,11 +38,29 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      # A `v*` tag is a release: the package carries the workspace version,
+      # which must match the tag. Any other build carries `+build.<run number>`:
+      # every package has its own version, so apt upgrades without --reinstall
+      # and the installed build can be told apart (docs/reprise.md §2, point 6).
+      - name: Package version
+        run: |
+          base=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "$GITHUB_REF_NAME" != "v$base" ]; then
+              echo "tag $GITHUB_REF_NAME does not match the workspace version $base"; exit 1
+            fi
+            version=$base
+          else
+            version="$base+build.$GITHUB_RUN_NUMBER"
+          fi
+          echo "package version: $version"
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Build .deb and .rpm
         working-directory: app
         run: |
           npm ci
-          npm run tauri build -- --bundles deb rpm
+          npm run tauri build -- --bundles deb rpm --config "{\"version\": \"$PACKAGE_VERSION\"}"
 
       - name: Check glibc and declared dependencies
         run: python3 tools/check_package.py target/release/bundle/deb/*.deb --max-glibc 2.35
@@ -75,6 +93,14 @@ jobs:
           apt-get update
           apt-get install -y ./deb/*.deb
           dpkg-query -W -f='${Package} ${Version} ${Status}\n' oblivio
+
+      - name: The oblivio group of an earlier version is removed
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          groupadd --system oblivio
+          apt-get install -y --reinstall ./deb/*.deb
+          if getent group oblivio; then echo "the former oblivio group is still there"; exit 1; fi
 
       - name: Every library resolves, files are in place
         run: |
@@ -129,6 +155,13 @@ jobs:
         run: |
           rpm -qp --requires ./rpm/*.rpm
           ${{ matrix.install }}
+
+      - name: The oblivio group of an earlier version is removed
+        run: |
+          if ! command -v groupadd >/dev/null; then echo "no groupadd in this image: skipped"; exit 0; fi
+          groupadd --system oblivio
+          rpm -Uvh --replacepkgs ./rpm/*.rpm
+          if getent group oblivio; then echo "the former oblivio group is still there"; exit 1; fi
 
       - name: Every library resolves, files are in place
         run: |

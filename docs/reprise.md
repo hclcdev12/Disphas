@@ -49,15 +49,15 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 
 **Décisions à soumettre au propriétaire**
 
-5. `dev.typ` est une liste fermée : un vérificateur plus ancien rejette un type nouveau (constaté avec `SATA`).
-   Recommandation : le rendre tolérant comme les codes. Change le format public → décision du propriétaire.
-6. Chaque paquet doit avoir un **numéro de version distinct** : avec deux builds en 0.1.0, `apt` ne réinstalle
-   pas (constaté sur le banc). À traiter avec le processus de release.
+5. ~~`dev.typ` liste fermée~~ → **décidé le 2026-10-07** : liste ouverte comme les codes, type inconnu affiché tel
+   quel ([certificat](certificat.md) §2).
+6. ~~Numéro de version distinct par paquet~~ → **décidé le 2026-10-07** : build hors tag en `0.1.0+build.<n° du run>`,
+   tag `v*` = version du workspace (`packaging/README.md`, *Version*). Processus de release complet : plus tard.
 7. ~~Après un effacement, la carte du disque revient à l'ancienne décision~~ → corrigé le 2026-10-07 : l'app
    réinspectait déjà, mais la nouvelle décision est la même ; la carte affiche désormais le dernier effacement de la
    session et son statut. Vérifié sur le banc (Security Erase de sda, CONFORME).
-8. Le groupe `oblivio` d'une version antérieure à `472cec3` n'est supprimé ni par la mise à jour ni par `apt purge`.
-   Sans effet (certificats root seul) ; le supprimer dans `postinst` ? (constaté le 2026-10-07).
+8. ~~Groupe `oblivio` résiduel~~ → **décidé le 2026-10-07** : supprimé par le paquet à l'installation ou à la mise
+   à jour (groupe système seulement), vérifié par la CI *Package*.
 
 **Défauts d'interface constatés le 2026-10-07 (banc)**
 
@@ -97,8 +97,9 @@ développement. Disques déclarés sacrifiables : voir CLAUDE.md §2 (seuls ceux
 
 1. Le propriétaire lance `sudo sh setup.sh` sur le banc (`tools/bench/setup.sh`, copié par SSH) : `sudo` sans mot
    de passe pour `goupil`, helper sans demande polkit, `xdotool`.
-2. Copier et installer le paquet : `sudo apt-get install -y --reinstall /tmp/Oblivio_0.1.0_amd64.deb` (avec le chemin,
-   sinon `apt` cherche un paquet de ce nom).
+2. Copier et installer le paquet : `sudo apt-get install -y /tmp/Oblivio_<version>_amd64.deb` (avec le chemin,
+   sinon `apt` cherche un paquet de ce nom). Depuis le 2026-10-07, chaque build a sa version (`0.1.0+build.<n>`) :
+   `--reinstall` n'est plus nécessaire, `dpkg-query -W oblivio` dit quel build est installé.
 3. Lancer l'app sur l'écran du banc depuis SSH :
    `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus setsid nohup /usr/bin/oblivio-app > /tmp/oblivio-app.log 2>&1 < /dev/null &`
 4. Licence : l'app crée une demande `OBA1:…` (badge « Sans licence »). Le **propriétaire** la signe sur la machine
