@@ -213,7 +213,9 @@
     "running_one": "{{count}} läuft",
     "running_other": "{{count}} laufen",
     "inProgress": "Löschung läuft",
-    "view": "Löschung anzeigen"
+    "view": "Löschung anzeigen",
+    "lastErasure": "Letzte Löschung in dieser Sitzung",
+    "lastErasureHint": "Die Entscheidung unten stammt aus einer neuen Prüfung nach dieser Löschung."
   },
   "nav": {
     "drives": "Laufwerke",

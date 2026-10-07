@@ -213,7 +213,9 @@
     "running_one": "{{count}} running",
     "running_other": "{{count}} running",
     "inProgress": "Erasure in progress",
-    "view": "View erasure"
+    "view": "View erasure",
+    "lastErasure": "Last erasure in this session",
+    "lastErasureHint": "The decision below comes from a new inspection, made after this erasure."
   },
   "nav": {
     "drives": "Drives",

@@ -7,6 +7,16 @@ import type { Language } from "../i18n";
 import { Badge, Button, Mono } from "./ui";
 
 /**
+ * Sort key of the history, newest first by the date shown: the end of the
+ * operation. The helper lists by identifier, i.e. by start, so a long erasure
+ * finished last would sit below a shorter one started after it. A report that
+ * does not verify has no date: the time in its UUID v7 identifier stands in.
+ */
+function issuedAt(entry: HistoryEntry): number {
+  return entry.summary?.issued_at ?? (Number.parseInt(entry.id.replaceAll("-", "").slice(0, 12), 16) / 1000 || 0);
+}
+
+/**
  * History of signed certificates, read from the helper's `reports/` folder.
  * Reports that do not verify are listed by identifier only: their content
  * is never shown (docs/protocole_ipc.md §10).
@@ -70,11 +80,13 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
     const needle = query.trim().toLowerCase();
     // "Before" is a calendar day: certificates issued before that day, UTC.
     const limit = before === "" ? null : Date.parse(`${before}T00:00:00Z`) / 1000;
-    const inBatch = (entries ?? []).filter(
-      (entry) =>
-        (batch === "" || entry.summary?.batch_id === batch) &&
-        (limit === null || (entry.summary !== null && entry.summary.issued_at < limit)),
-    );
+    const inBatch = (entries ?? [])
+      .filter(
+        (entry) =>
+          (batch === "" || entry.summary?.batch_id === batch) &&
+          (limit === null || (entry.summary !== null && entry.summary.issued_at < limit)),
+      )
+      .sort((a, b) => issuedAt(b) - issuedAt(a));
     if (needle === "") return inBatch;
     return inBatch.filter((entry) =>
       [entry.id, entry.summary?.model, entry.summary?.serial, entry.summary?.operator, entry.summary?.organization]
@@ -127,7 +139,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
           <label className="flex items-center gap-2">
             {t("verify.field.batch")}
             <select
-              className="rounded-md border border-edge bg-night px-2 py-1.5"
+              className="rounded-md border border-edge bg-night py-1.5 pr-7 pl-2"
               value={batch}
               onChange={(event) => {
                 setBatch(event.target.value);

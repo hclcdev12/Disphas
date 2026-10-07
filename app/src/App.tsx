@@ -211,6 +211,15 @@ export default function App() {
     return id ? { id, job: jobs[id] } : null;
   };
 
+  /** The last erasure of a drive finished in this session, if any. */
+  const finishedOn = (serial: string) => {
+    const id = Object.keys(jobInfo)
+      .reverse()
+      .find((key) => jobInfo[key].serial === serial && jobs[key] && jobs[key].status !== null);
+    const status = id ? jobs[id].status : null;
+    return id && status ? { id, status } : null;
+  };
+
   const connected = hello?.ok ?? false;
   return (
     <div className="flex min-h-full flex-col">
@@ -312,6 +321,7 @@ export default function App() {
                 onErase={setRequest}
                 onUnlock={setUnlocking}
                 running={runningOn(summary.device.identity.serial)}
+                finished={finishedOn(summary.device.identity.serial)}
                 onOpenJob={(id) => {
                   setView("jobs");
                   setOpenJob(id);

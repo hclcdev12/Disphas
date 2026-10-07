@@ -54,7 +54,7 @@ export function Header({
         </button>
         <select
           aria-label="Language"
-          className="rounded-md border border-edge bg-card px-2 py-1 text-xs text-ash"
+          className="rounded-md border border-edge bg-card py-1 pr-6 pl-2 text-xs text-ash"
           value={i18n.language}
           onChange={(event) => void i18n.changeLanguage(event.target.value as Language)}
         >

@@ -213,7 +213,9 @@
     "running_one": "{{count}} en cours",
     "running_other": "{{count}} en cours",
     "inProgress": "Effacement en cours",
-    "view": "Voir l'effacement"
+    "view": "Voir l'effacement",
+    "lastErasure": "Dernier effacement de cette session",
+    "lastErasureHint": "La décision ci-dessous vient d'une nouvelle inspection, faite après cet effacement."
   },
   "nav": {
     "drives": "Disques",

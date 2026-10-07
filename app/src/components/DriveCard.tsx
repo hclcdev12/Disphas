@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Ban, HardDrive, KeyRound, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
+import { Ban, CheckCircle2, HardDrive, KeyRound, Lock, ShieldCheck, TriangleAlert, XCircle } from "lucide-react";
 import type { DeviceSummary } from "../bindings/DeviceSummary";
+import type { FinalStatus } from "../bindings/FinalStatus";
 import type { InspectResult } from "../bindings/InspectResult";
 import type { MethodChoice } from "../bindings/MethodChoice";
 import type { Outcome } from "../lib/api";
@@ -37,6 +38,7 @@ export function DriveCard({
   onErase,
   onUnlock,
   running,
+  finished,
   onOpenJob,
 }: {
   summary: DeviceSummary;
@@ -46,6 +48,12 @@ export function DriveCard({
   onUnlock: (inspection: InspectResult) => void;
   /** Erasure in progress on this drive, if any. */
   running: { id: string; job: JobView } | null;
+  /**
+   * Last erasure of this drive finished in this session. The verdict shown
+   * comes from the inspection made afterwards, which may well offer the same
+   * methods again: without this line the card looks untouched.
+   */
+  finished: { id: string; status: FinalStatus } | null;
   onOpenJob: (id: string) => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -99,6 +107,27 @@ export function DriveCard({
           <div className="mt-3 flex justify-end">
             <Button onClick={() => onOpenJob(running.id)}>{t("jobs.view")}</Button>
           </div>
+        </div>
+      )}
+      {!running && finished && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-edge bg-night/40 p-3 text-sm">
+          {finished.status === "CONFORME" ? (
+            <CheckCircle2 size={16} className="shrink-0 text-ready" />
+          ) : (
+            <XCircle size={16} className="shrink-0 text-sayno" />
+          )}
+          <div>
+            <p>
+              {t("jobs.lastErasure")}{" "}
+              <Badge tone={finished.status === "CONFORME" ? "ready" : "sayno"}>
+                {t(`job.status.${finished.status}`)}
+              </Badge>
+            </p>
+            <p className="mt-0.5 text-xs text-ash">{t("jobs.lastErasureHint")}</p>
+          </div>
+          <Button className="ml-auto shrink-0" onClick={() => onOpenJob(finished.id)}>
+            {t("jobs.view")}
+          </Button>
         </div>
       )}
       {!running && inspection?.ok && (
