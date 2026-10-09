@@ -27,6 +27,10 @@ pub struct IdentifyController {
     pub firmware: String,
     /// SANICAP, bytes 328..332.
     pub sanitize: NvmeSanitizeCaps,
+    /// SANICAP bits 2:0: the Sanitize command, and so its Sanitize Status
+    /// log page (81h), exist. Overwrite counts even though Oblivio never
+    /// uses it: such a drive can still be sanitizing or have failed (B4/B5).
+    pub sanitize_supported: bool,
     /// OACS bit 1 and FNA (byte 524) bits 1 and 2.
     pub format: NvmeFormatCaps,
 }
@@ -45,6 +49,7 @@ pub fn identify_controller(data: &[u8]) -> Result<IdentifyController, DecodeErro
             crypto_erase: sanicap & (1 << 0) != 0,
             block_erase: sanicap & (1 << 1) != 0,
         },
+        sanitize_supported: sanicap & 0b111 != 0,
         format: NvmeFormatCaps {
             supported: oacs & (1 << 1) != 0,
             crypto_erase: fna & (1 << 2) != 0,
@@ -182,6 +187,20 @@ mod tests {
         put(&mut data, 328, &0b100u32.to_le_bytes()); // Overwrite only
         let controller = identify_controller(&data).expect("valid");
         assert_eq!(controller.sanitize, NvmeSanitizeCaps::default());
+        assert!(controller.sanitize_supported);
+    }
+
+    #[test]
+    fn a_controller_without_sanicap_has_no_sanitize() {
+        let mut data = controller_buffer();
+        put(&mut data, 328, &0u32.to_le_bytes());
+        let controller = identify_controller(&data).expect("valid");
+        assert!(!controller.sanitize_supported);
+        assert!(
+            identify_controller(&controller_buffer())
+                .expect("valid")
+                .sanitize_supported
+        );
     }
 
     #[test]

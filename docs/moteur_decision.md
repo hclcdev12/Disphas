@@ -188,6 +188,10 @@ L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (rè
 **Exécution** (`oblivio-device`, 2026-10-04) : NVMe Sanitize (Block / Crypto Erase) et Format NVM (SES 1/2)
 par commandes d'administration ; ATA Sanitize (Block Erase, Crypto Scramble, Overwrite 1 passe à zéro) par
 ATA PASS-THROUGH (16) ; progression lue dans le journal / SANITIZE STATUS EXT.
+Le journal Sanitize NVMe (81h) n'est lu à l'inspection que si `SANICAP` annonce une action (bits 2:0, Overwrite
+compris) : sans Sanitize, ce journal n'existe pas et le contrôleur refuse de le lire ; l'état est alors « aucune
+opération » et le disque suit le tableau §4.1 (Format, sinon écriture hôte). Avant le 2026-10-09, ce refus faisait
+échouer toute l'inspection (SAY NO `InspectionFailed`) : constaté sur NVMe émulé ([banc de test](banc_de_test.md)).
 
 **ATA Security Erase** (2026-10-04) : seulement sur un disque **sans mot de passe** (sinon B7, le disque
 appartient à un tiers). Le helper tire un mot de passe utilisateur **aléatoire** (32 caractères

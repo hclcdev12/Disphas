@@ -8,7 +8,7 @@
 use std::fs::{File, OpenOptions};
 use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
 
-use oblivio_core::profile::{DeviceIdentity, DeviceProfile, Inspection, QuirkFlags};
+use oblivio_core::profile::{DeviceIdentity, DeviceProfile, Inspection, QuirkFlags, SanitizeState};
 
 use crate::DeviceError;
 use crate::ata::AtaDevice;
@@ -96,7 +96,13 @@ fn nvme_profile(file: &File) -> Result<(DeviceIdentity, u64, Inspection), Device
     let controller = device.identify_controller()?;
     let (_, namespace) = device.identify_namespace()?;
     let health = device.health()?;
-    let (sanitize_state, _) = device.sanitize_status()?;
+    // Without Sanitize there is no Sanitize Status log (the controller
+    // refuses to read it) and nothing can be in progress or failed.
+    let sanitize_state = if controller.sanitize_supported {
+        device.sanitize_status()?.0
+    } else {
+        SanitizeState::Idle
+    };
     let identity = DeviceIdentity {
         model: controller.model.clone(),
         serial: controller.serial.clone(),
