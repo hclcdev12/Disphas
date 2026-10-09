@@ -98,7 +98,12 @@ export function DriveCard({
       </p>
 
       {inspection && !inspection.ok && (
-        <p className="mt-4 text-sm text-sayno">{t(`errors.${inspection.error.code}`)}</p>
+        <p className="mt-4 text-sm text-sayno">
+          {t(`errors.${inspection.error.code}`)}
+          {inspection.error.detail && (
+            <span className="block font-mono text-xs text-ash">{inspection.error.detail}</span>
+          )}
+        </p>
       )}
       {running && (
         <div className="mt-4 rounded-lg border border-brand/40 bg-brand/5 p-4">

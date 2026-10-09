@@ -13,6 +13,21 @@
 **live PXE** (squashfs sur NFS, couche d'écriture en RAM) ; SSD SK hynix SC210 128 Go (sda), HDD Hitachi
 HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir sur carte PCIe → M.2 passive
 (un pont USB RTL9210B ne laisse passer qu'Identify et Get Log Page : inutilisable, cf. smartmontools).
+- **NVMe émulé (2026-10-09)**, en attendant un vrai NVMe : VM QEMU 8.2.2 + KVM **sur le banc**, lancée par `goupil`
+  **sans root** (hors du groupe `disk` : aucun accès aux vrais disques). L'invité démarre le noyau du banc sur une racine
+  tmpfs, `/usr` et `/etc` du banc en lecture seule (9p) ; ses seuls disques sont un contrôleur NVMe émulé
+  (`OBVMNVME0001`) à 2 namespaces de 512 Mio, fichiers dans `/tmp/obvm/img`. Le helper est piloté en NDJSON par un
+  client Python. Le contrôleur annonce Format NVM, **ni Sanitize (SANICAP = 0) ni FNA** ; EUI-64 par namespace
+  seulement si on le donne (pas de NGUID en QEMU 8.2). Ça teste notre code face à l'émulateur, **pas** face à un
+  firmware réel : Sanitize, `nsa` et la reprise restent à faire sur un vrai NVMe. Constats :
+  - racine en 9p → inventaire refusé (« the drive holding / is unknown ») : voulu (9p n'est pas une racine sans
+    disque reconnue), d'où la racine tmpfs de l'invité ;
+  - **défaut corrigé** : un NVMe sans Sanitize refuse le journal 81h (statut `0x4002`), ce qui faisait échouer toute
+    l'inspection (SAY NO `InspectionFailed`). Après correction : PRÊT, Format NVM SES=1 (*Clear*) recommandé,
+    écriture hôte (*Clear* + R7) en alternative, portée du seul namespace ([moteur](moteur_decision.md) §4) ;
+  - namespaces sans EUI-64 ni NGUID : même identité, `Inspect` refusé (règle 3, voulu), mais avec le détail trompeur
+    « no drive with this identity » → désormais « several drives report this identity and cannot be told apart »
+    (code `DEVICE_NOT_FOUND` inchangé), affiché sous le message sur la carte du disque.
 - **Pilotage à distance (2026-10-06)** : après chaque démarrage, le propriétaire lance `sudo sh tools/bench/setup.sh`
   sur le banc (root sans mot de passe pour `goupil`, helper Oblivio sans demande polkit, `xdotool`). Claude voit l'écran
   par SSH (`xwd` sur l'affichage `:0`), pilote l'interface (`xdotool`) et agit en root selon l'exception du banc

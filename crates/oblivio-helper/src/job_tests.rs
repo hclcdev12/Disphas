@@ -177,11 +177,12 @@ impl DeviceBackend for ImageBackend {
         self.devices.clone()
     }
 
-    fn find(&mut self, identity: &WireIdentity) -> Option<Device> {
+    fn find(&mut self, identity: &WireIdentity) -> Result<Device, &'static str> {
         self.devices
             .iter()
             .find(|device| convert::identity(&device.profile.identity) == *identity)
             .cloned()
+            .ok_or("drive not found")
     }
 
     fn open(

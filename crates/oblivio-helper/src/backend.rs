@@ -59,8 +59,9 @@ pub trait DeviceBackend {
     fn list(&mut self) -> Vec<Device>;
 
     /// The drive with exactly this identity, read again from the hardware.
-    /// Never looked up by path.
-    fn find(&mut self, identity: &DeviceIdentity) -> Option<Device>;
+    /// Never looked up by path. The error says why none is returned (none,
+    /// several, no serial number).
+    fn find(&mut self, identity: &DeviceIdentity) -> Result<Device, &'static str>;
 
     /// Opens the drive with this identity for erasure. Called only once every
     /// Sanitize check passed. With `whole_controller`, the other namespaces
@@ -94,7 +95,7 @@ impl DeviceBackend for NoDevices {
         Vec::new()
     }
 
-    fn find(&mut self, _identity: &DeviceIdentity) -> Option<Device> {
-        None
+    fn find(&mut self, _identity: &DeviceIdentity) -> Result<Device, &'static str> {
+        Err("drive not found")
     }
 }

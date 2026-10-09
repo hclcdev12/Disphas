@@ -326,10 +326,14 @@ impl<B: DeviceBackend> Session<B> {
         let device = self
             .backend
             .find(identity)
-            .filter(|device| convert::identity(&device.profile.identity) == *identity)
-            .ok_or_else(|| {
-                Failure::new(ErrorCode::DeviceNotFound, "no drive with this identity")
-            })?;
+            .and_then(|device| {
+                if convert::identity(&device.profile.identity) == *identity {
+                    Ok(device)
+                } else {
+                    Err("drive not found")
+                }
+            })
+            .map_err(|reason| Failure::new(ErrorCode::DeviceNotFound, reason))?;
         let verdict = oblivio_core::decide(&device.profile, &self.config.rules);
 
         self.issued += 1;
@@ -376,8 +380,14 @@ impl<B: DeviceBackend> Session<B> {
         let device = self
             .backend
             .find(&issued.identity)
-            .filter(|device| convert::identity(&device.profile.identity) == issued.identity)
-            .ok_or_else(|| Failure::new(ErrorCode::DeviceChanged, "drive identity changed"))?;
+            .and_then(|device| {
+                if convert::identity(&device.profile.identity) == issued.identity {
+                    Ok(device)
+                } else {
+                    Err("drive identity changed")
+                }
+            })
+            .map_err(|reason| Failure::new(ErrorCode::DeviceChanged, reason))?;
 
         // 3. Protections evaluated again.
         if let Verdict::Protected { reasons } =
@@ -965,11 +975,16 @@ mod tests {
             self.devices.clone()
         }
 
-        fn find(&mut self, identity: &DeviceIdentity) -> Option<Device> {
-            self.devices
+        fn find(&mut self, identity: &DeviceIdentity) -> Result<Device, &'static str> {
+            let mut found = self
+                .devices
                 .iter()
-                .find(|device| convert::identity(&device.profile.identity) == *identity)
-                .cloned()
+                .filter(|device| convert::identity(&device.profile.identity) == *identity);
+            let device = found.next().ok_or("drive not found")?;
+            if found.next().is_some() {
+                return Err("several drives report this identity and cannot be told apart");
+            }
+            Ok(device.clone())
         }
     }
 
@@ -1194,6 +1209,29 @@ mod tests {
             device: device_ref("SN-NOWHERE"),
         }));
         assert_eq!(code(result), ErrorCode::DeviceNotFound);
+    }
+
+    #[test]
+    fn inspect_says_why_a_drive_cannot_be_found() {
+        // Two namespaces without EUI-64 or NGUID: same identity, never guessed.
+        let twins = vec![nvme_device("SN-TWIN"), nvme_device("SN-TWIN")];
+        let mut harness = Harness::greeted(twins, LicenseState::Missing);
+        let error = harness
+            .send(Command::Inspect(DeviceArgs {
+                device: device_ref("SN-TWIN"),
+            }))
+            .expect_err("ambiguous identity");
+        assert_eq!(error.code, ErrorCode::DeviceNotFound);
+        assert_eq!(
+            error.detail.as_deref(),
+            Some("several drives report this identity and cannot be told apart")
+        );
+        let error = harness
+            .send(Command::Inspect(DeviceArgs {
+                device: device_ref("SN-NOWHERE"),
+            }))
+            .expect_err("unknown drive");
+        assert_eq!(error.detail.as_deref(), Some("drive not found"));
     }
 
     #[test]

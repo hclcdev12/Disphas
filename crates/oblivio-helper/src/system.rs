@@ -133,7 +133,7 @@ fn unique(
     let mut found = drives.iter().filter(|(_, device)| matches(device));
     let (name, device) = found.next().ok_or("drive not found")?;
     if found.next().is_some() {
-        return Err("several drives report this identity");
+        return Err("several drives report this identity and cannot be told apart");
     }
     if device.profile.identity.serial.trim().is_empty() {
         return Err("drive without a serial number");
@@ -149,8 +149,8 @@ impl DeviceBackend for SystemBackend {
             .collect()
     }
 
-    fn find(&mut self, identity: &DeviceIdentity) -> Option<Device> {
-        self.lookup(identity).ok().map(|(_, device)| device)
+    fn find(&mut self, identity: &DeviceIdentity) -> Result<Device, &'static str> {
+        self.lookup(identity).map(|(_, device)| device)
     }
 
     fn open(
@@ -512,7 +512,7 @@ mod tests {
         );
         assert_eq!(
             unique(&drives, serial("SN-2")).map(|_| ()),
-            Err("several drives report this identity")
+            Err("several drives report this identity and cannot be told apart")
         );
         assert_eq!(
             unique(&drives, serial("SN-3")).map(|_| ()),

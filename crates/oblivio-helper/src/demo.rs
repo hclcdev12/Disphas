@@ -328,11 +328,12 @@ impl DeviceBackend for DemoDevices {
         self.devices.clone()
     }
 
-    fn find(&mut self, identity: &WireIdentity) -> Option<Device> {
+    fn find(&mut self, identity: &WireIdentity) -> Result<Device, &'static str> {
         self.devices
             .iter()
             .find(|device| convert::identity(&device.profile.identity) == *identity)
             .cloned()
+            .ok_or("drive not found")
     }
 
     fn open(
@@ -341,7 +342,7 @@ impl DeviceBackend for DemoDevices {
         _whole_controller: bool,
     ) -> Result<Box<dyn ErasureTarget>, OpenError> {
         let images = self.images.clone().ok_or("demo drives without images")?;
-        let device = self.find(identity).ok_or("unknown demo drive")?;
+        let device = self.find(identity).map_err(|_| "unknown demo drive")?;
         let serial = &device.profile.identity.serial;
         if !ERASABLE.contains(&serial.as_str()) {
             return Err(format!("demo drive {serial} has no image").into());

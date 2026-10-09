@@ -1,6 +1,6 @@
 # Oblivio — Reprise du projet (passation entre agents)
 
-État au **2026-10-07**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
+État au **2026-10-09**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
 dit où en est le projet, comment travailler avec le propriétaire et comment piloter le banc de test. Les
 specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les remplace pas.
 
@@ -42,6 +42,9 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 2. NVMe : brancher un SSD NVMe via une **carte PCIe → M.2 passive** (le banc n'a pas de M.2 ; un pont USB
    RTL9210B ne laisse passer qu'Identify et Get Log Page, cf. smartmontools `scsinvme.cpp`). Puis Sanitize,
    Format, `nsa`, reprise après coupure. Le propriétaire doit déclarer le disque sacrifiable (CLAUDE.md §2).
+   En attendant : **NVMe émulé** par QEMU sur le banc (2026-10-09, [banc de test](banc_de_test.md)) ; il a révélé
+   qu'un NVMe sans Sanitize était refusé (SAY NO), corrigé. Reste à y faire : Format de bout en bout (licence à
+   signer), S5 (voisin monté), et mettre les scripts de la VM dans le dépôt.
 3. Reste de [banc de test](banc_de_test.md) : `Unlock` d'un disque verrouillé, disque *Frozen*, coupure de courant,
    Exit Failure Mode (B5), automount (S11), NVMe multi-namespaces (S5). Loop (S9) : validé le 2026-10-07.
    Suites d'interface de S9, corrigées le 2026-10-07 : nouveau code `DEVICE_IN_USE` (message clair au lieu de
