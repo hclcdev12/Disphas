@@ -1,6 +1,6 @@
 # Oblivio — Reprise du projet (passation entre agents)
 
-État au **2026-10-09**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
+État au **2026-10-11**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
 dit où en est le projet, comment travailler avec le propriétaire et comment piloter le banc de test. Les
 specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les remplace pas.
 
@@ -74,6 +74,22 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    déroulant natif lui-même n'apparaît pas dans les captures `xwd`, non vérifié.
 10. ~~Historique trié par identifiant (début) mais daté de la fin~~ → corrigé le 2026-10-07 : tri par la date affichée.
     Vérifié sur le banc.
+
+**Licences en ligne et site (décidé le 2026-10-11)**
+
+11. [Licences en ligne](licences_en_ligne.md) validées : clé boutique, licence v2, activation et renouvellement
+    depuis l'application (jamais le helper), contrôle des postes, proxy d'entreprise (§5), serveur
+    `licence.oblivio.eu`. Avancement (ordre du §10 de ce document-là) :
+    - **Étape 1, QR** (2026-10-11) : imprimé à **5,5 cm** (`certificate.typ`), test du certificat le plus long.
+      **Reste** : imprimer `largest-fr.pdf` (exemple `sample` d'`oblivio-report`, licence v2) et le scanner au téléphone.
+    - **Étape 2, format et vérification v2** dans `oblivio-attestation` (2026-10-11) : fait. La liste de révocation
+      reste en `v: 1` (identifiants d'émetteur préfixés `ISS-`), simplification signalée au propriétaire.
+    - **Suite** : étape 3, installation d'une licence v2 par le helper (`oblivio-license`).
+    - Défauts préexistants constatés sur le certificat le plus long : le bloc Émetteur passe en page 2 (déjà à
+      4,4 cm) ; un identifiant de lot de 64 caractères sans espace déborde de sa colonne.
+12. Site : **Astro** dans `site/` (dépôt privé), production chez **Infomaniak** (préproduction possible sur le VPS
+    Oracle gratuit du propriétaire), paiement **Stripe** ; facture électronique et TVA à valider par le comptable
+    du propriétaire. Document d'architecture du site à rédiger.
 
 **Plus tard** : dépôt public du vérificateur (depuis un **commit propre** : l'historique contient le n° de série
 d'un vrai SSD), signature des paquets et release, vérification niveau audit, USB en V2, ISO live en V2.

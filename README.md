@@ -13,6 +13,7 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Cadre du projet](docs/cadre_projet.md) | **Référence** : périmètre V1, architecture, modèle de confiance, règles invariantes |
 | [Moteur de décision](docs/moteur_decision.md) | Brouillon : états, critères Say NO, choix de méthode, validation |
 | [Certificat](docs/certificat.md) | Brouillon : format signé, statuts, chaîne de confiance, vérification |
+| [Licences en ligne](docs/licences_en_ligne.md) | Décidé, non implémenté : clé boutique, activation et renouvellement en ligne, contrôle des postes |
 | [Protocole UI ↔ helper](docs/protocole_ipc.md) | Frontière de sécurité : commandes, contrôles, événements, reprise |
 | [Manuel de l'opérateur](docs/manuel_operateur.md) | Installation, licence, effacement, lots, certificats, cas particuliers (installé dans `/usr/share/doc/oblivio/`) |
 | [Banc de test](docs/banc_de_test.md) | Tests sur vrais disques : matériel, étapes, points à confirmer |

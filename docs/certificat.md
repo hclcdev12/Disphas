@@ -29,7 +29,10 @@ standards ouverts, vérification hors ligne, tient sur papier.
 ### Encodage du QR
 
 `attestation COSE` → compression zlib → **Base45** (RFC 9285) → QR en mode alphanumérique, préfixe `OBV1:`.
-Taille visée : < 1 000 caractères (QR version ~20, lisible imprimé en 4 × 4 cm).
+Imprimé à **5,5 cm** avec sa marge blanche (4,4 cm jusqu'au 2026-10-11). Critère : un module d'au moins **0,40 mm**
+imprimé, pour le certificat le plus long (test `largest_certificate_keeps_a_readable_qr_code` d'`oblivio-report`).
+Un certificat typique fait environ 1 000 caractères (version 21), le plus long environ 1 300 (version 24) ; la
+licence v2 ajoutera environ 240 caractères ([licences_en_ligne.md](licences_en_ligne.md) §3).
 
 ## 2. Contenu de l'attestation (signée)
 
@@ -122,6 +125,13 @@ Licence .lic = { id, client, offre, validité, clé publique du poste }
 Attestation signée par la clé du poste, licence incluse
 ```
 
+> **Licence v2** (décidée le 2026-10-11 ; format et vérification implémentés le 2026-10-11, émission et installation
+> à venir ; détail : [licences_en_ligne.md](licences_en_ligne.md) §3) : signée par une **clé boutique** dont le
+> *certificat d'émetteur* (signé par la racine : `iid` préfixé `ISS-`, `ipk`, `nbf`, `exp`, `off`, `maxd`) est
+> embarqué dans la licence (`iss`, `v: 2`) ; `exp` obligatoire ; un même `id` par siège, conservé aux renouvellements.
+> La liste de révocation reste en `v: 1` : une entrée `ISS-…` révoque un émetteur. Les licences v1 décrites
+> ci-dessous restent acceptées. QR imprimé à 5,5 cm (§1).
+
 **Licence** (CBOR déterministe, COSE_Sign1 par la racine) : `v`, `id`, `cli` (client), `off` (offre),
 `nbf` (début de validité), `exp`? (fin, absente si perpétuelle), `wpk` (clé publique Ed25519 du poste, 32 octets).
 La vérification exige `nbf ≤ iat ≤ exp`, et l'absence de révocation datée **au plus tard** à `iat`.
@@ -158,7 +168,8 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
   distincts ; la phrase secrète conservée séparément. Perdre l'une ou l'autre interdit toute nouvelle licence.
 
 **Activation offline** : le poste génère sa paire de clés → produit une demande d'activation
-(fichier ou QR contenant la clé publique) → l'éditeur renvoie le `.lic` signé.
+(fichier ou QR contenant la clé publique) → l'éditeur renvoie le `.lic` signé. Ce parcours reste le secours
+hors ligne de l'activation en ligne décidée le 2026-10-11 ([licences_en_ligne.md](licences_en_ligne.md) §4).
 
 **Révocation** : liste de licences révoquées signée par la racine, livrée avec les mises à jour.
 Une attestation signée **avant** la date de révocation reste valide (horodatage `iat`).

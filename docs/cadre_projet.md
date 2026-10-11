@@ -1,7 +1,7 @@
 # Oblivio — Cadre du projet (v0.1)
 
 > Document de référence. Il prime sur les autres specs en cas de contradiction.
-> Validé le 2026-10-03.
+> Validé le 2026-10-03. Licences en ligne (§1, §2, §3, §6) : décidé le 2026-10-11.
 
 ## 1. Périmètre V1
 
@@ -9,7 +9,9 @@
 - Application desktop **Linux 64-bit** (Tauri v2 + moteur Rust).
 - Supports **NVMe** et **SATA** en connexion directe (carte mère).
 - Parcours complet : inspection → décision → exécution → vérification → validation → certificat PDF signé.
-- Licences offline (`.lic`) avec chaîne de confiance (§3).
+- Licences (`.lic`) avec chaîne de confiance (§3). Activation hors ligne par copier-coller (implémentée) ;
+  **activation et renouvellement en ligne**, contrôle du nombre de postes, vente en ligne (décidé le 2026-10-11,
+  non implémenté) : [licences_en_ligne.md](licences_en_ligne.md).
 - **Trois langues** dès la V1 : anglais, français, allemand (application et certificat).
 
 **Reporté (V2+)**
@@ -36,6 +38,12 @@
 - Le helper est lancé **une fois par session** via `pkexec` et vit tant que l'UI est ouverte.
   Le moteur de décision, les protections et la signature tournent **dans le helper**.
 - Protocole détaillé : [protocole_ipc.md](protocole_ipc.md).
+- **Réseau** (décidé le 2026-10-11, non implémenté) : seule la partie Rust de l'application (compte utilisateur)
+  peut contacter le serveur de licences, pour activer ou renouveler la licence ; jamais la WebView (CSP inchangée),
+  jamais le helper. Le helper ne reçoit que des textes `OBA1`/`OBL1` par les commandes existantes
+  ([licences_en_ligne.md](licences_en_ligne.md) §5).
+- **Côté éditeur** : site (comptes, abonnements, sièges) et **service de signature** isolé, seul détenteur de la
+  clé boutique ([licences_en_ligne.md](licences_en_ligne.md) §6).
 
 ### Workspace Rust
 
@@ -85,16 +93,22 @@ Versions relevées dans `Cargo.lock` et `app/package-lock.json` ; ce sont elles 
 
 ```
 Clé racine Oblivio (offline, éditeur)
-   └── signe ──► Licence .lic  { client, offre, validité, clé publique du poste }
-                     └── clé privée du poste (générée localement, jamais exportée)
-                            └── signe ──► Payload d'audit canonique
-                                              ├── rendu dans le PDF (lisible)
-                                              └── encodé dans le QR (payload + signature + licence)
+   ├── signe ──► Licence v1 .lic  { client, offre, validité, clé publique du poste }      (implémenté)
+   └── signe ──► Certificat d'émetteur { clé boutique, validité 1 an, offres, durée max }  (décidé le 2026-10-11)
+                     └── clé boutique (serveur) ── signe ──► Licence v2 { …, certificat d'émetteur }
+Licence v1 ou v2
+   └── clé privée du poste (générée localement, jamais exportée)
+          └── signe ──► Payload d'audit canonique
+                            ├── rendu dans le PDF (lisible)
+                            └── encodé dans le QR (payload + signature + licence)
 ```
 
 - On signe un **payload canonique** (CBOR ou JSON canonique), jamais le fichier PDF. Le PDF n'est qu'un rendu.
-- Vérification offline avec la seule **clé publique racine** (vérificateur gratuit).
+- Vérification offline avec la seule **clé publique racine** (vérificateur gratuit) : la licence v2 embarque son
+  certificat d'émetteur.
 - Une clé de poste compromise n'affecte qu'une licence ; révocation via liste livrée avec les mises à jour.
+- La **clé racine ne touche jamais le réseau**. La clé boutique, sur le serveur, peut être révoquée sans toucher
+  à la racine ; les licences v1 restent acceptées. Détail, risques et limites : [licences_en_ligne.md](licences_en_ligne.md).
 
 ## 4. États d'un disque
 
@@ -128,7 +142,10 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
 - Seuils et règles du moteur → validés, reste 3 points IEEE 2883, voir [moteur_decision.md](moteur_decision.md).
 - Format du certificat → proposé (CBOR + COSE_Sign1 + QR Base45, PDF/A-3), voir [certificat.md](certificat.md).
 - ~~Bibliothèque PDF Rust~~ → `typst` (2026-10-04, voir [certificat.md](certificat.md) §6).
-- Modèle de licence compatible Live USB (licence liée à l'opérateur ou au support, pas au poste).
+- Modèle de licence compatible Live USB (licence liée à l'opérateur ou au support, pas au poste). La V1 garde
+  la licence liée au poste ([licences_en_ligne.md](licences_en_ligne.md), D3, 2026-10-11) ; à traiter avec l'ISO.
+- Licences en ligne ([licences_en_ligne.md](licences_en_ligne.md) §8) : tout est décidé (serveur
+  `licence.oblivio.eu`, QR imprimé à 5,5 cm, 2026-10-11) ; reste un essai d'impression du QR le plus long.
 - Distribution Debian pour l'ISO.
 
 ## 7. Langues (décidé le 2026-10-03)

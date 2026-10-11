@@ -11,6 +11,7 @@
 | **La vérité du certificat** | Un certificat CONFORME doit correspondre à un effacement réellement fait et prouvé |
 | **La clé du poste** (`/var/lib/oblivio/keys`) | Elle signe les certificats ; volée, elle permet de forger des certificats au nom du poste jusqu'à révocation |
 | **La clé racine** (hors ligne, chez l'éditeur) | Elle signe licences et listes de révocation ; volée, elle permet tout |
+| **La clé boutique** (serveur de l'éditeur ; décidé le 2026-10-11, non implémenté) | Elle signe les licences v2 ; volée, elle permet de forger licences et certificats jusqu'à révocation de l'émetteur ([licences en ligne](licences_en_ligne.md) §7) |
 | **Le poste lui-même** | Le helper tourne en root : il ne doit pas devenir une porte d'entrée vers root |
 | **Les données des certificats** | Données personnelles possibles (opérateur, n° de série) : root seul, lues par le helper (authentification administrateur) |
 
@@ -24,6 +25,7 @@
 | A4 — **Autre compte local** sans droits | Lit ce qui est lisible par tous, crée des fichiers là où c'est permis |
 | A5 — **Faussaire de certificats** | N'a pas accès au poste ; fabrique ou modifie des certificats et les présente à un tiers |
 | A6 — **Chaîne d'approvisionnement** | Dépendance compromise, paquet modifié en transit |
+| A7 — **Réseau et serveur de licences** (dès l'activation en ligne, décidée le 2026-10-11) | Intercepte ou usurpe le serveur de licences, renvoie des réponses piégées ; ou compromet le serveur et vole la clé boutique |
 
 Hors périmètre V1 : un attaquant déjà **root** sur le poste (il peut tout, y compris lire la clé du poste —
 limite assumée, voir [certificat](certificat.md) §4) ; l'accès physique prolongé à la machine.
@@ -42,11 +44,17 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
   certificat qui ne se vérifie pas n'est jamais affiché comme fait.
 - **Disques → helper** : les données de firmware sont décodées de façon défensive (fuzzées).
 - **Poste → tiers** : seul le certificat signé fait foi ; le PDF n'est qu'un rendu.
+- **Serveur de licences → application** (décidé le 2026-10-11, non implémenté) : réponse bornée, une seule URL
+  HTTPS, code réseau sans droits root ; la licence reçue n'est crue qu'après vérification de sa signature par le
+  helper. Un faux serveur peut bloquer une activation, pas forger une licence
+  ([licences en ligne](licences_en_ligne.md) §5, §7).
 
 ## 4. Limites assumées (V1)
 
 - **`iat` déclaré par le poste** : l'horodatage n'est pas certifié par un tiers ([certificat](certificat.md) §4).
 - **Clé du poste non scellée** : fichier 0600 root ; volée par un attaquant root ou par vol du disque.
+- **Clé boutique volée** (dès les licences en ligne) : le faussaire peut dater ses licences et certificats avant la
+  révocation de l'émetteur, de même que `iat` est déclaré par le poste ([licences en ligne](licences_en_ligne.md) §7).
 - **A1 et le pipe** : un programme du même compte qui contrôle le processus de l'application peut envoyer
   des commandes au helper pendant la session. Le helper exige alors toujours la confirmation par le n° de
   série et applique toutes ses protections ; il ne peut pas effacer un disque protégé ni signer un faux

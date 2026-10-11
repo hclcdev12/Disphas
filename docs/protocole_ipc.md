@@ -303,6 +303,10 @@ UI                                   helper
 - **Dossier d'état** : `/var/lib/oblivio` en release (environnement ignoré) ; en développement,
   `OBLIVIO_STATE_DIR` ou `~/.local/state/oblivio-dev`.
 - Licence de développement : `cargo run -p oblivio-license --example issue_dev_license -- 'OBA1:…' [jours]`.
+- **Licences en ligne** (décidé le 2026-10-11, non implémenté, [licences_en_ligne.md](licences_en_ligne.md)) :
+  **aucune commande nouvelle**. L'application obtient la demande par `CreateActivationRequest`, l'échange elle-même
+  avec le serveur de licences, puis installe la réponse par `InstallLicense`, vérifiée comme toute licence. Le
+  helper n'ouvre jamais de connexion réseau.
 
 ### Exécution (moteur de tâches, 2026-10-04)
 

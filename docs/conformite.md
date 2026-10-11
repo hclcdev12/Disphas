@@ -7,6 +7,9 @@ Chaque référence a été vérifiée sur sa source officielle (§ 8) ; ce qui n
 
 **Situation** : produit **pas encore commercialisé** ; éditeur en **micro-entreprise** ; logiciel 100 %
 hors ligne (aucun appel réseau, aucune télémétrie — vérifié dans le code et la CSP de l'application).
+**Décidé le 2026-10-11, non implémenté** : activation et renouvellement de la licence en ligne
+([licences en ligne](licences_en_ligne.md)) ; seuls la clé de licence, la clé publique du poste et l'identifiant
+de licence transitent, jamais de donnée de disque ni de certificat. Conséquences RGPD : R5 et R6 ci-dessous.
 
 ## 1. RGPD (règlement (UE) 2016/679)
 
@@ -46,7 +49,7 @@ durée de conservation (art. 5(1)(e)).
 | R3 | Champs opérateur/organisation | Écran **Réglages** (par compte) : facultatifs, bornés (64 / 128 caractères, contrôlés à nouveau par le helper), l'interface recommande un identifiant (ex. `OP-042`) plutôt qu'un nom ; l'écran de confirmation rappelle ce qui sera signé | **Fait** (2026-10-04) |
 | R4 | Justification libre | Avertissement sous le champ de forçage : texte signé tel quel, sans données personnelles | **Fait** (2026-10-04) |
 | R5 | Registre de licences de l'éditeur | Base légale (contrat), durée de conservation, mention dans les CGV ; **registre des traitements** probablement requis (art. 30(5) : traitement non occasionnel) ; registre gardé sur la machine hors ligne | À faire (éditeur) |
-| R6 | Futur site web (VPS) | Politique de confidentialité, cookies | Hors périmètre produit |
+| R6 | Futur site web et serveur de licences (VPS Infomaniak, décidé le 2026-10-11) : comptes clients, abonnements (Stripe), postes activés (clé publique du poste), adresse IP et dates d'activation/renouvellement | Politique de confidentialité, cookies, journaux de courte durée, sous-traitants (hébergeur, Stripe) au registre des traitements ; le registre des licences (R5) vit aussi sur le serveur, exporté chaque jour | À faire (éditeur, avec le site) |
 
 ## 2. Cyber Resilience Act (règlement (UE) 2024/2847)
 

@@ -1,7 +1,8 @@
 # CLAUDE.md — Oblivio
 
 Logiciel professionnel d'effacement sécurisé de disques (Rust + Tauri v2), conforme NIST SP 800-88 Rev. 2 / IEEE 2883-2022.
-Décision unique, politique « Say NO », certificat signé Ed25519 vérifiable hors ligne, 100 % offline.
+Décision unique, politique « Say NO », certificat signé Ed25519 vérifiable hors ligne, 100 % offline
+pour les données (seule la licence peut se connecter, voir règle 8).
 
 Le propriétaire du projet supervise des agents et n'écrit pas le code à la main : explique tes choix
 clairement, signale tout écart avec les specs, et demande avant toute décision qui contredit `docs/`.
@@ -17,9 +18,11 @@ Ordre de lecture et **ordre de priorité** en cas de contradiction :
 2. `docs/moteur_decision.md` — états, critères Say NO / devenir / réserves, choix de méthode, validation.
 3. `docs/protocole_ipc.md` — frontière UI ↔ helper root.
 4. `docs/certificat.md` — attestation CBOR/COSE, statuts, chaîne de signature.
-5. `docs/cahier_des_charges_logiciel_d_effacement_s_curis.md`, `docs/oblivio_sp_cifications_ui_et_architecture_frontend.md`,
+5. `docs/licences_en_ligne.md` — clé boutique, licence v2, activation et renouvellement en ligne (validé le 2026-10-11,
+   non implémenté).
+6. `docs/cahier_des_charges_logiciel_d_effacement_s_curis.md`, `docs/oblivio_sp_cifications_ui_et_architecture_frontend.md`,
    `docs/oblivio_charte_graphique.md`, `docs/Oblivio — Identité & Narration de Marque.md` — documents d'origine,
-   **supplantés** par 1 à 4 là où ils divergent.
+   **supplantés** par 1 à 5 là où ils divergent.
 
 Les docs sont en français. Le code, les identifiants et les commentaires sont en **anglais**.
 
@@ -53,7 +56,10 @@ Ce projet écrit du code capable de détruire des données. **Tu travailles sur 
 5. Validation et signature ne sont **jamais** exposées comme commandes séparées : elles font partie de `Sanitize`.
 6. L'attestation signée ne contient **aucun texte traduit**, uniquement des codes. Termes *Clear*/*Purge*/*Destruct* jamais traduits.
 7. Tous les seuils du moteur sont des paramètres de `RuleSet` versionné (`rules_version`), jamais des constantes en dur.
-8. Aucun appel réseau, aucune télémétrie, nulle part.
+8. Aucun appel réseau ni télémétrie, à une exception près : l'application peut contacter le serveur de licences
+   d'Oblivio pour activer ou renouveler la licence (`docs/licences_en_ligne.md`, décidé le 2026-10-11). Seuls
+   transitent la clé de licence, la clé publique du poste et l'identifiant de licence. Le **helper n'ouvre jamais
+   de connexion**. Aucune donnée de disque ni de certificat ne quitte le poste.
 9. Secrets (clé privée, mot de passe ATA) : `zeroize`, jamais journalisés.
 
 ## 4. Organisation du code
