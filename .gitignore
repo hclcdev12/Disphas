@@ -7,6 +7,7 @@
 # --- Node / Vite (app/) ---
 node_modules/
 dist/
+dist-demo/
 dist-ssr/
 .vite/
 *.local
@@ -29,8 +30,9 @@ app/src-tauri/WixTools/
 .env.*
 !.env.example
 
-# Register of issued licenses (customer data, issuer tool)
+# Registers of issued licenses and certified issuers (issuer tool)
 issued-licenses.csv
+issuers.csv
 
 # --- Test artefacts: disk images and loop-device fixtures ---
 *.img

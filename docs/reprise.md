@@ -98,7 +98,9 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
       4,4 cm) ; un identifiant de lot de 64 caractères sans espace déborde de sa colonne.
 12. Site : **Astro** dans `site/` (dépôt privé), production chez **Infomaniak** (préproduction possible sur le VPS
     Oracle gratuit du propriétaire), paiement **Stripe** ; facture électronique et TVA à valider par le comptable
-    du propriétaire. Document d'architecture du site à rédiger.
+    du propriétaire. Architecture : [site](site.md), validée le 2026-10-11 (site autonome dans `site/`). Étapes 1 (squelette) et 2
+    (vitrine trilingue, contact) faites le 2026-10-11, ainsi que la **démo interactive** (helper simulé,
+    faux PDF, audit avant publication : [site](site.md) §9). Suite : comptes et téléchargements (§9, étape 3).
 
 **Plus tard** : dépôt public du vérificateur (depuis un **commit propre** : l'historique contient le n° de série
 d'un vrai SSD), signature des paquets et release, vérification niveau audit, USB en V2, ISO live en V2.
