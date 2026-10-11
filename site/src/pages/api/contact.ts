@@ -4,6 +4,7 @@
 import type { APIRoute } from "astro";
 import { DEFAULT_LOCALE, isLocale } from "../../i18n";
 import { allowed, deliver, parse } from "../../lib/contact";
+import { clientIp } from "../../lib/limits";
 
 export const prerender = false;
 
@@ -22,7 +23,7 @@ export const POST: APIRoute = async ({ request, clientAddress, redirect }) => {
   if (!message) {
     return redirect(`${back}?status=invalid`, 303);
   }
-  if (!allowed(clientAddress)) {
+  if (!allowed(clientIp(request, clientAddress))) {
     return redirect(`${back}?status=failed`, 303);
   }
   try {

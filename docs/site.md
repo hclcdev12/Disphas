@@ -132,6 +132,9 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
 
 ## 8. Sécurité et vie privée
 
+- Better Auth conserve avec chaque session l'**adresse IP** et le **navigateur** (lutte contre les abus) :
+  données personnelles à mentionner dans la politique de confidentialité, avec la durée de session (7 jours par
+  défaut de Better Auth, constaté sur une session de test).
 - Seul cookie : la session (strictement nécessaire). *À valider juridiquement* : pas de bandeau de consentement
   dans ce cas.
 - CSP stricte (`security.csp`), aucune ressource externe ; en-têtes HSTS, `X-Content-Type-Options`,
@@ -167,7 +170,20 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
    l'interface, minifié, sans source maps, le même que celui livré dans les paquets ; le helper, le moteur, la
    signature et les licences n'y sont jamais. 122 Ko de JavaScript compressé ; les PDF (5,5 Mo) ne sont chargés
    qu'à l'ouverture.
-3. **Comptes** (lien de connexion), téléchargements.
+3. ~~**Comptes** (lien de connexion), téléchargements~~ → **faits le 2026-10-11** : Better Auth 1.7, plugin
+   `magicLink` (lien valable 5 minutes, une seule fois ; compte créé à la première connexion), télémétrie désactivée
+   explicitement ; base PostgreSQL (`DATABASE_URL`) ou PGlite en développement (`.data/pglite`, 0700) ; migrations SQL
+   numérotées (`migrations/`, `npm run migrate`, sans `drizzle-kit` dont une dépendance avait une alerte de sécurité) ;
+   connexion sans JavaScript (`POST /api/account/login`, même réponse que le compte existe ou non, 10 demandes par
+   heure et par adresse IP, 3 par heure et par courriel) ; espace client `/[lang]/account/` (téléchargements,
+   déconnexion ; licences à venir) ; téléchargements servis depuis `RELEASES_DIR` après contrôle de session, noms
+   validés et listés, empreintes SHA-256 lues dans `SHA256SUMS`. L'adresse IP n'est lue dans `X-Forwarded-For` que
+   si `TRUST_PROXY=1` (derrière Caddy) ; l'en-tête transmis à Better Auth est réécrit, un visiteur ne peut pas le
+   forger. Hors développement, le site refuse de servir l'espace client sans `DATABASE_URL`, `BETTER_AUTH_SECRET`,
+   `BETTER_AUTH_URL`. Testé : parcours complet, lien à usage unique, déconnexion, limites, requête intersite (403),
+   téléchargement (identique à l'octet ; 401 sans session ; 404 pour tout nom non listé ou chemin détourné).
+   **Configuration de production** : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SMTP_URL`, `MAIL_FROM`,
+   `CONTACT_TO`, `RELEASES_DIR`, `TRUST_PROXY=1`.
 4. **Stripe** (Checkout, webhooks, portail), sièges, clés de licence, espace « Licences et postes ».
 5. **API de licences** `/v1/activate`, `/v1/renew`, reliée au service de signature ; puis l'application (étape 6
    des [licences en ligne](licences_en_ligne.md)).

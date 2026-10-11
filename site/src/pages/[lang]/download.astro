@@ -1,9 +1,10 @@
 ---
 import { Download, HardDrive, UserRound } from "@lucide/astro";
 import Badge from "../../components/Badge.astro";
+import LinkButton from "../../components/LinkButton.astro";
 import PageHeader from "../../components/PageHeader.astro";
 import Base from "../../layouts/Base.astro";
-import { LOCALES, texts, type Locale } from "../../i18n";
+import { LOCALES, href, texts, type Locale } from "../../i18n";
 
 export function getStaticPaths() {
   return LOCALES.map((lang) => ({ params: { lang } }));
@@ -27,6 +28,9 @@ const systems = t.product.systems;
       <div class="mt-6 flex gap-3">
         <UserRound size={18} stroke-width={1.75} class="mt-0.5 shrink-0 text-ash" aria-hidden="true" />
         <p class="text-sm leading-relaxed text-ash">{d.account}</p>
+      </div>
+      <div class="mt-6">
+        <LinkButton href={href(locale, "account")} variant="primary">{t.nav.account}</LinkButton>
       </div>
     </section>
     <section class="panel p-8">

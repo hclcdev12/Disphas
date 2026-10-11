@@ -27,6 +27,8 @@ export const PAGES = {
   download: "download",
   demo: "demo",
   contact: "contact",
+  account: "account",
+  login: "account/login",
   notice: "legal",
   privacy: "privacy",
   terms: "terms",

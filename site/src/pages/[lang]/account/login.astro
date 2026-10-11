@@ -1,0 +1,53 @@
+---
+// Sign-in by email link (docs/site.md §4). Rendered on demand: shows the
+// outcome of a request; a signed-in visitor goes straight to the account.
+import PageHeader from "../../../components/PageHeader.astro";
+import Base from "../../../layouts/Base.astro";
+import { href, isLocale, texts } from "../../../i18n";
+
+export const prerender = false;
+
+const lang = Astro.params.lang;
+if (!isLocale(lang)) {
+  return new Response(null, { status: 404 });
+}
+if (Astro.locals.user) {
+  return Astro.redirect(href(lang, "account"), 303);
+}
+const a = texts(lang).account;
+const status = Astro.url.searchParams.get("status");
+const messages: Record<string, { tone: string; text: string }> = {
+  sent: { tone: "border-ready/40 text-ready", text: a.status.sent },
+  out: { tone: "border-edge text-ash", text: a.status.out },
+  invalid: { tone: "border-sayno/40 text-sayno", text: a.status.invalid },
+  limited: { tone: "border-sayno/40 text-sayno", text: a.status.limited },
+  expired: { tone: "border-sayno/40 text-sayno", text: a.status.expired },
+  failed: { tone: "border-sayno/40 text-sayno", text: a.status.failed },
+};
+const notice = status ? messages[status] : undefined;
+---
+
+<Base locale={lang} title={a.loginTitle} noindex>
+  <PageHeader title={a.loginTitle} lead={a.loginLead} />
+  <div class="mx-auto max-w-xl px-6 py-16">
+    {notice && <p class={`mb-8 rounded-lg border px-4 py-3 text-sm ${notice.tone}`} role="status">{notice.text}</p>}
+    <form method="post" action="/api/account/login" class="panel flex flex-col gap-5 p-8">
+      <input type="hidden" name="lang" value={lang} />
+      <label class="flex flex-col gap-1.5 text-sm font-bold">
+        {a.email}
+        <input
+          class="w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm font-normal text-soft focus:border-brand focus:outline-none"
+          name="email"
+          type="email"
+          required
+          maxlength="254"
+          autocomplete="email"
+        />
+      </label>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white hover:bg-brand/85">
+        {a.send}
+      </button>
+      <p class="text-xs text-ash">{a.newAccount}</p>
+    </form>
+  </div>
+</Base>

@@ -1,0 +1,77 @@
+---
+// Customer area (docs/site.md §4): downloads now; licenses, workstations
+// and invoices once sales open. Signed-in customers only.
+import { Download, KeyRound, LogOut } from "@lucide/astro";
+import PageHeader from "../../../components/PageHeader.astro";
+import Base from "../../../layouts/Base.astro";
+import { href, isLocale, texts } from "../../../i18n";
+import { listReleases } from "../../../lib/releases";
+
+export const prerender = false;
+
+const lang = Astro.params.lang;
+if (!isLocale(lang)) {
+  return new Response(null, { status: 404 });
+}
+const user = Astro.locals.user;
+if (!user) {
+  return Astro.redirect(href(lang, "login"), 303);
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+const a = texts(lang).account;
+const releases = await listReleases();
+const size = (bytes: number) => `${new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(bytes / 1e6)} MB`;
+---
+
+<Base locale={lang} title={a.title} noindex>
+  <PageHeader title={a.title} />
+  <div class="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12">
+    <section class="flex flex-wrap items-center gap-4">
+      <p class="text-sm text-ash">{a.signedInAs} <span class="font-mono text-soft">{user.email}</span></p>
+      <form method="post" action="/api/account/logout" class="ml-auto">
+        <input type="hidden" name="lang" value={lang} />
+        <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-edge px-3.5 py-2 text-sm font-bold text-ash hover:text-soft">
+          <LogOut size={16} aria-hidden="true" />
+          {a.signOut}
+        </button>
+      </form>
+    </section>
+
+    <section class="panel p-8">
+      <div class="flex items-center gap-3">
+        <Download size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.downloadsTitle}</h2>
+      </div>
+      <p class="mt-2 text-sm text-ash">{a.downloadsLead}</p>
+      {
+        releases.length === 0 ? (
+          <p class="mt-6 text-sm text-ash">{a.noRelease}</p>
+        ) : (
+          <ul class="mt-6 flex flex-col divide-y divide-edge">
+            {releases.map((release) => (
+              <li class="flex flex-col gap-2 py-4 md:flex-row md:items-center md:gap-6">
+                <a href={`/api/download/${release.name}`} class="font-mono text-sm text-brand hover:underline">
+                  {release.name}
+                </a>
+                <span class="text-xs text-ash">{size(release.bytes)}</span>
+                {release.sha256 && (
+                  <span class="font-mono text-xs break-all text-ash md:ml-auto">
+                    {a.checksum} {release.sha256}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section class="panel p-8">
+      <div class="flex items-center gap-3">
+        <KeyRound size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.licensesTitle}</h2>
+      </div>
+      <p class="mt-2 text-sm text-ash">{a.licensesLead}</p>
+    </section>
+  </div>
+</Base>

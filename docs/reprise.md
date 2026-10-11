@@ -100,7 +100,8 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
     Oracle gratuit du propriétaire), paiement **Stripe** ; facture électronique et TVA à valider par le comptable
     du propriétaire. Architecture : [site](site.md), validée le 2026-10-11 (site autonome dans `site/`). Étapes 1 (squelette) et 2
     (vitrine trilingue, contact) faites le 2026-10-11, ainsi que la **démo interactive** (helper simulé,
-    faux PDF, audit avant publication : [site](site.md) §9). Suite : comptes et téléchargements (§9, étape 3).
+    faux PDF, audit avant publication : [site](site.md) §9). Étape 3 (comptes par lien de
+    connexion, téléchargements) faite le 2026-10-11. Suite : Stripe, sièges et clés de licence (§9, étape 4).
 
 **Plus tard** : dépôt public du vérificateur (depuis un **commit propre** : l'historique contient le n° de série
 d'un vrai SSD), signature des paquets et release, vérification niveau audit, USB en V2, ISO live en V2.

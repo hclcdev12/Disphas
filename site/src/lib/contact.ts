@@ -1,11 +1,8 @@
-// Contact form: validation, a simple rate limit, and delivery by email.
-// Configuration (environment, never in the code):
-//   SMTP_URL    e.g. smtps://user:password@mail.example:465
-//   CONTACT_TO  address receiving the messages
-//   CONTACT_FROM sender address of the messages (the site's own address)
-// Without SMTP_URL in development, messages are written to the server log.
+// Contact form: validation, a simple rate limit, and delivery by email
+// (src/lib/mail.ts). CONTACT_TO: the address receiving the messages.
 
-import { createTransport } from "nodemailer";
+import { limiter } from "./limits";
+import { send } from "./mail";
 
 export const TOPICS = ["quote", "question", "security", "other"] as const;
 export type Topic = (typeof TOPICS)[number];
@@ -58,52 +55,27 @@ export function parse(form: FormData): ContactMessage | null {
   };
 }
 
-/** Bounded rate: at most 5 messages per address per hour, in memory. */
-const recent = new Map<string, number[]>();
-export function allowed(address: string, now = Date.now()): boolean {
-  const hour = 60 * 60 * 1000;
-  const times = (recent.get(address) ?? []).filter((time) => now - time < hour);
-  if (times.length >= 5) {
-    recent.set(address, times);
-    return false;
-  }
-  times.push(now);
-  recent.set(address, times);
-  if (recent.size > 10_000) {
-    recent.clear();
-  }
-  return true;
-}
+/** Bounded rate: at most 5 messages per address per hour. */
+export const allowed = limiter(5, 60 * 60 * 1000);
 
-/** Sends the message; throws if it cannot be delivered. */
+/** Sends the message to CONTACT_TO; throws if it cannot be delivered. */
 export async function deliver(message: ContactMessage): Promise<void> {
-  const smtp = process.env.SMTP_URL;
-  const text = [
-    `Topic: ${message.topic}`,
-    `Name: ${message.name}`,
-    `Organization: ${message.organization || "-"}`,
-    `Email: ${message.email}`,
-    `Workstations: ${message.workstations || "-"}`,
-    "",
-    message.message,
-  ].join("\n");
-  if (!smtp) {
-    if (import.meta.env.DEV) {
-      console.info(`[contact] SMTP_URL not set, message not sent:\n${text}`);
-      return;
-    }
-    throw new Error("SMTP_URL is not configured");
-  }
   const to = process.env.CONTACT_TO;
-  const from = process.env.CONTACT_FROM;
-  if (!to || !from) {
-    throw new Error("CONTACT_TO and CONTACT_FROM are required");
+  if (!to && !import.meta.env.DEV) {
+    throw new Error("CONTACT_TO is not configured");
   }
-  await createTransport(smtp).sendMail({
-    from,
-    to,
+  await send({
+    to: to ?? "contact@localhost",
     replyTo: `${message.name} <${message.email}>`,
     subject: `[oblivio.eu] ${message.topic}: ${message.name}`,
-    text,
+    text: [
+      `Topic: ${message.topic}`,
+      `Name: ${message.name}`,
+      `Organization: ${message.organization || "-"}`,
+      `Email: ${message.email}`,
+      `Workstations: ${message.workstations || "-"}`,
+      "",
+      message.message,
+    ].join("\n"),
   });
 }
