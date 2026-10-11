@@ -20,12 +20,15 @@ const messages: Record<string, { tone: string; text: string }> = {
   sent: { tone: "border-ready/40 text-ready", text: a.status.sent },
   out: { tone: "border-edge text-ash", text: a.status.out },
   deleted: { tone: "border-edge text-ash", text: a.status.deleted },
+  reset: { tone: "border-ready/40 text-ready", text: a.status.reset },
+  wrong: { tone: "border-sayno/40 text-sayno", text: a.status.wrong },
   invalid: { tone: "border-sayno/40 text-sayno", text: a.status.invalid },
   limited: { tone: "border-sayno/40 text-sayno", text: a.status.limited },
   expired: { tone: "border-sayno/40 text-sayno", text: a.status.expired },
   failed: { tone: "border-sayno/40 text-sayno", text: a.status.failed },
 };
 const notice = status ? messages[status] : undefined;
+const input = "w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm font-normal text-soft focus:border-brand focus:outline-none";
 ---
 
 <Base locale={lang} title={a.loginTitle} noindex>
@@ -37,7 +40,7 @@ const notice = status ? messages[status] : undefined;
       <label class="flex flex-col gap-1.5 text-sm font-bold">
         {a.email}
         <input
-          class="w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm font-normal text-soft focus:border-brand focus:outline-none"
+          class={input}
           name="email"
           type="email"
           required
@@ -49,6 +52,26 @@ const notice = status ? messages[status] : undefined;
         {a.send}
       </button>
       <p class="text-xs text-ash">{a.newAccount}</p>
+    </form>
+
+    <form method="post" action="/api/account/password-login" class="panel mt-6 flex flex-col gap-5 p-8">
+      <input type="hidden" name="lang" value={lang} />
+      <h2 class="font-bold">{a.orPassword}</h2>
+      <label class="flex flex-col gap-1.5 text-sm font-bold">
+        {a.email}
+        <input class={input} name="email" type="email" required maxlength="254" autocomplete="username" />
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-bold">
+        {a.password}
+        <input class={input} name="password" type="password" required maxlength="128" autocomplete="current-password" />
+      </label>
+      <button type="submit" class="rounded-lg border border-edge px-4 py-2.5 text-sm font-bold text-ash hover:text-soft">
+        {a.signIn}
+      </button>
+      <div class="flex flex-col gap-1 text-xs text-ash">
+        <a href={`/${lang}/account/forgot/`} class="w-fit text-brand hover:underline">{a.forgot}</a>
+        <p>{a.passwordOptional}</p>
+      </div>
     </form>
   </div>
 </Base>

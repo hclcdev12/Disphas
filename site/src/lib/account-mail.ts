@@ -2,7 +2,7 @@
 // from (read from the link's callbackURL, /<lang>/account/...).
 import { DEFAULT_LOCALE, isLocale, type Locale } from "../i18n";
 
-type Kind = "signIn" | "confirmEmailChange" | "verifyNewEmail" | "deleteAccount";
+type Kind = "signIn" | "confirmEmailChange" | "verifyNewEmail" | "deleteAccount" | "resetPassword";
 type Texts = Record<Kind, { subject: string; body: (url: string, detail: string) => string }>;
 
 const TEXTS: Record<Locale, Texts> = {
@@ -21,6 +21,11 @@ const TEXTS: Record<Locale, Texts> = {
       subject: "Verify your new Oblivio email address",
       body: (url) =>
         `Hello,\n\nTo use this address for your Oblivio account, open this link within an hour:\n\n${url}\n\nIf you did not ask for it, ignore this email.\n\nOblivio`,
+    },
+    resetPassword: {
+      subject: "Reset your Oblivio password",
+      body: (url) =>
+        `Hello,\n\nTo choose a new password for your Oblivio account, open this link within an hour:\n\n${url}\n\nEvery session of the account will then be signed out. If you did not ask for it, ignore this email: your password does not change.\n\nOblivio`,
     },
     deleteAccount: {
       subject: "Confirm the deletion of your Oblivio account",
@@ -44,6 +49,11 @@ const TEXTS: Record<Locale, Texts> = {
       body: (url) =>
         `Bonjour,\n\nPour utiliser cette adresse avec votre compte Oblivio, ouvrez ce lien dans l'heure :\n\n${url}\n\nSi vous ne l'avez pas demandé, ignorez ce courriel.\n\nOblivio`,
     },
+    resetPassword: {
+      subject: "Réinitialisez votre mot de passe Oblivio",
+      body: (url) =>
+        `Bonjour,\n\nPour choisir un nouveau mot de passe pour votre compte Oblivio, ouvrez ce lien dans l'heure :\n\n${url}\n\nToutes les sessions du compte seront ensuite fermées. Si vous ne l'avez pas demandé, ignorez ce courriel : votre mot de passe ne change pas.\n\nOblivio`,
+    },
     deleteAccount: {
       subject: "Confirmez la suppression de votre compte Oblivio",
       body: (url) =>
@@ -66,6 +76,11 @@ const TEXTS: Record<Locale, Texts> = {
       body: (url) =>
         `Guten Tag,\n\num diese Adresse für Ihr Oblivio-Konto zu verwenden, öffnen Sie diesen Link innerhalb einer Stunde:\n\n${url}\n\nWenn Sie dies nicht beantragt haben, ignorieren Sie diese E-Mail.\n\nOblivio`,
     },
+    resetPassword: {
+      subject: "Setzen Sie Ihr Oblivio-Passwort zurück",
+      body: (url) =>
+        `Guten Tag,\n\num ein neues Passwort für Ihr Oblivio-Konto zu wählen, öffnen Sie diesen Link innerhalb einer Stunde:\n\n${url}\n\nDanach werden alle Sitzungen des Kontos abgemeldet. Wenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail: Ihr Passwort bleibt unverändert.\n\nOblivio`,
+    },
     deleteAccount: {
       subject: "Bestätigen Sie die Löschung Ihres Oblivio-Kontos",
       body: (url) =>
@@ -83,6 +98,21 @@ function localeOf(url: string): Locale {
     // Keep the default language.
   }
   return DEFAULT_LOCALE;
+}
+
+/**
+ * The sign-in link of the email: our confirmation page, carrying Better
+ * Auth's token and callback, instead of Better Auth's own verify URL.
+ */
+export function confirmationUrl(verifyUrl: string): string {
+  const url = new URL(verifyUrl);
+  const callback = url.searchParams.get("callbackURL") ?? "/";
+  const segment = callback.split("/")[1];
+  const locale = isLocale(segment) ? segment : DEFAULT_LOCALE;
+  const page = new URL(`/${locale}/account/confirm/`, url.origin);
+  page.searchParams.set("token", url.searchParams.get("token") ?? "");
+  page.searchParams.set("callbackURL", callback);
+  return page.toString();
 }
 
 /** The email of `kind` carrying `url`; `detail` is the new address for a change. */

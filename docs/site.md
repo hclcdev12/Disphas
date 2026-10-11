@@ -190,6 +190,19 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
    dans le navigateur connecté du titulaire ; supprime le compte et ses sessions). Limite : un tiers connecté qui
    ouvrirait le lien de quelqu'un d'autre le rend inutilisable (comportement de Better Auth), sans rien supprimer.
    Courriels en FR/EN/DE (`src/lib/account-mail.ts`). Testé de bout en bout sur le serveur de développement.
+   **Mot de passe facultatif** (choix du propriétaire, 2026-10-11 : « mot de passe OU lien ») : les comptes naissent
+   toujours par lien (inscription par mot de passe désactivée) ; le client peut ensuite définir, changer (ancien
+   mot de passe exigé, autres sessions fermées) ou retirer (mot de passe actuel exigé) un mot de passe ; « mot de
+   passe oublié » par lien valable une heure, même réponse pour une adresse inconnue, toutes les sessions fermées
+   après réinitialisation. Règles : 12 à 128 caractères, refus des 1 197 mots de passe d'au moins 12 caractères de
+   la liste NCSC des 100 000 plus utilisés (SecLists, MIT, `site/licenses/`), de ceux qui contiennent l'adresse ou
+   ont moins de 4 caractères distincts. Empreinte **Argon2id** de Node 24 (`node:crypto`, stable) aux paramètres
+   OWASP (19 Mio, 2 passes, 1 fil), au lieu du scrypt par défaut de Better Auth (N=16384, r=16, p=1, sous le minimum
+   OWASP). Connexion par mot de passe : même réponse pour toute erreur, 5 essais par 15 minutes et par courriel.
+   **Lien de connexion** : le courriel mène désormais à une page de confirmation avec un bouton, car les filtres de
+   messagerie d'entreprise ouvrent les liens et consommaient le lien à usage unique ; seules nos pages sont
+   acceptées comme destination. Testé de bout en bout. Prochaine amélioration de sécurité : passkeys (WebAuthn) ou
+   second facteur.
    **À valider juridiquement** : la mention « les factures déjà émises restent conservées par Stripe pour nos
    obligations comptables » de l'écran de suppression.
    **Configuration de production** : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SMTP_URL`, `MAIL_FROM`,

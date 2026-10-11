@@ -8,7 +8,8 @@ import { magicLink } from "better-auth/plugins";
 import * as schema from "../db/schema";
 import { db } from "./db";
 import { send } from "./mail";
-import { accountMail } from "./account-mail";
+import { MAX_LENGTH, MIN_LENGTH, hashPassword, verifyPassword } from "./password";
+import { accountMail, confirmationUrl } from "./account-mail";
 
 // Never run outside development with a default secret or a guessed URL.
 if (!import.meta.env.DEV && (!process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL)) {
@@ -18,14 +19,29 @@ if (!import.meta.env.DEV && (!process.env.BETTER_AUTH_SECRET || !process.env.BET
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? "http://127.0.0.1:4321",
   database: drizzleAdapter(db, { provider: "pg", schema }),
-  // Only the email link: no password, no third-party provider.
-  emailAndPassword: { enabled: false },
+  // A password is optional (docs/site.md §8): accounts are created by an
+  // email link only, then a customer may add a password from the account.
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    minPasswordLength: MIN_LENGTH,
+    maxPasswordLength: MAX_LENGTH,
+    password: { hash: hashPassword, verify: verifyPassword },
+    resetPasswordTokenExpiresIn: 3600,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await send({ to: user.email, ...accountMail("resetPassword", url) });
+    },
+  },
   plugins: [
     magicLink({
       // Better Auth's default, stated: a link is valid 5 minutes, once.
       expiresIn: 300,
+      // The email points to a confirmation page with a button: mail
+      // scanners open links but do not submit forms, so they cannot use up
+      // the single-use link before the customer (src/lib/account-mail.ts).
       sendMagicLink: async ({ email, url }) => {
-        await send({ to: email, ...accountMail("signIn", url) });
+        await send({ to: email, ...accountMail("signIn", confirmationUrl(url)) });
       },
     }),
   ],

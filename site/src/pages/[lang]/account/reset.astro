@@ -1,0 +1,46 @@
+---
+// New password from a reset link (docs/site.md §8). Better Auth checked the
+// token before sending the visitor here (?token=…) or failed (?error=…).
+import PageHeader from "../../../components/PageHeader.astro";
+import Base from "../../../layouts/Base.astro";
+import { isLocale, texts } from "../../../i18n";
+
+export const prerender = false;
+
+const lang = Astro.params.lang;
+if (!isLocale(lang)) {
+  return new Response(null, { status: 404 });
+}
+const a = texts(lang).account;
+const token = Astro.url.searchParams.get("token") ?? "";
+if (Astro.url.searchParams.has("error") || !/^[A-Za-z0-9_-]{8,128}$/.test(token)) {
+  return Astro.redirect(`/${lang}/account/forgot/?status=expired`, 303);
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+const status = Astro.url.searchParams.get("status");
+const notice = status && status in a.messages ? a.messages[status as keyof typeof a.messages] : null;
+const input = "w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm font-normal text-soft focus:border-brand focus:outline-none";
+---
+
+<Base locale={lang} title={a.resetTitle} noindex>
+  <PageHeader title={a.resetTitle} lead={a.resetLead} />
+  <div class="mx-auto max-w-xl px-6 py-16">
+    {notice && <p class="mb-8 rounded-lg border border-sayno/40 px-4 py-3 text-sm text-sayno" role="status">{notice}</p>}
+    <form method="post" action="/api/account/reset" class="panel flex flex-col gap-5 p-8">
+      <input type="hidden" name="lang" value={lang} />
+      <input type="hidden" name="token" value={token} />
+      <label class="flex flex-col gap-1.5 text-sm font-bold">
+        {a.newPassword}
+        <input class={input} name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-bold">
+        {a.repeatPassword}
+        <input class={input} name="repeat" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+      </label>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white hover:bg-brand/85">
+        {a.resetButton}
+      </button>
+    </form>
+  </div>
+</Base>

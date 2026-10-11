@@ -1,0 +1,39 @@
+---
+// Sign-in link landing page (docs/site.md §8): the emailed link opens this
+// page, and only the button opens the session. Mail scanners follow links
+// but do not submit forms, so they cannot use the single-use link first.
+import PageHeader from "../../../components/PageHeader.astro";
+import Base from "../../../layouts/Base.astro";
+import { isLocale, texts } from "../../../i18n";
+
+export const prerender = false;
+
+const lang = Astro.params.lang;
+if (!isLocale(lang)) {
+  return new Response(null, { status: 404 });
+}
+const a = texts(lang).account;
+const token = Astro.url.searchParams.get("token") ?? "";
+const callback = Astro.url.searchParams.get("callbackURL") ?? "";
+// Only our own pages as destinations, never another site.
+const safe = (path: string) => /^\/(en|fr|de)\/account\/[A-Za-z0-9/?=&_-]*$/.test(path);
+if (!/^[A-Za-z0-9_-]{8,128}$/.test(token) || !safe(callback)) {
+  return Astro.redirect(`/${lang}/account/login/?status=expired`, 303);
+}
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+---
+
+<Base locale={lang} title={a.confirmTitle} noindex>
+  <PageHeader title={a.confirmTitle} lead={a.confirmLead} />
+  <div class="mx-auto max-w-xl px-6 py-16">
+    <form method="get" action="/api/auth/magic-link/verify" class="panel flex flex-col gap-5 p-8">
+      <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="callbackURL" value={callback} />
+      <input type="hidden" name="errorCallbackURL" value={`/${lang}/account/login/?status=expired`} />
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white hover:bg-brand/85">
+        {a.confirmButton}
+      </button>
+    </form>
+  </div>
+</Base>

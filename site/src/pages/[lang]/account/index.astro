@@ -2,11 +2,14 @@
 // Customer area (docs/site.md §4): downloads, email address, open sessions,
 // deletion; licenses, workstations and invoices once sales open.
 // Signed-in customers only; never cached.
-import { Download, KeyRound, LogOut, Mail, MonitorSmartphone, Trash } from "@lucide/astro";
+import { and, eq, isNotNull } from "drizzle-orm";
+import { Download, KeyRound, LockKeyhole, LogOut, Mail, MonitorSmartphone, Trash } from "@lucide/astro";
+import { account } from "../../../db/schema";
 import PageHeader from "../../../components/PageHeader.astro";
 import Base from "../../../layouts/Base.astro";
 import { href, isLocale, texts } from "../../../i18n";
 import { auth } from "../../../lib/auth";
+import { db } from "../../../lib/db";
 import { listReleases } from "../../../lib/releases";
 
 export const prerender = false;
@@ -28,9 +31,26 @@ const sessions = (await auth.api.listSessions({ headers: Astro.request.headers }
   .map(({ id, createdAt, ipAddress, userAgent }) => ({ id, createdAt, ipAddress, userAgent }))
   .sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime());
 
+const hasPassword =
+  (
+    await db
+      .select({ id: account.id })
+      .from(account)
+      .where(and(eq(account.userId, user.id), eq(account.providerId, "credential"), isNotNull(account.password)))
+  ).length > 0;
+
 const status = Astro.url.searchParams.get("status");
 const linkError = Astro.url.searchParams.get("error");
-const good = ["email-sent", "email-step", "delete-sent", "session-closed", "sessions-closed"];
+const good = [
+  "email-sent",
+  "email-step",
+  "delete-sent",
+  "session-closed",
+  "sessions-closed",
+  "password-set",
+  "password-changed",
+  "password-removed",
+];
 const notice = linkError
   ? { tone: "border-sayno/40 text-sayno", text: a.messages.link }
   : status && status in a.messages
@@ -133,6 +153,53 @@ const input = "w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm f
           {a.changeEmail}
         </button>
       </form>
+    </section>
+
+    <section class="panel p-8">
+      <div class="flex items-center gap-3">
+        <LockKeyhole size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.passwordTitle}</h2>
+      </div>
+      <p class="mt-2 text-sm text-ash">{hasPassword ? a.passwordSet : a.passwordNone}</p>
+      <form method="post" action="/api/account/password" class="mt-6 grid gap-3 md:grid-cols-3 md:items-end">
+        <input type="hidden" name="lang" value={lang} />
+        <input type="hidden" name="action" value={hasPassword ? "change" : "set"} />
+        {
+          hasPassword && (
+            <label class="flex flex-col gap-1.5 text-sm font-bold md:col-span-3">
+              {a.currentPassword}
+              <input class={input} name="current" type="password" required maxlength="128" autocomplete="current-password" />
+            </label>
+          )
+        }
+        <label class="flex flex-col gap-1.5 text-sm font-bold">
+          {a.newPassword}
+          <input class={input} name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+        </label>
+        <label class="flex flex-col gap-1.5 text-sm font-bold">
+          {a.repeatPassword}
+          <input class={input} name="repeat" type="password" required minlength="12" maxlength="128" autocomplete="new-password" />
+        </label>
+        <button type="submit" class="rounded-lg border border-edge px-4 py-2 text-sm font-bold text-ash hover:text-soft">
+          {hasPassword ? a.changePassword : a.setPassword}
+        </button>
+      </form>
+      {
+        hasPassword && (
+          <form method="post" action="/api/account/password" class="mt-6 flex flex-col gap-3 border-t border-edge pt-6 sm:flex-row sm:items-end">
+            <input type="hidden" name="lang" value={lang} />
+            <input type="hidden" name="action" value="remove" />
+            <label class="flex flex-1 flex-col gap-1.5 text-sm font-bold">
+              {a.currentPassword}
+              <input class={input} name="current" type="password" required maxlength="128" autocomplete="current-password" />
+              <span class="text-xs font-normal text-ash">{a.removeLead}</span>
+            </label>
+            <button type="submit" class="rounded-lg border border-edge px-4 py-2 text-sm font-bold text-ash hover:text-soft">
+              {a.removePassword}
+            </button>
+          </form>
+        )
+      }
     </section>
 
     <section class="panel p-8">
