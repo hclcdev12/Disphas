@@ -1,7 +1,7 @@
 # Oblivio — Licences : émission en ligne, activation et renouvellement
 
-> **Validé par le propriétaire le 2026-10-11. En cours d'implémentation** (§10) : format et vérification de la
-> licence v2 faits ; installation par le helper, émission, service de signature et activation en ligne à faire.
+> **Validé par le propriétaire le 2026-10-11. En cours d'implémentation** (§10) : format, vérification et
+> installation par le helper de la licence v2 faits ; émission, service de signature et activation en ligne à faire.
 > D'ici là, les licences s'émettent et s'activent comme le décrit le [certificat](certificat.md) §4.
 > Référence des licences, avec le [cadre](cadre_projet.md) §3 qui le résume.
 
@@ -197,9 +197,11 @@ accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%2
 1. ~~Mesurer la marge du QR~~ → **fait le 2026-10-11** (§3) ; QR imprimé à 5,5 cm.
 2. ~~`oblivio-attestation` (public) : certificat d'émetteur, licence v2, révocation, vérification ; tests, fuzzing~~ →
    **fait le 2026-10-11** (`Issuer`, `verify_license`, `is_revoked` ; 10 tests ; cible de fuzzing `attestation`).
-   L'application, `oblivio-verify` et le rendu PDF vérifient déjà les certificats sous licence v2 ; le helper ne
-   sait pas encore **installer** une licence v2 (étape 3).
-3. `oblivio-license` : installation et état des licences v2.
+   L'application, `oblivio-verify` et le rendu PDF vérifient les certificats sous licence v2.
+3. ~~`oblivio-license` : installation et état des licences v2~~ → **fait le 2026-10-11** : `decode_license` passe par
+   `verify_license` ; `InstalledLicense.issuer` ; l'état `Revoked` tient compte de l'émetteur ; une licence installée
+   remplace la précédente (renouvellement, même `id`). Le helper installe une v2 et signe avec (`InstallLicense`
+   inchangé). Tests : installation, renouvellement, émetteur non certifié, durée hors limites, émetteur révoqué.
 4. `oblivio-issuer` : signer un certificat d'émetteur, révoquer un émetteur.
 5. Service de signature.
 6. Application : activation et renouvellement en ligne, réglage, rappel d'échéance.

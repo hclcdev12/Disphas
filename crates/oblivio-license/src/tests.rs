@@ -287,3 +287,125 @@ fn revoked_license_is_reported_from_its_revocation_time() {
     }];
     assert!(matches!(status(&other), LicenseStatus::Valid(_)));
 }
+
+// --- Licenses signed by a shop key (version 2).
+
+fn shop() -> SigningKey {
+    SigningKey::from_bytes(&[5; 32])
+}
+
+fn issuer() -> Issuer {
+    Issuer {
+        id: "ISS-2026-01".to_owned(),
+        key: shop().verifying_key().to_bytes(),
+        not_before: NOW - 30 * DAY,
+        expires: NOW + 365 * DAY,
+        offers: vec!["Atelier".to_owned(), "Pro".to_owned()],
+        max_duration: 90 * DAY,
+    }
+}
+
+/// What the license server does: a v2 license for the requesting key,
+/// signed by the shop key, its issuer certificate signed by `root`.
+fn shop_issue(request: &str, expires: u64, root: &SigningKey) -> String {
+    let certificate =
+        oblivio_attestation::cose::sign(issuer().to_cbor(), root).expect("signed issuer");
+    let license = License {
+        id: "OBL-20261005-0123456789abcdef".to_owned(),
+        expires: Some(expires),
+        issuer: Some(certificate),
+        ..license_for(request, None)
+    };
+    issue(&license, &shop())
+}
+
+#[test]
+fn shop_license_installs_and_renews() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let root_key = root().verifying_key();
+    let first = store
+        .install(
+            &shop_issue(&request, NOW + 37 * DAY, &root()),
+            &root_key,
+            NOW,
+        )
+        .expect("installed");
+    assert_eq!(first.issuer, Some(issuer()));
+    assert!(matches!(
+        store.status(&root_key, NOW, &[]).expect("status"),
+        LicenseStatus::Valid(_)
+    ));
+    // Renewal: same seat, later end, installed over the previous license
+    // without a new activation request.
+    let renewed = store
+        .install(
+            &shop_issue(&request, NOW + 67 * DAY, &root()),
+            &root_key,
+            NOW,
+        )
+        .expect("renewed");
+    assert_eq!(renewed.license.id, first.license.id);
+    match store
+        .status(&root_key, NOW + 50 * DAY, &[])
+        .expect("status")
+    {
+        LicenseStatus::Valid(valid) => assert_eq!(valid.license.expires, Some(NOW + 67 * DAY)),
+        other => panic!("expected Valid, got {other:?}"),
+    }
+}
+
+#[test]
+fn shop_license_needs_an_issuer_certified_by_the_root() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    // Issuer certificate signed by the shop key itself.
+    assert!(matches!(
+        store.install(
+            &shop_issue(&request, NOW + 37 * DAY, &shop()),
+            &root().verifying_key(),
+            NOW
+        ),
+        Err(LicenseError::Signature)
+    ));
+    // Longer than the issuer allows (90 days).
+    assert!(matches!(
+        store.install(
+            &shop_issue(&request, NOW + 120 * DAY, &root()),
+            &root().verifying_key(),
+            NOW
+        ),
+        Err(LicenseError::Content)
+    ));
+}
+
+#[test]
+fn revoked_issuer_revokes_its_licenses() {
+    let (_dir, store) = store();
+    let request = store.create_activation_request(NOW).expect("request");
+    let root_key = root().verifying_key();
+    store
+        .install(
+            &shop_issue(&request, NOW + 37 * DAY, &root()),
+            &root_key,
+            NOW,
+        )
+        .expect("installed");
+    let issuer_revoked = [oblivio_attestation::Revocation {
+        license_id: "ISS-2026-01".to_owned(),
+        revoked_at: NOW - DAY,
+    }];
+    assert!(matches!(
+        store.status(&root_key, NOW, &issuer_revoked).expect("status"),
+        LicenseStatus::Revoked(_, at) if at == NOW - DAY
+    ));
+    // A root-signed license ignores issuer revocations.
+    let (_dir, store, text) = activated(None);
+    store.install(&text, &root_key, NOW).expect("installed");
+    assert!(matches!(
+        store
+            .status(&root_key, NOW, &issuer_revoked)
+            .expect("status"),
+        LicenseStatus::Valid(_)
+    ));
+}

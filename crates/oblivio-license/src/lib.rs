@@ -3,7 +3,8 @@
 //!
 //! ```text
 //! workstation ──OBA1: activation request (public key, self-signed)──► Oblivio
-//! workstation ◄──────────────OBL1: license signed by the root key──── Oblivio
+//! workstation ◄──OBL1: license signed by the root key (v1), or by a shop
+//!                key under an issuer certificate (v2)──────────────── Oblivio
 //! ```
 //!
 //! Layout under the state directory (normally `/var/lib/oblivio`, root only):
@@ -64,7 +65,7 @@ use oblivio_attestation::base45;
 use oblivio_attestation::cose::Unverified;
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
 use oblivio_attestation::model::ActivationRequest;
-use oblivio_attestation::{License, Revocation};
+use oblivio_attestation::{Issuer, License, Revocation, VerifyError};
 
 pub use key::{KeyError, WorkstationKey};
 
@@ -109,7 +110,9 @@ pub enum LicenseError {
 pub struct InstalledLicense {
     /// Decoded license.
     pub license: License,
-    /// The license as signed by the root key (COSE_Sign1), for `lic`.
+    /// The issuer that signed a version 2 license; `None` for the root.
+    pub issuer: Option<Issuer>,
+    /// The signed license (COSE_Sign1), embedded in attestations as `lic`.
     pub signed: Vec<u8>,
 }
 
@@ -124,7 +127,8 @@ pub enum LicenseStatus {
     NotYetValid(InstalledLicense),
     /// No longer valid.
     Expired(InstalledLicense),
-    /// Revoked by Oblivio at the given time (UTC epoch seconds).
+    /// Revoked by Oblivio, itself or through its issuer, at the given time
+    /// (UTC epoch seconds).
     Revoked(InstalledLicense, u64),
     /// Installed file unusable: corrupted, wrong root, or wrong workstation.
     Invalid(String),
@@ -175,8 +179,9 @@ impl LicenseStore {
         Ok(format!("{REQUEST_PREFIX}{}", base45::encode(&signed)))
     }
 
-    /// Verifies and installs a license text (`OBL1:…`): signed by `root`,
-    /// issued for this workstation, not expired at `now`.
+    /// Verifies and installs a license text (`OBL1:…`): chained to `root`,
+    /// issued for this workstation, not expired at `now`. Replaces the
+    /// installed license, which is how a renewal is installed.
     pub fn install(
         &self,
         text: &str,
@@ -231,9 +236,13 @@ impl LicenseStore {
                 LicenseError::WrongWorkstation.to_string(),
             ));
         }
+        let issuer_id = installed.issuer.as_ref().map(|issuer| issuer.id.as_str());
         let revoked = revocations
             .iter()
-            .filter(|revocation| revocation.license_id == installed.license.id)
+            .filter(|revocation| {
+                revocation.license_id == installed.license.id
+                    || Some(revocation.license_id.as_str()) == issuer_id
+            })
             .map(|revocation| revocation.revoked_at)
             .min();
         Ok(if let Some(at) = revoked.filter(|at| *at <= now) {
@@ -253,13 +262,22 @@ pub fn license_text(signed: &[u8]) -> String {
     format!("{LICENSE_PREFIX}{}", base45::encode(signed))
 }
 
-/// Decodes a license text and checks its root signature.
+/// Decodes a license text and checks that it chains to `root`: signed by it
+/// (v1), or by a shop key it certified, within that issuer's bounds (v2).
 pub fn decode_license(text: &str, root: &VerifyingKey) -> Result<InstalledLicense, LicenseError> {
     let signed = unarmor(text, LICENSE_PREFIX, "license")?;
-    let envelope = Unverified::parse(&signed).map_err(|_| LicenseError::Content)?;
-    let payload = envelope.verify(root).map_err(|_| LicenseError::Signature)?;
-    let license = License::from_cbor(payload).map_err(|_| LicenseError::Content)?;
-    Ok(InstalledLicense { license, signed })
+    let (license, issuer) =
+        oblivio_attestation::verify_license(&signed, root).map_err(|error| match error {
+            VerifyError::License(oblivio_attestation::cose::CoseError::BadSignature) => {
+                LicenseError::Signature
+            }
+            _ => LicenseError::Content,
+        })?;
+    Ok(InstalledLicense {
+        license,
+        issuer,
+        signed,
+    })
 }
 
 /// Decodes an activation request and checks that it is signed by the key it

@@ -125,8 +125,8 @@ Licence .lic = { id, client, offre, validité, clé publique du poste }
 Attestation signée par la clé du poste, licence incluse
 ```
 
-> **Licence v2** (décidée le 2026-10-11 ; format et vérification implémentés le 2026-10-11, émission et installation
-> à venir ; détail : [licences_en_ligne.md](licences_en_ligne.md) §3) : signée par une **clé boutique** dont le
+> **Licence v2** (décidée le 2026-10-11 ; format, vérification et installation implémentés le 2026-10-11, émission à
+> venir ; détail : [licences_en_ligne.md](licences_en_ligne.md) §3) : signée par une **clé boutique** dont le
 > *certificat d'émetteur* (signé par la racine : `iid` préfixé `ISS-`, `ipk`, `nbf`, `exp`, `off`, `maxd`) est
 > embarqué dans la licence (`iss`, `v: 2`) ; `exp` obligatoire ; un même `id` par siège, conservé aux renouvellements.
 > La liste de révocation reste en `v: 1` : une entrée `ISS-…` révoque un émetteur. Les licences v1 décrites

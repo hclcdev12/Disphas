@@ -29,7 +29,7 @@ pub trait Licensing: std::fmt::Debug {
 pub struct Signer {
     /// Workstation key, wiped from memory on drop.
     pub key: WorkstationKey,
-    /// License signed by the root key, embedded in the attestation.
+    /// Signed license (root or shop key), embedded in the attestation.
     pub license: Vec<u8>,
 }
 
@@ -193,6 +193,46 @@ mod tests {
         assert_eq!(status.state, LicenseState::Valid);
         assert_eq!(status.offer.as_deref(), Some("Dev"));
         assert_eq!(licensing.status(), status);
+    }
+
+    #[test]
+    fn shop_license_installs_and_signs() {
+        use oblivio_attestation::ed25519_dalek::SigningKey;
+        use oblivio_attestation::{Issuer, License, cose};
+        let (_dir, licensing) = licensing();
+        let request = oblivio_license::read_activation_request(
+            &licensing.activation_request().expect("request"),
+        )
+        .expect("valid request");
+        let shop = SigningKey::from_bytes(&[5; 32]);
+        let issuer = Issuer {
+            id: "ISS-DEV".to_owned(),
+            key: shop.verifying_key().to_bytes(),
+            not_before: now() - 86_400,
+            expires: now() + 365 * 86_400,
+            offers: vec!["Pro".to_owned()],
+            max_duration: 90 * 86_400,
+        };
+        let license = License {
+            id: "OBL-DEV-SHOP".to_owned(),
+            customer: "Atelier XYZ".to_owned(),
+            offer: "Pro".to_owned(),
+            not_before: now() - 60,
+            expires: Some(now() + 37 * 86_400),
+            workstation_key: request.workstation_key,
+            issuer: Some(
+                cose::sign(issuer.to_cbor(), &oblivio_license::dev_root::signing_key())
+                    .expect("signed issuer"),
+            ),
+        };
+        let signed = cose::sign(license.to_cbor(), &shop).expect("signed license");
+        let status = licensing
+            .install(&oblivio_license::license_text(&signed))
+            .expect("installed");
+        assert_eq!(status.state, LicenseState::Valid);
+        assert_eq!(status.license_id.as_deref(), Some("OBL-DEV-SHOP"));
+        // The attestation will carry the shop-signed license as is.
+        assert_eq!(licensing.signer().expect("signer").license, signed);
     }
 
     #[test]
