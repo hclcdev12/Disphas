@@ -1,7 +1,8 @@
 # Oblivio — Licences : émission en ligne, activation et renouvellement
 
 > **Validé par le propriétaire le 2026-10-11. En cours d'implémentation** (§10) : format, vérification et
-> installation par le helper de la licence v2 faits ; émission, service de signature et activation en ligne à faire.
+> installation par le helper de la licence v2, certification de la clé boutique (`oblivio-issuer certify`) faits ;
+> service de signature et activation en ligne à faire.
 > D'ici là, les licences s'émettent et s'activent comme le décrit le [certificat](certificat.md) §4.
 > Référence des licences, avec le [cadre](cadre_projet.md) §3 qui le résume.
 
@@ -202,7 +203,14 @@ accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%2
    `verify_license` ; `InstalledLicense.issuer` ; l'état `Revoked` tient compte de l'émetteur ; une licence installée
    remplace la précédente (renouvellement, même `id`). Le helper installe une v2 et signe avec (`InstallLicense`
    inchangé). Tests : installation, renouvellement, émetteur non certifié, durée hors limites, émetteur révoqué.
-4. `oblivio-issuer` : signer un certificat d'émetteur, révoquer un émetteur.
+4. ~~`oblivio-issuer` : signer un certificat d'émetteur, révoquer un émetteur~~ → **fait le 2026-10-11** :
+   `oblivio-issuer certify ROOT.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N [--from EPOCH]
+   [--register FILE]` imprime le certificat `OBI1:…` à installer sur le serveur et l'inscrit au registre
+   `issuers.csv` (à côté de la clé racine ; identifiant unique). La clé boutique est générée sur le serveur ; seule sa
+   clé publique (64 chiffres hexadécimaux) vient sur la machine hors ligne ; elle ne peut pas être la racine.
+   `revoke --id ISS-…` vérifie l'identifiant dans `issuers.csv` ; `issue` refuse un identifiant `ISS-`.
+   `oblivio-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
+   `certify --id ISS-2027-01 --offers Atelier,Pro --days 400 --max-days 90` (1 an + chevauchement).
 5. Service de signature.
 6. Application : activation et renouvellement en ligne, réglage, rappel d'échéance.
 7. Site : espace client, sièges, Stripe (document d'architecture du site à part).

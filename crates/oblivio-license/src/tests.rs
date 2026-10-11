@@ -409,3 +409,21 @@ fn revoked_issuer_revokes_its_licenses() {
         LicenseStatus::Valid(_)
     ));
 }
+
+#[test]
+fn issuer_certificate_text_needs_the_root_signature() {
+    let signed = oblivio_attestation::cose::sign(issuer().to_cbor(), &root()).expect("signed");
+    let text = issuer_text(&signed);
+    assert_eq!(
+        decode_issuer(&text, &root().verifying_key()).expect("decoded"),
+        (issuer(), signed)
+    );
+    assert!(matches!(
+        decode_issuer(&text, &shop().verifying_key()),
+        Err(LicenseError::Signature)
+    ));
+    assert!(matches!(
+        decode_issuer(&text.replacen("OBI1:", "OBL1:", 1), &root().verifying_key()),
+        Err(LicenseError::Format(_))
+    ));
+}

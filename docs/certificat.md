@@ -161,6 +161,10 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
   (base de la future liste de révocation). Identifiant `OBL-AAAAMMJJ-` + 64 bits aléatoires (16 chiffres
   hexadécimaux) ; un identifiant déjà au registre est refusé, généré ou donné par `--id` (la révocation porte sur
   l'identifiant : deux licences ne doivent jamais le partager).
+- `oblivio-issuer certify root.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N` (2026-10-11) :
+  certifie la clé boutique du serveur de licences ; imprime le certificat d'émetteur `OBI1:…` et l'inscrit au registre
+  `issuers.csv`. Un identifiant `ISS-` est refusé par `issue` et désigne un émetteur pour `revoke`
+  ([licences_en_ligne.md](licences_en_ligne.md) §3, §10).
 - La clé publique officielle n'existe qu'en un seul endroit : `oblivio_attestation::trust::OFFICIAL_ROOT_KEY`,
   lue par le helper, l'application et `oblivio-verify`.
   **Générée le 2026-10-04** : `90241925111469b68676f8041578355a9f3e0bf14d84afd825f24782c3508a0b`.

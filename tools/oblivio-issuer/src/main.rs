@@ -1,6 +1,7 @@
-//! `oblivio-issuer`: the publisher's tool. Generates the Oblivio root key and
-//! signs licenses. It is never shipped with the product; run it on an
-//! offline machine and keep `root.key` and its passphrase apart.
+//! `oblivio-issuer`: the publisher's tool. Generates the Oblivio root key,
+//! signs licenses and certifies the license server's shop key. It is never
+//! shipped with the product; run it on an offline machine and keep `root.key`
+//! and its passphrase apart.
 //!
 //! ```text
 //! oblivio-issuer keygen ROOT.key
@@ -9,8 +10,11 @@
 //!                      [--id ID] [--register FILE] 'OBA1:…'
 //! oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] (--list LATEST.obr | --first)
 //!                       [--register FILE] --out NEW.obr
+//! oblivio-issuer certify ROOT.key --id ISS-… --shop-key HEX --offers A,B --days N
+//!                        --max-days N [--from EPOCH] [--register FILE]
 //! ```
 
+mod certify;
 mod issue;
 mod revoke;
 mod root_key;
@@ -21,8 +25,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use oblivio_attestation::display::civil;
 use oblivio_attestation::ed25519_dalek::VerifyingKey;
+use oblivio_attestation::model::ISSUER_ID_PREFIX;
 use zeroize::Zeroizing;
 
+use crate::certify::Grant;
 use crate::issue::Terms;
 use crate::root_key::Cost;
 
@@ -33,7 +39,11 @@ usage:
   oblivio-issuer issue ROOT.key --customer NAME --offer OFFER (--days N | --perpetual)
                        [--id ID] [--register FILE] 'OBA1:...'
   oblivio-issuer revoke ROOT.key --id ID [--at EPOCH] (--list LATEST.obr | --first)
-                        [--register FILE] --out NEW.obr";
+                        [--register FILE] --out NEW.obr
+  oblivio-issuer certify ROOT.key --id ISS-... --shop-key HEX --offers A,B --days N
+                         --max-days N [--from EPOCH] [--register FILE]
+
+An ID starting with ISS- names an issuer: revoke then reads the issuers register.";
 
 fn now() -> u64 {
     SystemTime::now()
@@ -121,6 +131,11 @@ fn issue_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<
     }
     let customer = customer.ok_or("--customer is required")?;
     let offer = offer.ok_or("--offer is required")?;
+    if id.as_deref().is_some_and(is_issuer_id) {
+        return Err(format!(
+            "{ISSUER_ID_PREFIX} is reserved for issuers: choose another --id"
+        ));
+    }
     let request = request.ok_or("the activation request (OBA1:…) is required")?;
     let start = now().saturating_sub(60);
     let expires = match (days, perpetual) {
@@ -138,11 +153,7 @@ fn issue_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<
         not_before: start,
         expires,
     };
-    let register = register.unwrap_or_else(|| {
-        path.parent()
-            .unwrap_or(Path::new("."))
-            .join("issued-licenses.csv")
-    });
+    let register = register.unwrap_or_else(|| default_register(path, LICENSES_REGISTER));
 
     // Revoking one license must never revoke another: identifiers are unique.
     if register.exists()
@@ -208,9 +219,14 @@ fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result
         return Err("--at is in the future".to_owned());
     }
     let register = register.unwrap_or_else(|| {
-        path.parent()
-            .unwrap_or(Path::new("."))
-            .join("issued-licenses.csv")
+        default_register(
+            path,
+            if is_issuer_id(&id) {
+                ISSUERS_REGISTER
+            } else {
+                LICENSES_REGISTER
+            },
+        )
     });
     if !revoke::registered(&register, &id)
         .map_err(|error| format!("{}: {error}", register.display()))?
@@ -256,6 +272,96 @@ fn revoke_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result
     Ok(())
 }
 
+/// Register of issued licenses, next to the root key by default.
+const LICENSES_REGISTER: &str = "issued-licenses.csv";
+/// Register of certified issuers, next to the root key by default.
+const ISSUERS_REGISTER: &str = "issuers.csv";
+
+fn default_register(root_key: &Path, name: &str) -> PathBuf {
+    root_key.parent().unwrap_or(Path::new(".")).join(name)
+}
+
+fn is_issuer_id(id: &str) -> bool {
+    id.trim().starts_with(ISSUER_ID_PREFIX)
+}
+
+/// Certifies the license server's shop key: prints the issuer certificate
+/// (`OBI1:…`) to install on the server, and records it.
+fn certify_command(path: &Path, mut args: impl Iterator<Item = String>) -> Result<(), String> {
+    let mut id = None;
+    let mut key = None;
+    let mut offers = None;
+    let mut days: Option<u64> = None;
+    let mut max_days: Option<u64> = None;
+    let mut from = None;
+    let mut register = None;
+    while let Some(arg) = args.next() {
+        let mut value = |name: &str| args.next().ok_or_else(|| format!("{name} needs a value"));
+        let number = |text: String, name: &str| {
+            text.parse::<u64>()
+                .map_err(|_| format!("{name} needs a number"))
+        };
+        match arg.as_str() {
+            "--id" => id = Some(value("--id")?),
+            "--shop-key" => key = Some(certify::parse_key(&value("--shop-key")?)?),
+            "--offers" => {
+                offers = Some(
+                    value("--offers")?
+                        .split(',')
+                        .map(str::to_owned)
+                        .collect::<Vec<_>>(),
+                );
+            }
+            "--days" => days = Some(number(value("--days")?, "--days")?),
+            "--max-days" => max_days = Some(number(value("--max-days")?, "--max-days")?),
+            "--from" => from = Some(number(value("--from")?, "--from")?),
+            "--register" => register = Some(PathBuf::from(value("--register")?)),
+            other => return Err(format!("unexpected argument {other:?}")),
+        }
+    }
+    let not_before = from.unwrap_or_else(|| now().saturating_sub(60));
+    let grant = Grant {
+        id: id.ok_or("--id is required")?,
+        key: key.ok_or("--shop-key is required")?,
+        offers: offers.ok_or("--offers is required")?,
+        not_before,
+        expires: not_before
+            .saturating_add(days.ok_or("--days is required")?.saturating_mul(86_400)),
+        max_duration: max_days
+            .ok_or("--max-days is required")?
+            .saturating_mul(86_400),
+    };
+    let register = register.unwrap_or_else(|| default_register(path, ISSUERS_REGISTER));
+    if register.exists()
+        && certify::registered(&register, &grant.id)
+            .map_err(|error| format!("{}: {error}", register.display()))?
+    {
+        return Err(format!(
+            "{} is already in {}: choose another --id",
+            grant.id,
+            register.display()
+        ));
+    }
+
+    let secret = passphrase("root key passphrase: ")?;
+    let root = root_key::unlock(path, &secret).map_err(|error| error.to_string())?;
+    let (issuer, text) = certify::certify(&root, &grant)?;
+    certify::record(&register, &issuer, now())
+        .map_err(|error| format!("{}: {error}", register.display()))?;
+    let (year, month, day, ..) = civil(issuer.expires);
+    eprintln!(
+        "issuer {} certified until {year:04}-{month:02}-{day:02} for {} (licenses of {} days at most), \
+         recorded in {}",
+        issuer.id,
+        issuer.offers.join(", "),
+        issuer.max_duration / 86_400,
+        register.display()
+    );
+    eprintln!("install this certificate on the license server:");
+    println!("{text}");
+    Ok(())
+}
+
 fn run() -> Result<(), String> {
     let mut args = std::env::args().skip(1);
     let command = args.next().ok_or("")?;
@@ -269,6 +375,7 @@ fn run() -> Result<(), String> {
         }
         "issue" => issue_command(&path, args),
         "revoke" => revoke_command(&path, args),
+        "certify" => certify_command(&path, args),
         other => Err(format!("unknown command {other:?}")),
     }
 }

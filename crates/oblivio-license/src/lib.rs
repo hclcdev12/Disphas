@@ -73,6 +73,8 @@ pub use key::{KeyError, WorkstationKey};
 pub const REQUEST_PREFIX: &str = "OBA1:";
 /// Prefix of a license text, as stored in a `.lic` file.
 pub const LICENSE_PREFIX: &str = "OBL1:";
+/// Prefix of an issuer certificate text, given to the license server.
+pub const ISSUER_PREFIX: &str = "OBI1:";
 /// Largest license or request text accepted.
 pub const MAX_TEXT_BYTES: usize = 4096;
 
@@ -278,6 +280,21 @@ pub fn decode_license(text: &str, root: &VerifyingKey) -> Result<InstalledLicens
         issuer,
         signed,
     })
+}
+
+/// Text form of a signed issuer certificate (`OBI1:…`).
+pub fn issuer_text(signed: &[u8]) -> String {
+    format!("{ISSUER_PREFIX}{}", base45::encode(signed))
+}
+
+/// Decodes an issuer certificate text and checks its signature by `root`.
+/// Returns the certificate and its signed form, to embed in v2 licenses.
+pub fn decode_issuer(text: &str, root: &VerifyingKey) -> Result<(Issuer, Vec<u8>), LicenseError> {
+    let signed = unarmor(text, ISSUER_PREFIX, "issuer certificate")?;
+    let envelope = Unverified::parse(&signed).map_err(|_| LicenseError::Content)?;
+    let payload = envelope.verify(root).map_err(|_| LicenseError::Signature)?;
+    let issuer = Issuer::from_cbor(payload).map_err(|_| LicenseError::Content)?;
+    Ok((issuer, signed))
 }
 
 /// Decodes an activation request and checks that it is signed by the key it

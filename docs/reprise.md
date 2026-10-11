@@ -86,7 +86,10 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
       reste en `v: 1` (identifiants d'émetteur préfixés `ISS-`), simplification signalée au propriétaire.
     - **Étape 3, installation d'une licence v2 par le helper** (`oblivio-license`, 2026-10-11) : fait, y compris
       le renouvellement (nouvelle licence installée par-dessus) et la révocation par l'émetteur.
-    - **Suite** : étape 4, `oblivio-issuer` (signer un certificat d'émetteur, révoquer un émetteur).
+    - **Étape 4, `oblivio-issuer certify`** (2026-10-11) : fait (certificat d'émetteur `OBI1:…`, registre
+      `issuers.csv`, révocation `ISS-…`). Testé en unitaire et sur les erreurs de la ligne de commande ; la cérémonie
+      réelle (clé racine officielle, phrase secrète) reste au propriétaire.
+    - **Suite** : étape 5, service de signature.
     - Défauts préexistants constatés sur le certificat le plus long : le bloc Émetteur passe en page 2 (déjà à
       4,4 cm) ; un identifiant de lot de 64 caractères sans espace déborde de sa colonne.
 12. Site : **Astro** dans `site/` (dépôt privé), production chez **Infomaniak** (préproduction possible sur le VPS
