@@ -1,8 +1,8 @@
 # Oblivio — Licences : émission en ligne, activation et renouvellement
 
 > **Validé par le propriétaire le 2026-10-11. En cours d'implémentation** (§10) : format, vérification et
-> installation par le helper de la licence v2, certification de la clé boutique (`oblivio-issuer certify`) faits ;
-> service de signature et activation en ligne à faire.
+> installation par le helper de la licence v2, certification de la clé boutique (`oblivio-issuer certify`), service
+> de signature (`oblivio-signer`) faits ; activation en ligne (application) et site à faire.
 > D'ici là, les licences s'émettent et s'activent comme le décrit le [certificat](certificat.md) §4.
 > Référence des licences, avec le [cadre](cadre_projet.md) §3 qui le résume.
 
@@ -293,6 +293,14 @@ accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%2
    `revoke --id ISS-…` vérifie l'identifiant dans `issuers.csv` ; `issue` refuse un identifiant `ISS-`.
    `oblivio-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
    `certify --id ISS-2027-01 --offers Atelier,Pro --days 400 --max-days 90` (1 an + chevauchement).
-5. Service de signature (`oblivio-signer`, §6.2 à §6.6) — spec validée le 2026-10-11 ; à coder.
+5. ~~Service de signature (`oblivio-signer`, §6.2 à §6.5)~~ → **fait le 2026-10-11** (`tools/oblivio-signer`) :
+   commandes `keygen`, `install`, `status`, `serve` ; requêtes `Activate`, `Renew`, `Status` ; règles du §6.4
+   (débit 30/min et 2 000/jour, ce dernier recompté depuis le registre au redémarrage) ; chaque licence est revérifiée
+   comme le fera le poste, puis inscrite au registre avant d'être renvoyée. Un certificat installé est pris en compte
+   au **redémarrage** du service. Unité systemd durcie `tools/oblivio-signer/oblivio-signer.service` (vérifiée par
+   `systemd-analyze verify`, pas encore lancée sous systemd). Tests : 11 unitaires, et essai du binaire de bout en
+   bout avec la racine de développement (socket, activation, renouvellement, refus, installation sur un poste).
+   Non fait : export quotidien du registre, chiffrement des clés au repos (à trancher avec l'hébergement).
+   L'API publique (§6.6) relève du site (étape 7).
 6. Application : activation et renouvellement en ligne, réglage, rappel d'échéance.
 7. Site : espace client, sièges, Stripe (document d'architecture du site à part).

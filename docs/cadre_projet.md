@@ -58,7 +58,8 @@
 | `oblivio-helper` | Binaire root : core + device + license + signature | Oui | Privé |
 | `oblivio-report` | Rendu PDF/A-3, QR, traductions (Fluent) | Non | Privé |
 | `oblivio-app` | Shell Tauri + frontend React | Non | Privé |
-| `oblivio-issuer` (`tools/`) | Outil de l'éditeur : clé racine, licences, révocations. Jamais livré | Non | Privé |
+| `oblivio-issuer` (`tools/`) | Outil de l'éditeur : clé racine, licences, révocations, certification de la clé boutique. Jamais livré | Non | Privé |
+| `oblivio-signer` (`tools/`) | Service de signature du serveur de licences : clés boutique, certificats `OBI1`, registre, socket locale ([licences_en_ligne.md](licences_en_ligne.md) §6). Jamais livré aux clients | Non | Privé |
 | `oblivio-fuzz` (`fuzz/`) | Cibles de fuzzing (cargo-fuzz), hors workspace | Non | Privé |
 
 ### Stack technique (état au 2026-10-04)

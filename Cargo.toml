@@ -11,6 +11,7 @@ members = [
     "public/oblivio-verify",
     "app/src-tauri",
     "tools/oblivio-issuer",
+    "tools/oblivio-signer",
 ]
 # cargo-fuzz project, built with nightly on its own.
 exclude = ["fuzz"]

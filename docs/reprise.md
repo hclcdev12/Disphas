@@ -89,7 +89,11 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
     - **Étape 4, `oblivio-issuer certify`** (2026-10-11) : fait (certificat d'émetteur `OBI1:…`, registre
       `issuers.csv`, révocation `ISS-…`). Testé en unitaire et sur les erreurs de la ligne de commande ; la cérémonie
       réelle (clé racine officielle, phrase secrète) reste au propriétaire.
-    - **Suite** : étape 5, service de signature.
+    - **Étape 5, service de signature `oblivio-signer`** (2026-10-11) : fait, testé en unitaire et de bout en bout
+      (racine de développement). Restent, à l'hébergement : export du registre, chiffrement des clés au repos,
+      installation réelle sous systemd.
+    - **Suite** : étape 6, activation et renouvellement en ligne dans l'application (ou document d'architecture du
+      site, dont dépend l'API publique §6.6).
     - Défauts préexistants constatés sur le certificat le plus long : le bloc Émetteur passe en page 2 (déjà à
       4,4 cm) ; un identifiant de lot de 64 caractères sans espace déborde de sa colonne.
 12. Site : **Astro** dans `site/` (dépôt privé), production chez **Infomaniak** (préproduction possible sur le VPS
