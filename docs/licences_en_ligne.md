@@ -151,11 +151,93 @@ l'activation s'est faite en ligne, désactivable à tout moment.
 
 ## 6. Côté serveur
 
-- **Site** (Astro, comptes, Stripe) : abonnements, sièges, clés de licence, postes, factures, téléchargements.
-- **Service de signature** (Rust, réutilise `oblivio-license` / `oblivio-attestation`) : seul détenteur de la clé
-  boutique, compte système dédié, écoute sur une socket locale uniquement, ne fait que signer dans les bornes du
-  certificat d'émetteur, débit limité, inscrit chaque licence au **registre**.
-- **Registre** exporté chaque jour hors du serveur (chiffré). Il sert à réémettre les licences légitimes après incident.
+> §6.2 à §6.6 : **validé par le propriétaire le 2026-10-11** (débits proposés retenus). Chiffrement des clés au
+> repos et outil d'export du registre : à trancher à l'implémentation.
+
+### 6.1 Répartition
+
+```
+Internet ──HTTPS──► site Astro (licence.oblivio.eu, espace client, Stripe, base de données)
+                        │  socket Unix locale, JSON (§6.3) — jamais exposée au réseau
+                        ▼
+                    oblivio-signer (Rust, compte système dédié, aucun accès réseau)
+                        └─ clés boutique, certificats OBI1, registre des licences
+```
+
+- Le **site** décide **qui** a droit à une licence : clé de licence, abonnement payé, postes disponibles, poste libéré.
+- Le **service de signature** décide **ce qui peut être signé** : il ne connaît ni les clients ni Stripe, mais refuse
+  tout ce qui sort des bornes du certificat d'émetteur et de ses propres règles (§6.4). Un site piraté ne peut donc
+  obtenir que des licences bornées (offres prévues, 90 jours au plus), toutes inscrites au registre.
+
+### 6.2 `oblivio-signer` (binaire Rust, `tools/oblivio-signer`, jamais livré aux clients)
+
+Réutilise `oblivio-license` et `oblivio-attestation` : **une seule implémentation** du format. Commandes :
+
+| Commande | Effet |
+|---|---|
+| `oblivio-signer keygen` | Crée une nouvelle clé boutique (aléa de l'OS) et affiche sa clé publique (64 chiffres hexadécimaux), à porter sur la machine hors ligne pour `oblivio-issuer certify` |
+| `oblivio-signer install 'OBI1:…'` | Vérifie le certificat avec la **racine officielle** (`decode_issuer`), exige que sa clé soit une clé boutique détenue ici, et l'enregistre |
+| `oblivio-signer status` | Certificats installés, dates, offres ; alerte si le certificat courant expire dans moins de 120 jours |
+| `oblivio-signer serve` | Sert la socket (§6.3) ; lancé par systemd |
+
+- **État** dans `/var/lib/oblivio-signer` (0700, compte `oblivio-signer`) : `keys/` (graines 0600), `issuers/`
+  (certificats `OBI1`), `register.csv` (§6.5). Clés **exclues des sauvegardes** du serveur : en cas de perte, on
+  génère une clé et on la fait certifier, sans rien perdre d'autre.
+- **Rotation** : une clé par certificat. Le certificat suivant (nouvelle clé) est installé **au moins 90 jours avant**
+  l'expiration du courant ; le service signe avec le certificat valide qui expire le plus tard. Aucune licence n'est
+  donc raccourcie par une fin de certificat.
+- **Socket** `/run/oblivio-signer/signer.sock`, mode 0660, groupe du site uniquement. Unité systemd durcie : pas de
+  réseau (`PrivateNetwork=yes`), système de fichiers en lecture seule sauf l'état, pas de nouveaux privilèges.
+- *Non tranché* : chiffrer les graines au repos (`systemd-creds`). Sans TPM sur le VPS, cela protège surtout les
+  copies du disque ; à vérifier sur l'offre Infomaniak retenue.
+
+### 6.3 Protocole site ↔ service (JSON, une requête par ligne)
+
+Désérialisation stricte (champs inconnus refusés), réponses bornées, comme le protocole UI ↔ helper.
+
+| Requête | Champs | Réponse |
+|---|---|---|
+| `Activate` | `request` (`OBA1:…`), `customer`, `offer`, `expires` | `id` (nouveau, `OBL-AAAAMMJJ-` + 64 bits), `workstation_key` (hex), `license` (`OBL1:…`) |
+| `Renew` | `id`, `expires` | `license` (`OBL1:…`) — même `id`, même poste, même client, même offre, lus **dans le registre** |
+| `Status` | — | Certificats installés, licences signées aujourd'hui / ce mois |
+
+- `Activate` vérifie la preuve de possession de la demande (`read_activation_request`) : le site n'a jamais à
+  décoder `OBA1` lui-même.
+- `Renew` ne permet de changer **que la date de fin** : un site piraté ne peut pas déplacer une licence vers un
+  autre poste ni changer d'offre.
+- `not_before` est fixé par le service (heure courante − 60 s), jamais par le site.
+- Erreurs : `BadRequest`, `UnknownLicense`, `OutOfBounds` (offre, durée, date), `RateLimited`, `NoIssuer`.
+
+### 6.4 Règles appliquées par le service
+
+1. Offre ∈ offres du certificat ; `expires − not_before ≤ maxd` ; `expires ≤` fin du certificat.
+2. `customer` : 1 à 128 caractères, sans caractère de contrôle.
+3. **Débit borné** (proposé) : 30 signatures par minute, 2 000 par jour ; au-delà `RateLimited` et alerte. Ordre de
+   grandeur : 1 000 postes renouvelés une fois par mois ≈ 35 signatures par jour.
+4. Chaque licence signée est inscrite au registre **avant** d'être renvoyée (écriture synchronisée).
+
+### 6.5 Registre
+
+- `register.csv` en ajout seul : `id, customer, offer, not_before, expires, workstation_key, issuer, signed_at`
+  (mêmes colonnes que `issued-licenses.csv` de l'éditeur, plus l'émetteur). Un renouvellement ajoute une ligne.
+- **Export quotidien** hors du serveur, chiffré pour l'éditeur (*outil à choisir*). Il sert à : rapprocher registre
+  et base du site (une licence au registre sans siège payé = alerte), et réémettre les licences légitimes après
+  incident (§7).
+
+### 6.6 API publique de licences (`https://licence.oblivio.eu/v1/…`, servie par le site)
+
+Contrat entre l'application et le site ; l'application ne connaît que ces deux appels.
+
+| Appel | Corps | Réponses |
+|---|---|---|
+| `POST /v1/activate` | `{"key": "<clé de licence>", "request": "OBA1:…"}` | `200 {"license": "OBL1:…"}` ; `403 {"error": "invalid_key" \| "inactive" \| "no_seat"}` ; `400` |
+| `POST /v1/renew` | `{"id": "OBL-…", "request": "OBA1:…"}` | `200 {"license": "OBL1:…"}` ; `200 {"renewed": false, "reason": "inactive" \| "released" \| "revoked"}` ; `400` |
+
+- `renew` exige une demande `OBA1` **du même poste** (clé comparée au registre) : seul le poste concerné peut
+  interroger sa licence ; la licence renvoyée reste inutilisable sans sa clé privée.
+- Corps de 8 Kio au plus ; débit limité par adresse IP ; aucun cookie, aucun autre en-tête que `User-Agent:
+  Oblivio/<version>`.
+- Le **secours hors ligne** (§4) passe par l'espace client, qui appelle les mêmes `Activate` / `Renew` du service.
 
 ## 7. Sécurité
 
@@ -211,6 +293,6 @@ accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%2
    `revoke --id ISS-…` vérifie l'identifiant dans `issuers.csv` ; `issue` refuse un identifiant `ISS-`.
    `oblivio-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
    `certify --id ISS-2027-01 --offers Atelier,Pro --days 400 --max-days 90` (1 an + chevauchement).
-5. Service de signature.
+5. Service de signature (`oblivio-signer`, §6.2 à §6.6) — spec validée le 2026-10-11 ; à coder.
 6. Application : activation et renouvellement en ligne, réglage, rappel d'échéance.
 7. Site : espace client, sièges, Stripe (document d'architecture du site à part).
