@@ -1,0 +1,138 @@
+---
+import { Menu } from "@lucide/astro";
+import "../styles/global.css";
+import { LOCALES, href, texts, type Locale } from "../i18n";
+
+interface Props {
+  locale: Locale;
+  /** Page title, before " — Oblivio"; the home page uses the site title. */
+  title?: string;
+  /** Pages not meant to be indexed yet (legal drafts). */
+  noindex?: boolean;
+}
+const { locale, title, noindex = false } = Astro.props;
+const t = texts(locale);
+
+// The same page in every language: swap the first path segment.
+const rest = Astro.url.pathname.split("/").slice(2).join("/");
+const pathIn = (other: Locale) => `/${other}/${rest}`;
+const current = `/${locale}/${rest}`;
+
+const nav = [
+  { page: "product", label: t.nav.product },
+  { page: "security", label: t.nav.security },
+  { page: "pricing", label: t.nav.pricing },
+  { page: "demo", label: t.nav.demo },
+  { page: "download", label: t.nav.download },
+  { page: "contact", label: t.nav.contact },
+] as const;
+const legal = [
+  { page: "notice", label: t.legal.notice },
+  { page: "privacy", label: t.legal.privacy },
+  { page: "terms", label: t.legal.terms },
+] as const;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} — Oblivio` : t.meta.title}</title>
+    <meta name="description" content={t.meta.description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(pathIn(locale), Astro.site)} />
+    {LOCALES.map((other) => <link rel="alternate" hreflang={other} href={new URL(pathIn(other), Astro.site)} />)}
+    <link rel="preload" href="/fonts/Inter-Regular-latin.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/fonts/Inter-Bold-latin.ttf" as="font" type="font/ttf" crossorigin />
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <header class="sticky top-0 z-10 border-b border-edge bg-night/95 backdrop-blur">
+      <div class="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
+        <a href={href(locale, "home")} aria-label="Oblivio" class="shrink-0">
+          <img src="/oblivio-wordmark-dark.svg" alt="Oblivio" class="h-6" width="120" height="24" />
+        </a>
+        <nav class="hidden items-center gap-1 text-sm md:flex">
+          {
+            nav.map((item) => (
+              <a
+                href={href(locale, item.page)}
+                aria-current={current === href(locale, item.page) ? "page" : undefined}
+                class="rounded-md px-3 py-1.5 text-ash hover:text-soft aria-[current=page]:text-soft"
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+        <nav aria-label={t.nav.language} class="ml-auto flex items-center gap-1 text-xs">
+          {
+            LOCALES.map((other) => (
+              <a
+                href={pathIn(other)}
+                hreflang={other}
+                lang={other}
+                aria-current={other === locale ? "true" : undefined}
+                class={`rounded-md border px-2 py-1 font-bold uppercase ${
+                  other === locale ? "border-brand/40 text-soft" : "border-edge text-ash hover:text-soft"
+                }`}
+                title={texts(other).languageName}
+              >
+                {other}
+              </a>
+            ))
+          }
+        </nav>
+        <!-- Mobile menu: no JavaScript, a disclosure element. -->
+        <details class="relative md:hidden">
+          <summary
+            class="flex cursor-pointer list-none items-center rounded-md border border-edge p-1.5 text-ash hover:text-soft"
+            aria-label={t.nav.menu}
+          >
+            <Menu size={18} aria-hidden="true" />
+          </summary>
+          <nav class="panel absolute right-0 mt-2 flex w-56 flex-col p-2 text-sm">
+            {
+              nav.map((item) => (
+                <a href={href(locale, item.page)} class="rounded-md px-3 py-2 text-ash hover:bg-night hover:text-soft">
+                  {item.label}
+                </a>
+              ))
+            }
+          </nav>
+        </details>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <footer class="border-t border-edge">
+      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-10 text-sm sm:grid-cols-[1fr_auto_auto]">
+        <div class="flex flex-col gap-3">
+          <img src="/oblivio-wordmark-dark.svg" alt="Oblivio" class="h-5 w-fit" width="100" height="20" />
+          <p class="max-w-sm text-xs leading-relaxed text-ash">{t.footer.affiliation}</p>
+        </div>
+        <ul class="flex flex-col gap-2">
+          {nav.map((item) => (
+            <li>
+              <a href={href(locale, item.page)} class="text-ash hover:text-soft">{item.label}</a>
+            </li>
+          ))}
+        </ul>
+        <ul class="flex flex-col gap-2">
+          {legal.map((item) => (
+            <li>
+              <a href={href(locale, item.page)} class="text-ash hover:text-soft">{item.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class="border-t border-edge">
+        <p class="mx-auto max-w-6xl px-6 py-4 text-xs text-ash">© 2026 Oblivio · {t.footer.madeIn}</p>
+      </div>
+    </footer>
+  </body>
+</html>

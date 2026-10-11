@@ -1,0 +1,145 @@
+---
+import { ArrowRight, Landmark, Cpu, QrCode, Scale, ShieldCheck, Warehouse, Wrench } from "@lucide/astro";
+import Badge from "../../components/Badge.astro";
+import LinkButton from "../../components/LinkButton.astro";
+import Base from "../../layouts/Base.astro";
+import { LOCALES, href, texts, type Locale } from "../../i18n";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = texts(locale);
+const home = t.home;
+const pillarIcons = [Cpu, Scale, ShieldCheck];
+const audienceIcons = [Warehouse, Wrench, Landmark];
+---
+
+<Base locale={locale}>
+  <!-- Hero: the promise, and what the proof looks like. -->
+  <section class="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-[1.15fr_1fr] lg:pt-24">
+    <div>
+      <p class="text-sm font-bold tracking-wide text-brand uppercase">{home.eyebrow}</p>
+      <h1 class="mt-4 text-4xl leading-tight font-bold sm:text-5xl">{home.title}</h1>
+      <p class="mt-6 max-w-xl text-lg leading-relaxed text-ash">{home.lead}</p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <LinkButton href={href(locale, "contact")} variant="primary">{t.cta.quote}</LinkButton>
+        <LinkButton href={href(locale, "demo")}>
+          {t.cta.demo}
+          <ArrowRight size={16} aria-hidden="true" />
+        </LinkButton>
+      </div>
+      <p class="mt-6 text-sm text-ash">{home.soon}</p>
+    </div>
+
+    <figure class="panel p-6">
+      <div class="flex items-center justify-between gap-4 border-b border-edge pb-4">
+        <img src="/oblivio-wordmark-dark.svg" alt="" class="h-4" width="80" height="16" />
+        <Badge tone="ready">{home.certificate.status}</Badge>
+      </div>
+      <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
+        {
+          home.certificate.rows.map(([label, value]) => (
+            <>
+              <dt class="text-ash">{label}</dt>
+              <dd class="font-mono text-xs leading-5 text-soft">{value}</dd>
+            </>
+          ))
+        }
+      </dl>
+      <div class="mt-5 flex items-end justify-between gap-4 border-t border-edge pt-4">
+        <figcaption class="text-xs text-ash">{home.certificate.caption}</figcaption>
+        <QrCode size={44} stroke-width={1.25} class="text-ash" aria-hidden="true" />
+      </div>
+    </figure>
+  </section>
+
+  <!-- Five steps. -->
+  <section class="border-y border-edge bg-card/40">
+    <div class="mx-auto max-w-6xl px-6 py-16">
+      <h2 class="text-2xl font-bold">{home.steps.title}</h2>
+      <p class="mt-2 text-ash">{home.steps.lead}</p>
+      <ol class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+        {
+          home.steps.items.map((step, index) => (
+            <li class="flex flex-col gap-2">
+              <span class="font-mono text-xs text-brand">{String(index + 1).padStart(2, "0")}</span>
+              <h3 class="font-bold">{step.title}</h3>
+              <p class="text-sm leading-relaxed text-ash">{step.text}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- One decision: the two outcomes that matter. -->
+  <section class="mx-auto max-w-6xl px-6 py-16">
+    <div class="panel grid gap-8 p-8 md:grid-cols-2">
+      <div>
+        <h2 class="text-2xl font-bold">{home.decision.title}</h2>
+        <p class="mt-3 leading-relaxed text-ash">{home.decision.text}</p>
+      </div>
+      <figure class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-night p-4">
+          <Badge tone="ready">{home.decision.compliant}</Badge>
+          <span class="font-mono text-xs text-ash">{home.decision.compliantDetail}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-night p-4">
+          <Badge tone="sayno">{home.decision.sayNo}</Badge>
+          <span class="font-mono text-xs text-ash">{home.decision.sayNoDetail}</span>
+        </div>
+        <figcaption class="text-xs text-ash">{home.decision.example}</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- The three pillars of the brand. -->
+  <section class="mx-auto grid max-w-6xl gap-6 px-6 pb-16 md:grid-cols-3">
+    {
+      home.pillars.map((pillar, index) => {
+        const Icon = pillarIcons[index];
+        return (
+          <article class="panel p-6">
+            <Icon size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+            <h3 class="mt-4 font-bold">{pillar.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-ash">{pillar.text}</p>
+          </article>
+        );
+      })
+    }
+  </section>
+
+  <!-- Who it is for. -->
+  <section class="mx-auto max-w-6xl px-6 pb-16">
+    <h2 class="text-2xl font-bold">{home.audiences.title}</h2>
+    <div class="mt-8 grid gap-6 md:grid-cols-3">
+      {
+        home.audiences.items.map((audience, index) => {
+          const Icon = audienceIcons[index];
+          return (
+            <div class="flex gap-4">
+              <Icon size={20} stroke-width={1.75} class="mt-0.5 shrink-0 text-ash" aria-hidden="true" />
+              <div>
+                <h3 class="font-bold">{audience.title}</h3>
+                <p class="mt-1 text-sm leading-relaxed text-ash">{audience.text}</p>
+              </div>
+            </div>
+          );
+        })
+      }
+    </div>
+  </section>
+
+  <!-- Call to action. -->
+  <section class="mx-auto max-w-6xl px-6 pb-24">
+    <div class="panel flex flex-col items-start gap-6 p-8 md:flex-row md:items-center">
+      <div class="flex-1">
+        <h2 class="text-xl font-bold">{home.band.title}</h2>
+        <p class="mt-2 text-ash">{home.band.text}</p>
+      </div>
+      <LinkButton href={href(locale, "contact")} variant="primary">{t.cta.quote}</LinkButton>
+    </div>
+  </section>
+</Base>

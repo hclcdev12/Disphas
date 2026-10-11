@@ -1,0 +1,119 @@
+---
+import { Check, HardDrive, Layers, Search, ShieldCheck } from "@lucide/astro";
+import Badge from "../../components/Badge.astro";
+import LinkButton from "../../components/LinkButton.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import Base from "../../layouts/Base.astro";
+import { LOCALES, href, texts, type Locale } from "../../i18n";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = texts(locale);
+const p = t.product;
+type Tone = "ready" | "neutral" | "blocked" | "sayno";
+---
+
+<Base locale={locale} title={p.title}>
+  <PageHeader title={p.title} lead={p.lead} />
+
+  <div class="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-16">
+    <section class="grid gap-6 md:grid-cols-[auto_1fr]">
+      <Search size={22} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+      <div>
+        <h2 class="text-xl font-bold">{p.inspection.title}</h2>
+        <p class="mt-2 max-w-3xl leading-relaxed text-ash">{p.inspection.text}</p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold">{p.states.title}</h2>
+      <div class="mt-6 grid gap-4 sm:grid-cols-2">
+        {
+          p.states.items.map((state) => (
+            <div class="panel p-5">
+              <Badge tone={state.tone as Tone}>{state.name}</Badge>
+              <p class="mt-3 text-sm leading-relaxed text-ash">{state.text}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="panel grid gap-8 p-8 md:grid-cols-2">
+      <h2 class="text-xl font-bold md:col-span-2">{p.methods.title}</h2>
+      {
+        [
+          ["Purge", p.methods.purge],
+          ["Clear", p.methods.clear],
+        ].map(([name, text]) => (
+          <div>
+            <h3 class="font-mono text-sm font-bold text-soft">{name}</h3>
+            <p class="mt-2 leading-relaxed text-ash">{text}</p>
+          </div>
+        ))
+      }
+    </section>
+
+    <section class="grid gap-10 md:grid-cols-2">
+      <div>
+        <h2 class="text-xl font-bold">{p.validation.title}</h2>
+        <p class="mt-2 leading-relaxed text-ash">{p.validation.text}</p>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold">{p.certificate.title}</h2>
+        <ul class="mt-3 flex flex-col gap-2">
+          {
+            p.certificate.items.map((item) => (
+              <li class="flex gap-3 text-sm leading-relaxed text-ash">
+                <Check size={16} class="mt-0.5 shrink-0 text-brand" aria-hidden="true" />
+                {item}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    <section class="grid gap-10 md:grid-cols-2">
+      <div class="grid gap-4 md:grid-cols-[auto_1fr]">
+        <Layers size={22} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <div>
+          <h2 class="text-xl font-bold">{p.batches.title}</h2>
+          <p class="mt-2 leading-relaxed text-ash">{p.batches.text}</p>
+        </div>
+      </div>
+      <div class="grid gap-4 md:grid-cols-[auto_1fr]">
+        <ShieldCheck size={22} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <div>
+          <h2 class="text-xl font-bold">{p.safety.title}</h2>
+          <ul class="mt-3 flex flex-col gap-2">
+            {
+              p.safety.items.map((item) => (
+                <li class="flex gap-3 text-sm leading-relaxed text-ash">
+                  <Check size={16} class="mt-0.5 shrink-0 text-brand" aria-hidden="true" />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel flex flex-col gap-6 p-8 md:flex-row md:items-start">
+      <HardDrive size={22} stroke-width={1.75} class="shrink-0 text-brand" aria-hidden="true" />
+      <div class="flex-1">
+        <h2 class="text-xl font-bold">{p.systems.title}</h2>
+        <ul class="mt-3 flex flex-col gap-2 text-sm leading-relaxed text-ash">
+          <li>{p.systems.deb}</li>
+          <li>{p.systems.rpm}</li>
+          <li>{p.systems.drives}</li>
+        </ul>
+      </div>
+      <LinkButton href={href(locale, "contact")} variant="primary">{t.cta.quote}</LinkButton>
+    </section>
+  </div>
+</Base>

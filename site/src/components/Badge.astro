@@ -1,0 +1,29 @@
+---
+// A state badge, as in the application: green, orange and red show states
+// only, indigo the brand; never used as decoration.
+interface Props {
+  tone: "ready" | "sayno" | "blocked" | "brand" | "neutral";
+}
+const { tone } = Astro.props;
+const classes = {
+  ready: "border-ready/40 bg-ready/10 text-ready",
+  sayno: "border-sayno/40 bg-sayno/10 text-sayno",
+  blocked: "border-blocked/40 bg-blocked/10 text-blocked",
+  brand: "border-brand/40 bg-brand/10 text-brand",
+  neutral: "border-edge bg-night text-ash",
+}[tone];
+const dot = {
+  ready: "bg-ready",
+  sayno: "bg-sayno",
+  blocked: "bg-blocked",
+  brand: "bg-brand",
+  neutral: "bg-ash",
+}[tone];
+---
+
+<span
+  class={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-bold tracking-wide ${classes}`}
+>
+  <span class={`h-2 w-2 rounded-full ${dot}`}></span>
+  <slot />
+</span>

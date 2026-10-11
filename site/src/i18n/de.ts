@@ -1,0 +1,240 @@
+// German translation of fr.ts, to be proofread by a native speaker.
+import type { Texts } from "./fr";
+
+const de: Texts = {
+  languageName: "Deutsch",
+  meta: {
+    title: "Oblivio — Zertifiziertes Hardware-Vergessen",
+    description:
+      "Sichere Datenträgerlöschung nach NIST SP 800-88 Rev. 2 und IEEE 2883-2022: eine Entscheidung, eine Ablehnung, wenn die Löschung nicht beweisbar ist, ein signiertes Zertifikat, offline überprüfbar.",
+  },
+  nav: {
+    product: "Produkt",
+    security: "Sicherheit",
+    pricing: "Preise",
+    download: "Download",
+    demo: "Demo",
+    contact: "Kontakt",
+    menu: "Menü",
+    language: "Sprache",
+  },
+  cta: {
+    quote: "Angebot anfordern",
+    product: "Produkt entdecken",
+    demo: "Demo ausprobieren",
+    contact: "Kontakt aufnehmen",
+  },
+  home: {
+    eyebrow: "Sichere Datenträgerlöschung",
+    title: "Das Recht auf Vergessenwerden, eingraviert bis aufs Metall.",
+    lead: "Oblivio befragt jeden Datenträger auf der untersten Ebene, wendet das von NIST SP 800-88 Rev. 2 und IEEE 2883-2022 vorgesehene Löschverfahren an und besiegelt das Ergebnis in einem signierten Zertifikat, das offline überprüfbar ist.",
+    soon: "Demnächst verfügbar: Linux 64 Bit, SATA- und NVMe-Datenträger.",
+    certificate: {
+      caption: "Löschzertifikat (fiktives Beispiel)",
+      status: "KONFORM",
+      rows: [
+        ["Datenträger", "NVMe · S/N FICT0000A001"],
+        ["Verfahren", "NVMe Sanitize — Block Erase"],
+        ["Kategorie", "Purge"],
+        ["Validierung", "Kanarien · 1.000 Stichproben"],
+        ["Signatur", "Ed25519 · offline überprüfbar"],
+      ],
+    },
+    steps: {
+      title: "Fünf Schritte, kein Raten",
+      lead: "Der Bediener bestätigt; Oblivio entscheidet anhand des tatsächlichen Zustands des Datenträgers.",
+      items: [
+        { title: "Prüfen", text: "Direktes Auslesen der Firmware (NVMe und ATA IDENTIFY): Löschfunktionen, Zustand, Sperren." },
+        { title: "Entscheiden", text: "Eine Entscheidung: Verfahren und Kategorie, Vorbehalte, Verbleib des Datenträgers — oder eine Ablehnung." },
+        { title: "Löschen", text: "Ein Firmware-Befehl, wenn vorhanden; sonst ein Überschreiben durch den Computer, nie als Purge zertifiziert." },
+        { title: "Überprüfen", text: "Eine verfahrensspezifische Kontrolle: Stichproben vorher und nachher verglichen oder das geschriebene Muster zurückgelesen." },
+        { title: "Zertifizieren", text: "Mit Ed25519 signierte Bescheinigung, PDF/A-3 auf Deutsch, Englisch oder Französisch, überprüfbarer QR-Code." },
+      ],
+    },
+    decision: {
+      title: "Eine Entscheidung, bewiesen",
+      text: "Oblivio zertifiziert nur, was es beweisen kann. Ist eine Löschung nicht überprüfbar, lehnt es ab und schreibt die physische Vernichtung vor.",
+      compliant: "KONFORM",
+      compliantDetail: "Purge · NVMe Sanitize · Stichprobenvalidierung",
+      sayNo: "SAY NO",
+      sayNoDetail: "Löschung nicht beweisbar · physische Vernichtung erforderlich",
+      example: "Beispiele für von Oblivio angezeigte Zustände",
+    },
+    pillars: [
+      {
+        title: "Hardware-Vergessen",
+        text: "Direkte Befehle an den Controller (NVMe Sanitize, Crypto Erase, ATA Sanitize) versetzen das Bauteil in den Werkszustand, statt Sektoren blind zu überschreiben.",
+      },
+      {
+        title: "Entscheidungsautorität",
+        text: "„Say NO“-Prinzip: Nicht überprüfbare Löschung wird abgelehnt und die Vernichtung vorgeschrieben. Gelöscht, aber defekt: Löschung zertifiziert, Vernichtung statt Wiederverwendung empfohlen.",
+      },
+      {
+        title: "Europäischer Nachweis",
+        text: "In Europa entwickelt. Ihre Datenträger und Zertifikate verlassen nie den Arbeitsplatz; jedes Zertifikat ist mit Ed25519 signiert und offline mit einem kostenlosen Prüfprogramm überprüfbar.",
+      },
+    ],
+    audiences: {
+      title: "Für alle, die eine Löschung nachweisen müssen",
+      items: [
+        { title: "ITAD und Aufbereiter", text: "Löschung in Losen, ein Zertifikat pro Datenträger und ein Loszertifikat für jeden Auftrag." },
+        { title: "IT-Techniker und Dienstleister", text: "Eine klare Entscheidung für jeden Datenträger, ein signierter Nachweis für den Kunden." },
+        { title: "Behörden und Großkunden", text: "Offline by Design, von Dritten überprüfbarer Nachweis, keine Cloud-Abhängigkeit." },
+      ],
+    },
+    band: {
+      title: "Planen Sie Ihren Einsatz",
+      text: "Oblivio wird derzeit fertiggestellt. Beschreiben Sie Ihren Bedarf: Wir melden uns bei Ihnen.",
+    },
+  },
+  product: {
+    title: "Das Produkt",
+    lead: "Eine Linux-Anwendung, die prüft, entscheidet, löscht, überprüft und zertifiziert. Vom Bediener verlangt sie nur eines: zu bestätigen.",
+    inspection: {
+      title: "Prüfung auf der untersten Ebene",
+      text: "Oblivio liest die von der Firmware gemeldeten Fähigkeiten (NVMe Identify, ATA IDENTIFY) über direkte Systemaufrufe, ohne Fremdwerkzeug in der zertifizierten Kette. Jeder Wert im Zertifikat nennt seine Herkunft.",
+    },
+    states: {
+      title: "Vier Zustände, vier Anweisungen",
+      items: [
+        { tone: "ready", name: "BEREIT", text: "Oblivio kann löschen und die Löschung beweisen: Das empfohlene Verfahren wird angeboten." },
+        { tone: "neutral", name: "GESCHÜTZT", text: "Systemdatenträger, eingehängte Partition, aktiver Swap, Volume-Mitglied: Oblivio rührt ihn nicht an." },
+        { tone: "blocked", name: "GESPERRT", text: "Gesunder Datenträger, aber eine Aktion ist nötig (Standby, ATA-Passwort, Aus- und Einschalten): Die Anweisung wird angezeigt." },
+        { tone: "sayno", name: "SAY NO", text: "Löschung nicht beweisbar: physische Vernichtung erforderlich, mit einem signierten Ablehnungsbericht." },
+      ],
+    },
+    methods: {
+      title: "Purge oder Clear, nie verwechselt",
+      purge: "Löschung durch die Firmware des Datenträgers (NVMe Sanitize oder Format, ATA Sanitize, ATA Security Erase), schützt vor einer Wiederherstellung im Labor.",
+      clear: "Jeder Sektor wird vom Computer mit einem überprüften Pseudozufallsstrom überschrieben. Ein Überschreiben durch den Computer wird nie als Purge zertifiziert.",
+    },
+    validation: {
+      title: "Überprüfen, dann validieren",
+      text: "Vor der Löschung legt Oblivio Prüfmuster an, danach vergleicht es sie. Bei einem Überschreiben liest es das geschriebene Muster zurück. Ohne erfolgreiche Validierung kein KONFORM-Zertifikat.",
+    },
+    certificate: {
+      title: "Ein Zertifikat, das für sich selbst steht",
+      items: [
+        "Kanonische, mit Ed25519 signierte Bescheinigung: Das PDF ist nur eine Darstellung, maßgeblich ist die Bescheinigung.",
+        "PDF/A-3 auf Deutsch, Englisch oder Französisch, mit Bescheinigung und ausführlichem Protokoll im Anhang.",
+        "QR-Code: die vollständige Bescheinigung, sogar auf Papier überprüfbar.",
+        "Nur drei Status: KONFORM, NICHT KONFORM (erzwungene Löschung), ABGELEHNT.",
+      ],
+    },
+    batches: {
+      title: "Lose für große Mengen",
+      text: "Eröffnen Sie ein Los für einen Auftrag oder einen Kunden: Jeder Datenträger trägt die Losnummer in seinem signierten Zertifikat, und der Abschluss erzeugt ein Loszertifikat mit den Einzelzertifikaten im Anhang.",
+    },
+    safety: {
+      title: "Gebaut, um sich nie im Datenträger zu irren",
+      items: [
+        "Der Systemdatenträger und jeder verwendete Datenträger sind geschützt.",
+        "Bestätigung mit den letzten 4 Zeichen der Seriennummer, abgelesen vom Etikett.",
+        "Der Datenträger wird über seine Hardware-Identität erkannt, nicht über einen Systempfad.",
+        "Wiederaufnahme nach einem Stromausfall während einer Firmware-Löschung.",
+      ],
+    },
+    systems: {
+      title: "Unterstützte Systeme",
+      deb: ".deb-Paket: Ubuntu 22.04 und neuer, Debian 12 und neuer, Linux Mint 21+, Pop!_OS 22.04+.",
+      rpm: ".rpm-Paket: Fedora, openSUSE.",
+      drives: "SATA- und NVMe-Datenträger, direkt angeschlossen (Mainboard). USB-Adapter werden nicht unterstützt.",
+    },
+  },
+  security: {
+    title: "Sicherheit und Konformität",
+    lead: "Ein Löschnachweis ist nur etwas wert, wenn er einer Prüfung standhält. Dafür ist Oblivio gebaut.",
+    standards: {
+      title: "Referenznormen",
+      text: "Die Entscheidungen folgen NIST SP 800-88 Rev. 2 (Guidelines for Media Sanitization) und IEEE 2883-2022 (Standard for Sanitizing Storage). Clear, Purge und Destruct sind die Begriffe dieser Normen.",
+      affiliation: "Oblivio ist weder mit NIST noch mit IEEE verbunden und nicht von ihnen zertifiziert; deren Normen werden als Referenzen zitiert.",
+    },
+    offline: {
+      title: "Ihre Daten bleiben bei Ihnen",
+      text: "Löschung, Entscheidung, Signatur und Verlauf finden am Arbeitsplatz statt. Weder Datenträgerdaten noch Zertifikate werden an Oblivio gesendet. Keine Telemetrie.",
+    },
+    chain: {
+      title: "Eine überprüfbare Signaturkette",
+      text: "Jeder Arbeitsplatz besitzt einen eigenen, durch die Oblivio-Lizenz autorisierten Schlüssel; er signiert eine kanonische Bescheinigung. Ein Prüfer braucht nur den öffentlichen Schlüssel von Oblivio, ohne Verbindung.",
+    },
+    verification: {
+      title: "Drei Prüfstufen",
+      items: [
+        { name: "Papier", text: "QR-Code scannen: Die Bescheinigung ist echt und unverändert." },
+        { name: "PDF", text: "Datei prüfen: Zusätzlich passt das angehängte Protokoll zur Bescheinigung." },
+        { name: "Audit", text: "PDF und Protokoll: vollständige Nachprüfung der Stichproben und des Ablaufs." },
+      ],
+    },
+    privacy: {
+      title: "Im Dienst Ihrer Konformität",
+      text: "Löschung vor Weiterverkauf oder Leasingende, signierter Nachweis jedes Vorgangs, optionale Bedienerfelder und Löschung der Zertifikate nach Ihrer Aufbewahrungsfrist.",
+    },
+    disclosure: {
+      title: "Eine Schwachstelle melden",
+      text: "Eine Sicherheitslücke in Oblivio gefunden? Schreiben Sie uns vertraulich über die Kontaktseite mit dem Betreff „Sicherheit“. Eine eigene Adresse wird vor Verkaufsstart veröffentlicht.",
+    },
+  },
+  pricing: {
+    title: "Preise",
+    lead: "Lizenzen pro Arbeitsplatz, keine Abrechnung pro Datenträger. Die Preise werden in Kürze veröffentlicht.",
+    notice: "Preise folgen",
+    plans: [
+      { name: "Diagnose", audience: "Zum Testen", features: ["Prüfung der Datenträger", "NIST-Entscheidung und Empfehlung", "Ohne Löschung"] },
+      { name: "Professional", audience: "IT-Techniker, Selbstständige", features: ["Unbegrenzte Löschungen", "Signierte PDF-Zertifikate", "Verlauf und Prüfung"] },
+      { name: "Werkstatt", audience: "ITAD, Aufbereiter, MSP", features: ["Unbegrenzte Löschungen", "Lose und Loszertifikate", "Parallele Löschungen"] },
+      { name: "Großkunden", audience: "Behörden, KRITIS-Betreiber", features: ["Offline-Einsatz", "Begleitung", "Auf Anfrage"] },
+    ],
+  },
+  download: {
+    title: "Download",
+    lead: "Oblivio wird in Ihrem Kundenbereich herunterladbar sein, für die Diagnose kostenlos.",
+    soon: "Demnächst verfügbar",
+    account: "Ein kostenloses Konto wird nötig sein: Es gibt Zugang zu den Paketen, ihren SHA-256-Prüfsummen und den Updates.",
+  },
+  demo: {
+    title: "Interaktive Demo",
+    lead: "Die echte Oberfläche von Oblivio, in Ihrem Browser, mit fiktiven Datenträgern. Nichts wird installiert, kein Datenträger wird berührt.",
+    launch: "Demo starten",
+    notice: "Fiktive Datenträger · beschleunigte Abläufe · Zertifikate mit einem öffentlichen Testschlüssel signiert, daher nicht echt.",
+    desktop: "Für einen Computerbildschirm gestaltet.",
+    tryTitle: "Zum Ausprobieren",
+    scenarios: [
+      { tone: "ready", label: "BEREIT", drive: "DEMO NVMe Data 2TB", text: "Löschen: Purge per NVMe Sanitize, KONFORM-Zertifikat." },
+      { tone: "ready", label: "BEREIT", drive: "DEMO HDD 4TB", text: "Abgenutzter Datenträger: Löschung zertifiziert, Vernichtung statt Wiederverwendung empfohlen." },
+      { tone: "blocked", label: "GESPERRT", drive: "DEMO SATA SSD 500GB", text: "Eingefroren (B1): Aktualisieren klicken, dann löschen. Die Validierung scheitert: ABGELEHNT." },
+      { tone: "blocked", label: "GESPERRT", drive: "DEMO SATA SSD Locked", text: "Gesperrt (B2): mit dem Passwort „oblivio“ entsperren." },
+      { tone: "sayno", label: "SAY NO", drive: "DEMO Unresponsive 1TB", text: "Prüfung unmöglich: Löschung erzwingen, das Zertifikat ist NICHT KONFORM." },
+      { tone: "sayno", label: "SAY NO", drive: "DEMO NVMe Worn 256GB", text: "Nur lesbar: keine Löschung möglich, physische Vernichtung erforderlich." },
+      { tone: "neutral", label: "GESCHÜTZT", drive: "DEMO NVMe System 1TB", text: "Systemdatenträger: Oblivio rührt ihn nicht an." },
+    ],
+    confirm: "Zur Bestätigung einer Löschung die letzten 4 Zeichen der angezeigten Seriennummer eingeben.",
+  },
+  contact: {
+    title: "Kontakt und Angebote",
+    lead: "Ein Projekt, eine Frage, ein Angebot? Beschreiben Sie es, wir antworten per E-Mail.",
+    name: "Name",
+    organization: "Organisation",
+    email: "E-Mail",
+    topic: "Betreff",
+    topics: { quote: "Angebotsanfrage", question: "Frage zum Produkt", security: "Sicherheit", other: "Sonstiges" },
+    workstations: "Geplante Anzahl Arbeitsplätze",
+    message: "Nachricht",
+    send: "Senden",
+    privacy: "Ihre Angaben dienen nur der Beantwortung.",
+    sent: "Nachricht gesendet. Vielen Dank, wir melden uns in Kürze.",
+    invalid: "Bitte prüfen Sie die Felder: Name, E-Mail und Nachricht sind Pflichtfelder.",
+    failed: "Der Versand ist fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+  },
+  legal: {
+    pending: "Dokument in Vorbereitung: Es wird vor Verkaufsstart veröffentlicht.",
+    notice: "Impressum",
+    privacy: "Datenschutz",
+    terms: "Verkaufsbedingungen",
+  },
+  footer: {
+    madeIn: "In Europa entwickelt",
+    affiliation: "Oblivio ist weder mit NIST noch mit IEEE verbunden; deren Normen werden als Referenzen zitiert.",
+  },
+};
+
+export default de;

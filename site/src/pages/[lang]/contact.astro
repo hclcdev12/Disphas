@@ -1,0 +1,77 @@
+---
+// Rendered on demand: shows the outcome of a submission and preselects the
+// topic (`?topic=quote`, `?topic=security`).
+import PageHeader from "../../components/PageHeader.astro";
+import Base from "../../layouts/Base.astro";
+import { isLocale, texts } from "../../i18n";
+import { TOPICS } from "../../lib/contact";
+
+export const prerender = false;
+
+const lang = Astro.params.lang;
+if (!isLocale(lang)) {
+  return new Response(null, { status: 404 });
+}
+const t = texts(lang);
+const c = t.contact;
+const status = Astro.url.searchParams.get("status");
+const topic = Astro.url.searchParams.get("topic");
+const notice =
+  status === "sent"
+    ? { tone: "border-ready/40 text-ready", text: c.sent }
+    : status === "invalid"
+      ? { tone: "border-sayno/40 text-sayno", text: c.invalid }
+      : status === "failed"
+        ? { tone: "border-sayno/40 text-sayno", text: c.failed }
+        : null;
+const input = "w-full rounded-lg font-normal border border-edge bg-night px-3 py-2 text-sm text-soft placeholder:text-ash/60 focus:border-brand focus:outline-none";
+const label = "flex flex-col gap-1.5 text-sm font-bold";
+---
+
+<Base locale={lang} title={c.title}>
+  <PageHeader title={c.title} lead={c.lead} />
+
+  <div class="mx-auto max-w-3xl px-6 py-16">
+    {notice && <p class={`mb-8 rounded-lg border px-4 py-3 text-sm ${notice.tone}`} role="status">{notice.text}</p>}
+
+    <form method="post" action="/api/contact" class="panel grid gap-5 p-8 sm:grid-cols-2">
+      <input type="hidden" name="lang" value={lang} />
+      <label class={label}>
+        {c.name}
+        <input class={input} name="name" required maxlength="120" autocomplete="name" />
+      </label>
+      <label class={label}>
+        {c.organization}
+        <input class={input} name="organization" maxlength="160" autocomplete="organization" />
+      </label>
+      <label class={label}>
+        {c.email}
+        <input class={input} name="email" type="email" required maxlength="254" autocomplete="email" />
+      </label>
+      <label class={label}>
+        {c.topic}
+        <select class={input} name="topic">
+          {TOPICS.map((value) => <option value={value} selected={value === topic}>{c.topics[value]}</option>)}
+        </select>
+      </label>
+      <label class={`${label} sm:col-span-2`}>
+        {c.workstations}
+        <input class={input} name="workstations" inputmode="numeric" maxlength="20" />
+      </label>
+      <label class={`${label} sm:col-span-2`}>
+        {c.message}
+        <textarea class={`${input} min-h-40`} name="message" required maxlength="5000"></textarea>
+      </label>
+      <!-- Honeypot, hidden from people and screen readers. -->
+      <div class="hidden" aria-hidden="true">
+        <input name="website" tabindex="-1" autocomplete="off" />
+      </div>
+      <div class="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center">
+        <button type="submit" class="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-white hover:bg-brand/85">
+          {c.send}
+        </button>
+        <p class="text-xs text-ash">{c.privacy}</p>
+      </div>
+    </form>
+  </div>
+</Base>

@@ -1,0 +1,17 @@
+---
+// A link styled as the application's buttons: indigo for the main action
+// only, outlined for the rest.
+interface Props {
+  href: string;
+  variant?: "primary" | "ghost";
+}
+const { href, variant = "ghost" } = Astro.props;
+const classes = {
+  primary: "bg-brand text-white hover:bg-brand/85",
+  ghost: "border border-edge text-ash hover:border-ash/40 hover:text-soft",
+}[variant];
+---
+
+<a href={href} class={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${classes}`}>
+  <slot />
+</a>

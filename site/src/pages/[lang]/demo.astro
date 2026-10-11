@@ -1,0 +1,65 @@
+---
+// The interactive demo (docs/site.md): the application's interface on a
+// simulated helper, built by tools/site-demo/build.sh into /demo/app/. It
+// opens full screen in a new tab: a desktop interface needs the room.
+import { ExternalLink, Monitor, TriangleAlert } from "@lucide/astro";
+import Badge from "../../components/Badge.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import Base from "../../layouts/Base.astro";
+import { LOCALES, texts, type Locale } from "../../i18n";
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = texts(locale);
+const d = t.demo;
+type Tone = "ready" | "blocked" | "sayno" | "neutral";
+---
+
+<Base locale={locale} title={d.title}>
+  <PageHeader title={d.title} lead={d.lead} />
+
+  <div class="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16">
+    <section class="panel flex flex-col gap-6 p-8 md:flex-row md:items-center">
+      <div class="flex flex-1 flex-col gap-3">
+        <p class="flex items-start gap-3 text-sm text-ash">
+          <TriangleAlert size={18} stroke-width={1.75} class="mt-0.5 shrink-0 text-blocked" aria-hidden="true" />
+          {d.notice}
+        </p>
+        <p class="flex items-center gap-3 text-sm text-ash">
+          <Monitor size={18} stroke-width={1.75} class="shrink-0" aria-hidden="true" />
+          {d.desktop}
+        </p>
+      </div>
+      <a
+        href={`/demo/app/index.html?lang=${locale}`}
+        target="_blank"
+        rel="noopener"
+        class="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-3 text-sm font-bold text-white hover:bg-brand/85"
+      >
+        {d.launch}
+        <ExternalLink size={16} aria-hidden="true" />
+      </a>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-bold">{d.tryTitle}</h2>
+      <ul class="mt-6 grid gap-4 md:grid-cols-2">
+        {
+          d.scenarios.map((scenario) => (
+            <li class="panel flex flex-col gap-2 p-5">
+              <div class="flex flex-wrap items-center gap-3">
+                <Badge tone={scenario.tone as Tone}>{scenario.label}</Badge>
+                <span class="font-mono text-xs text-soft">{scenario.drive}</span>
+              </div>
+              <p class="text-sm leading-relaxed text-ash">{scenario.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="mt-6 text-sm text-ash">{d.confirm}</p>
+    </section>
+  </div>
+</Base>

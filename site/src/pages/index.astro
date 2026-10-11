@@ -1,0 +1,16 @@
+---
+// `/` sends each visitor to their browser's language, English when none of
+// ours is preferred (docs/site.md §0). Rendered on demand to read the
+// Accept-Language header; `Vary` keeps caches from serving one visitor's
+// redirect to another.
+import { DEFAULT_LOCALE, isLocale } from "../i18n";
+
+export const prerender = false;
+
+const preferred = Astro.preferredLocale;
+const locale = isLocale(preferred) ? preferred : DEFAULT_LOCALE;
+return new Response(null, {
+  status: 302,
+  headers: { Location: `/${locale}/`, Vary: "Accept-Language" },
+});
+---
