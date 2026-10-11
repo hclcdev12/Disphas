@@ -9,6 +9,7 @@ use oblivio_report::{RenderOptions, render};
 fn main() {
     let dir = std::env::args().nth(1).unwrap_or_else(|| ".".to_owned());
     batch(&dir);
+    largest(&dir);
     for (status, name) in [
         (Status::Compliant, "compliant"),
         (Status::NonCompliant, "non-compliant"),
@@ -32,6 +33,30 @@ fn main() {
                 }
                 Err(error) => eprintln!("{name}-{tag}: {error}"),
             }
+        }
+    }
+}
+
+/// The largest certificate (every text at its maximum), in French and German:
+/// print it to check that the QR code still scans.
+fn largest(dir: &str) {
+    let signed = fixture::signed_largest();
+    for (lang, tag) in [(Lang::Fr, "fr"), (Lang::De, "de")] {
+        let options = RenderOptions { lang, logo: None };
+        match render(
+            &signed,
+            fixture::JOURNAL,
+            &fixture::root().verifying_key(),
+            &[],
+            &options,
+        ) {
+            Ok(pdf) => {
+                let path = format!("{dir}/largest-{tag}.pdf");
+                if let Err(error) = std::fs::write(&path, pdf) {
+                    eprintln!("{path}: {error}");
+                }
+            }
+            Err(error) => eprintln!("largest-{tag}: {error}"),
         }
     }
 }

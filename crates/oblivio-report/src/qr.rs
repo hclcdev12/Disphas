@@ -7,6 +7,24 @@ use crate::ReportError;
 /// Quiet zone around the code, in modules (ISO/IEC 18004 asks for 4).
 const QUIET_ZONE: usize = 4;
 
+/// Printed width of the code with its quiet zone, in millimetres: the QR
+/// image width in `certificate.typ`, to keep in sync.
+#[cfg(test)]
+pub(crate) const PRINTED_MM: f64 = 55.0;
+
+/// Smallest printed module, in millimetres: about the module of a typical
+/// certificate at the former 4.4 cm (0.404 mm), readable when printed
+/// (2026-10-11).
+#[cfg(test)]
+pub(crate) const MIN_MODULE_MM: f64 = 0.40;
+
+/// Printed size of one module of the code for `text`, in millimetres.
+#[cfg(test)]
+pub(crate) fn printed_module_mm(text: &str) -> Result<f64, ReportError> {
+    let (width, _) = modules(text)?;
+    Ok(PRINTED_MM / (width + 2 * QUIET_ZONE) as f64)
+}
+
 /// Dark modules of the QR code for `text`, row by row, without quiet zone.
 /// Error correction level M: about 15 % of the code can be damaged.
 pub(crate) fn modules(text: &str) -> Result<(usize, Vec<bool>), ReportError> {

@@ -6,7 +6,7 @@ use oblivio_attestation::model::{
     Batch, Category, Code, Device, Disposition, DispositionKind, DriveType, Sanitization, Status,
     Tool, Validation, ValidationMethod,
 };
-use oblivio_attestation::{Attestation, License, cose, sign_attestation};
+use oblivio_attestation::{Attestation, Issuer, License, cose, sign_attestation};
 use sha2::{Digest, Sha256};
 
 /// Issue date of the fixtures: 2026-10-05T00:00:00Z.
@@ -34,8 +34,72 @@ pub fn signed_in_batch(status: Status, number: u8, batch: Option<Batch>) -> Vec<
     signed_drive(status, "Atelier XYZ", number, batch)
 }
 
+fn workstation() -> SigningKey {
+    SigningKey::from_bytes(&[2; 32])
+}
+
+fn sign(attestation: &Attestation) -> Vec<u8> {
+    sign_attestation(attestation, &workstation())
+        .unwrap_or_else(|error| panic!("fixture attestation: {error}"))
+}
+
 fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Batch>) -> Vec<u8> {
-    let workstation = SigningKey::from_bytes(&[2; 32]);
+    sign(&drive(status, organization, number, batch))
+}
+
+/// The largest certificate Oblivio can produce: NON COMPLIANT, every free
+/// text at its maximum length with accents, a real license id format, and a
+/// license signed by a shop key (version 2, issuer certificate embedded).
+/// Sizes the QR code (readable when printed) and the first page layout.
+pub fn signed_largest() -> Vec<u8> {
+    let phrase = "Disque forcé à la demande du client malgré le refus ; données non sensibles, \
+                  réécriture hôte complète. ";
+    let fill = |chars: usize| phrase.chars().cycle().take(chars).collect::<String>();
+    let workstation = workstation();
+    let shop = SigningKey::from_bytes(&[5; 32]);
+    let issuer = Issuer {
+        id: "ISS-2026-01".to_owned(),
+        key: shop.verifying_key().to_bytes(),
+        not_before: ISSUED_AT - 30 * 86_400,
+        expires: ISSUED_AT + 365 * 86_400,
+        offers: vec!["Atelier".to_owned(), "Pro".to_owned()],
+        max_duration: 90 * 86_400,
+    };
+    let license = License {
+        id: "OBL-20261011-0123456789abcdef".to_owned(),
+        customer: "Société de Reconditionnement Informatique du Grand Est SARL".to_owned(),
+        offer: "Atelier".to_owned(),
+        not_before: ISSUED_AT - 86_400,
+        expires: Some(ISSUED_AT + 37 * 86_400),
+        workstation_key: workstation.verifying_key().to_bytes(),
+        issuer: Some(
+            cose::sign(issuer.to_cbor(), &root())
+                .unwrap_or_else(|error| panic!("fixture issuer: {error}")),
+        ),
+    };
+    let mut attestation = drive(
+        Status::NonCompliant,
+        &fill(Attestation::MAX_ORGANIZATION_CHARS),
+        1,
+        Some(Batch {
+            id: "L".repeat(64),
+            label: Some(fill(Batch::MAX_LABEL_CHARS)),
+        }),
+    );
+    attestation.device.model = "Samsung SSD 870 EVO 4TB with a long model string pad".to_owned();
+    attestation.device.serial = "S6PNNX0T123456789ABCDEF".to_owned();
+    attestation.device.wwn = Some("5002538f42a1b2c3".to_owned());
+    attestation.sanitization.zero_finish = true;
+    attestation.refusals = vec![code("N1"), code("N3")];
+    attestation.justification = Some(fill(Attestation::MAX_JUSTIFICATION_CHARS));
+    attestation.operator = Some(fill(Attestation::MAX_OPERATOR_CHARS));
+    attestation.license = cose::sign(license.to_cbor(), &shop)
+        .unwrap_or_else(|error| panic!("fixture license: {error}"));
+    sign(&attestation)
+}
+
+fn drive(status: Status, organization: &str, number: u8, batch: Option<Batch>) -> Attestation {
+    let workstation = workstation();
     let license = License {
         id: "LIC-0001".to_owned(),
         customer: "Atelier XYZ".to_owned(),
@@ -46,7 +110,7 @@ fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Ba
         issuer: None,
     };
     let ran = status != Status::Refused;
-    let attestation = Attestation {
+    Attestation {
         id: [
             0x01, 0x92, 0x8c, 0x3e, 0x5a, 0x1b, 0x70, 0x00, 0x80, 0, 0, 0, 0, 0, 0x42, number,
         ],
@@ -116,7 +180,5 @@ fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Ba
         journal_sha256: Sha256::digest(JOURNAL).into(),
         license: cose::sign(license.to_cbor(), &root())
             .unwrap_or_else(|error| panic!("fixture license: {error}")),
-    };
-    sign_attestation(&attestation, &workstation)
-        .unwrap_or_else(|error| panic!("fixture attestation: {error}"))
+    }
 }

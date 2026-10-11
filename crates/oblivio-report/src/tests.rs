@@ -34,6 +34,29 @@ fn renders_every_status_in_every_language() {
 }
 
 #[test]
+fn largest_certificate_keeps_a_readable_qr_code() {
+    let signed = crate::fixture::signed_largest();
+    let text = oblivio_attestation::to_qr_text(&signed);
+    let module = crate::qr::printed_module_mm(&text).expect("encodable");
+    assert!(
+        module >= crate::qr::MIN_MODULE_MM,
+        "{} QR characters print {module:.3} mm modules",
+        text.len()
+    );
+    render(
+        &signed,
+        JOURNAL,
+        &root().verifying_key(),
+        &[],
+        &RenderOptions {
+            lang: Lang::De,
+            logo: None,
+        },
+    )
+    .expect("largest certificate rendered");
+}
+
+#[test]
 fn rendering_is_deterministic() {
     let first = render_with(Status::Compliant, "Atelier XYZ", Lang::Fr).expect("rendered");
     let second = render_with(Status::Compliant, "Atelier XYZ", Lang::Fr).expect("rendered");

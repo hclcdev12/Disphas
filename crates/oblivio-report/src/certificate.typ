@@ -115,7 +115,7 @@
 // --- Issuer, fingerprint and QR code.
 #v(4mm)
 #grid(
-  columns: (1fr, 3cm, 4.4cm),
+  columns: (1fr, 3cm, 5.5cm),
   column-gutter: 6mm,
   [
     #section(d.issuer.title, d.issuer.rows)
@@ -126,7 +126,7 @@
     #text(size: 8pt, fill: muted, d.verify_hint)
   ],
   align(center + bottom, image(d.stamp, width: 3cm, format: "svg")),
-  align(right + bottom, image(d.qr, width: 4.4cm, format: "svg")),
+  align(right + bottom, image(d.qr, width: 5.5cm, format: "svg")),
 )
 
 // --- Technical annex.
