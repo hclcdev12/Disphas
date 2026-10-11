@@ -41,6 +41,7 @@ pub fn issue(root: &SigningKey, request: &str, terms: &Terms) -> Result<(License
         not_before: terms.not_before,
         expires: terms.expires,
         workstation_key: request.workstation_key,
+        issuer: None,
     };
     let signed = cose::sign(license.to_cbor(), root).map_err(|error| error.to_string())?;
     Ok((license, license_text(&signed)))
@@ -148,6 +149,7 @@ mod tests {
             not_before: NOW,
             expires: None,
             workstation_key: [1; 32],
+            issuer: None,
         };
         record(&register, &license, NOW).expect("recorded");
         record(&register, &license, NOW + 1).expect("recorded");

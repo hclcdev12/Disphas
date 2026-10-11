@@ -34,6 +34,7 @@ pub fn issue(request: &str, now: u64, days: u64) -> Result<String, LicenseError>
         not_before: now.saturating_sub(60),
         expires: Some(now.saturating_add(days.saturating_mul(86_400))),
         workstation_key: request.workstation_key,
+        issuer: None,
     };
     let signed = oblivio_attestation::cose::sign(license.to_cbor(), &signing_key())
         .map_err(|_| LicenseError::Signature)?;

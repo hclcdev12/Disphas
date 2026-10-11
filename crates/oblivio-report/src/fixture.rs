@@ -43,6 +43,7 @@ fn signed_drive(status: Status, organization: &str, number: u8, batch: Option<Ba
         not_before: ISSUED_AT - 86_400,
         expires: None,
         workstation_key: workstation.verifying_key().to_bytes(),
+        issuer: None,
     };
     let ran = status != Status::Refused;
     let attestation = Attestation {

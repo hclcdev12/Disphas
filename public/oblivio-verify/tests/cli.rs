@@ -42,6 +42,7 @@ fn signed_attestation_of(drive_type: DriveType) -> Vec<u8> {
         not_before: ISSUED_AT - 86_400,
         expires: None,
         workstation_key: workstation.verifying_key().to_bytes(),
+        issuer: None,
     };
     let code = |text: &str| Code::new(text).expect("valid code");
     let attestation = Attestation {

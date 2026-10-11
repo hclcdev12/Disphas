@@ -32,6 +32,7 @@ fn license(expires: Option<u64>) -> License {
         not_before: ISSUED_AT - 86_400,
         expires,
         workstation_key: workstation().verifying_key().to_bytes(),
+        issuer: None,
     }
 }
 
@@ -258,6 +259,220 @@ fn any_altered_byte_is_detected() {
             "byte {index} altered without detection"
         );
     }
+}
+
+// --- Licenses signed by a shop key (version 2).
+
+fn shop() -> SigningKey {
+    SigningKey::from_bytes(&[5; 32])
+}
+
+fn issuer() -> Issuer {
+    Issuer {
+        id: "ISS-2026-01".to_owned(),
+        key: shop().verifying_key().to_bytes(),
+        not_before: ISSUED_AT - 30 * 86_400,
+        expires: ISSUED_AT + 365 * 86_400,
+        offers: vec!["Atelier".to_owned(), "Pro".to_owned()],
+        max_duration: 90 * 86_400,
+    }
+}
+
+fn signed_issuer(issuer: &Issuer, root: &SigningKey) -> Vec<u8> {
+    cose::sign(issuer.to_cbor(), root).expect("signed issuer")
+}
+
+fn shop_license() -> License {
+    License {
+        id: "OBL-20261005-0123456789abcdef".to_owned(),
+        expires: Some(ISSUED_AT + 37 * 86_400),
+        issuer: Some(signed_issuer(&issuer(), &root())),
+        ..license(None)
+    }
+}
+
+/// Attestation under `license`, signed by the shop key, then by the workstation.
+fn signed_with(license: &License) -> Vec<u8> {
+    let attestation = attestation(signed_license(license, &shop()));
+    sign_attestation(&attestation, &workstation()).expect("signed attestation")
+}
+
+#[test]
+fn issuer_and_shop_license_round_trip_through_cbor() {
+    assert_eq!(Issuer::from_cbor(&issuer().to_cbor()), Ok(issuer()));
+    let license = shop_license();
+    assert_eq!(License::from_cbor(&license.to_cbor()), Ok(license.clone()));
+    assert_eq!(as_map(&license.to_cbor())[0].1, Value::Integer(2.into()));
+}
+
+#[test]
+fn shop_license_verifies_from_a_qr_code() {
+    let qr = to_qr_text(&signed_with(&shop_license()));
+    let verified = verify(&from_qr_text(&qr).expect("valid QR"), &root_key(), &[])
+        .expect("authentic attestation");
+    assert_eq!(verified.issuer, Some(issuer()));
+    assert_eq!(verified.license.offer, "Pro");
+}
+
+#[test]
+fn shop_license_needs_an_issuer_and_an_end_date() {
+    let mut without_issuer = as_map(&shop_license().to_cbor());
+    without_issuer.retain(|(key, _)| key.as_text() != Some("iss"));
+    let mut without_end = as_map(&shop_license().to_cbor());
+    without_end.retain(|(key, _)| key.as_text() != Some("exp"));
+    for entries in [without_issuer, without_end] {
+        assert!(License::from_cbor(&raw_encode(entries)).is_err());
+    }
+    // A version 1 license cannot carry an issuer either.
+    let mut v1_with_issuer = as_map(&shop_license().to_cbor());
+    v1_with_issuer[0].1 = Value::Integer(1.into());
+    assert!(License::from_cbor(&raw_encode(v1_with_issuer)).is_err());
+}
+
+#[test]
+fn issuer_and_license_identifiers_never_overlap() {
+    let as_issuer_id = License {
+        id: "ISS-2026-01".to_owned(),
+        ..license(None)
+    };
+    assert_eq!(
+        License::from_cbor(&as_issuer_id.to_cbor()),
+        Err(CborError::Invalid("id"))
+    );
+    let unprefixed = Issuer {
+        id: "SHOP-1".to_owned(),
+        ..issuer()
+    };
+    assert_eq!(
+        Issuer::from_cbor(&unprefixed.to_cbor()),
+        Err(CborError::Invalid("iid"))
+    );
+}
+
+#[test]
+fn invalid_issuer_certificates_are_rejected() {
+    for invalid in [
+        Issuer {
+            offers: vec![],
+            ..issuer()
+        },
+        Issuer {
+            offers: vec!["Pro".to_owned(), "Atelier".to_owned()],
+            ..issuer()
+        },
+        Issuer {
+            expires: ISSUED_AT - 30 * 86_400,
+            ..issuer()
+        },
+        Issuer {
+            max_duration: 0,
+            ..issuer()
+        },
+    ] {
+        assert!(
+            Issuer::from_cbor(&invalid.to_cbor()).is_err(),
+            "{invalid:?}"
+        );
+    }
+}
+
+#[test]
+fn shop_license_must_chain_to_the_root() {
+    // License signed by another key than the certified shop key.
+    let attestation = attestation(signed_license(&shop_license(), &workstation()));
+    let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+    assert_eq!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+    // Issuer certificate signed by the shop key itself instead of the root.
+    let self_certified = License {
+        issuer: Some(signed_issuer(&issuer(), &shop())),
+        ..shop_license()
+    };
+    assert_eq!(
+        verify(&signed_with(&self_certified), &root_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+    // Shop key presented as the root.
+    assert_eq!(
+        verify(&signed_with(&shop_license()), &shop().verifying_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+}
+
+#[test]
+fn shop_license_must_stay_within_its_issuer_bounds() {
+    let outside = |license: License| {
+        assert_eq!(
+            verify(&signed_with(&license), &root_key(), &[]),
+            Err(VerifyError::LicenseContent(CborError::Inconsistent(
+                "license outside the bounds of its issuer"
+            ))),
+            "{license:?}"
+        );
+    };
+    outside(License {
+        offer: "Grands comptes".to_owned(),
+        ..shop_license()
+    });
+    outside(License {
+        not_before: ISSUED_AT - 31 * 86_400,
+        ..shop_license()
+    });
+    outside(License {
+        expires: Some(ISSUED_AT + 366 * 86_400),
+        ..shop_license()
+    });
+    outside(License {
+        expires: Some(ISSUED_AT - 86_400 + 90 * 86_400 + 1),
+        ..shop_license()
+    });
+    // Exactly the longest duration is allowed.
+    let longest = License {
+        expires: Some(ISSUED_AT - 86_400 + 90 * 86_400),
+        ..shop_license()
+    };
+    verify(&signed_with(&longest), &root_key(), &[]).expect("within bounds");
+}
+
+#[test]
+fn invalid_shop_key_is_rejected() {
+    // 0x02 followed by zeros is not a valid compressed Edwards point.
+    let mut bad_point = [0u8; 32];
+    bad_point[0] = 2;
+    let bad = License {
+        issuer: Some(signed_issuer(
+            &Issuer {
+                key: bad_point,
+                ..issuer()
+            },
+            &root(),
+        )),
+        ..shop_license()
+    };
+    let attestation = attestation(signed_license(&bad, &shop()));
+    let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+    assert!(matches!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::LicenseContent(_) | VerifyError::License(_))
+    ));
+}
+
+#[test]
+fn issuer_revocation_only_affects_later_attestations() {
+    let revoked = |revoked_at| Revocation {
+        license_id: "ISS-2026-01".to_owned(),
+        revoked_at,
+    };
+    let signed = signed_with(&shop_license());
+    assert_eq!(
+        verify(&signed, &root_key(), &[revoked(ISSUED_AT)]),
+        Err(VerifyError::LicenseRevoked)
+    );
+    assert!(verify(&signed, &root_key(), &[revoked(ISSUED_AT + 1)]).is_ok());
+    // Revoking an issuer never touches a license signed by the root.
+    assert!(verify(&valid_signed(), &root_key(), &[revoked(ISSUED_AT - 1)]).is_ok());
 }
 
 // --- QR transport.

@@ -21,9 +21,10 @@ pub mod verify;
 
 /// Re-exported so that users share the exact Ed25519 implementation.
 pub use ed25519_dalek;
-pub use model::{Attestation, License};
+pub use model::{Attestation, Issuer, License};
 pub use verify::{
-    Revocation, Verified, VerifyError, from_qr_text, sign_attestation, to_qr_text, verify,
+    Revocation, Verified, VerifyError, from_qr_text, is_revoked, sign_attestation, to_qr_text,
+    verify, verify_license,
 };
 
 #[cfg(test)]

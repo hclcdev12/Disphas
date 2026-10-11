@@ -9,8 +9,16 @@ use crate::cbor::{self, CborError, Fields, MapBuilder};
 
 /// Version of the attestation schema (`v`).
 pub const ATTESTATION_VERSION: u64 = 1;
-/// Version of the license schema (`v`).
+/// Version of the license schema signed by the root key (`v`).
 pub const LICENSE_VERSION: u64 = 1;
+/// Version of the license schema signed by a shop key, issuer certificate
+/// embedded (`v`, `docs/licences_en_ligne.md` §3).
+pub const ISSUED_LICENSE_VERSION: u64 = 2;
+/// Version of the issuer certificate schema (`v`).
+pub const ISSUER_VERSION: u64 = 1;
+/// Prefix of every issuer identifier. License identifiers never start with
+/// it, so one revocation list revokes both without ambiguity.
+pub const ISSUER_ID_PREFIX: &str = "ISS-";
 /// Version of the activation request schema (`v`).
 pub const ACTIVATION_REQUEST_VERSION: u64 = 1;
 
@@ -353,11 +361,13 @@ pub struct Attestation {
     pub tool: Tool,
     /// SHA-256 of the detailed journal (`jh`).
     pub journal_sha256: [u8; 32],
-    /// Workstation license, a COSE_Sign1 signed by the root key (`lic`).
+    /// Workstation license, a COSE_Sign1 signed by the root key or by a shop
+    /// key (`lic`).
     pub license: Vec<u8>,
 }
 
-/// The workstation license, signed by the Oblivio root key.
+/// The workstation license, signed by the Oblivio root key (version 1) or by
+/// a shop key whose issuer certificate it embeds (version 2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct License {
     /// License identifier (`id`).
@@ -372,6 +382,9 @@ pub struct License {
     pub expires: Option<u64>,
     /// Workstation public key, Ed25519 (`wpk`).
     pub workstation_key: [u8; 32],
+    /// Issuer certificate, a COSE_Sign1 signed by the root key (`iss`):
+    /// present in a version 2 license only, which then always expires.
+    pub issuer: Option<Vec<u8>>,
 }
 
 impl License {
@@ -382,15 +395,21 @@ impl License {
 
     /// Deterministic CBOR encoding.
     pub fn to_cbor(&self) -> Vec<u8> {
+        let version = if self.issuer.is_some() {
+            ISSUED_LICENSE_VERSION
+        } else {
+            LICENSE_VERSION
+        };
         cbor::encode(
             MapBuilder::default()
-                .field("v", uint(LICENSE_VERSION))
+                .field("v", uint(version))
                 .field("id", text(&self.id))
                 .field("cli", text(&self.customer))
                 .field("off", text(&self.offer))
                 .field("nbf", uint(self.not_before))
                 .optional("exp", self.expires.map(uint))
                 .field("wpk", Value::Bytes(self.workstation_key.to_vec()))
+                .optional("iss", self.issuer.clone().map(Value::Bytes))
                 .build(),
         )
     }
@@ -402,7 +421,8 @@ impl License {
 
     fn from_value(value: Value) -> Result<Self, CborError> {
         let mut fields = Fields::of(value, "license")?;
-        if cbor::uint(fields.required("v")?, "v")? != LICENSE_VERSION {
+        let version = cbor::uint(fields.required("v")?, "v")?;
+        if version != LICENSE_VERSION && version != ISSUED_LICENSE_VERSION {
             return Err(CborError::Invalid("v"));
         }
         let license = Self {
@@ -415,9 +435,109 @@ impl License {
                 .map(|value| cbor::uint(value, "exp"))
                 .transpose()?,
             workstation_key: cbor::fixed_bytes(fields.required("wpk")?, "wpk")?,
+            issuer: fields
+                .optional("iss")
+                .map(|value| cbor::bytes(value, "iss"))
+                .transpose()?,
         };
         fields.finish()?;
+        if version == ISSUED_LICENSE_VERSION
+            && (license.issuer.is_none() || license.expires.is_none())
+        {
+            return Err(CborError::Missing("iss, exp"));
+        }
+        if license.id.starts_with(ISSUER_ID_PREFIX) {
+            return Err(CborError::Invalid("id"));
+        }
         Ok(license)
+    }
+}
+
+/// Issuer certificate: the root key delegates license signing to a shop key,
+/// within bounds (`docs/licences_en_ligne.md` §3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Issuer {
+    /// Issuer identifier, starting with [`ISSUER_ID_PREFIX`] (`iid`).
+    pub id: String,
+    /// Shop public key, Ed25519 (`ipk`).
+    pub key: [u8; 32],
+    /// Start of validity, UTC epoch seconds (`nbf`).
+    pub not_before: u64,
+    /// End of validity, UTC epoch seconds (`exp`).
+    pub expires: u64,
+    /// Offers this issuer may sign, sorted, without duplicates (`off`).
+    pub offers: Vec<String>,
+    /// Longest license it may sign, `exp − nbf` in seconds (`maxd`).
+    pub max_duration: u64,
+}
+
+impl Issuer {
+    /// Deterministic CBOR encoding.
+    pub fn to_cbor(&self) -> Vec<u8> {
+        cbor::encode(
+            MapBuilder::default()
+                .field("v", uint(ISSUER_VERSION))
+                .field("iid", text(&self.id))
+                .field("ipk", Value::Bytes(self.key.to_vec()))
+                .field("nbf", uint(self.not_before))
+                .field("exp", uint(self.expires))
+                .field(
+                    "off",
+                    Value::Array(self.offers.iter().map(|offer| text(offer)).collect()),
+                )
+                .field("maxd", uint(self.max_duration))
+                .build(),
+        )
+    }
+
+    /// Strict decoding: deterministic encoding, known fields only, a prefixed
+    /// identifier, a non-empty validity and offers sorted without duplicates.
+    pub fn from_cbor(bytes: &[u8]) -> Result<Self, CborError> {
+        cbor::decode_canonical(bytes, Self::from_value, Self::to_cbor)
+    }
+
+    fn from_value(value: Value) -> Result<Self, CborError> {
+        let mut fields = Fields::of(value, "issuer")?;
+        if cbor::uint(fields.required("v")?, "v")? != ISSUER_VERSION {
+            return Err(CborError::Invalid("v"));
+        }
+        let issuer = Self {
+            id: cbor::text(fields.required("iid")?, "iid")?,
+            key: cbor::fixed_bytes(fields.required("ipk")?, "ipk")?,
+            not_before: cbor::uint(fields.required("nbf")?, "nbf")?,
+            expires: cbor::uint(fields.required("exp")?, "exp")?,
+            offers: cbor::array(fields.required("off")?, "off")?
+                .into_iter()
+                .map(|value| cbor::text(value, "off"))
+                .collect::<Result<_, _>>()?,
+            max_duration: cbor::uint(fields.required("maxd")?, "maxd")?,
+        };
+        fields.finish()?;
+        if !issuer.id.starts_with(ISSUER_ID_PREFIX) || issuer.id.len() > 64 {
+            return Err(CborError::Invalid("iid"));
+        }
+        if issuer.expires <= issuer.not_before || issuer.max_duration == 0 {
+            return Err(CborError::Invalid("exp"));
+        }
+        let sorted = issuer.offers.windows(2).all(|pair| pair[0] < pair[1]);
+        if issuer.offers.is_empty() || !sorted {
+            return Err(CborError::Invalid("off"));
+        }
+        Ok(issuer)
+    }
+
+    /// Whether this issuer may sign `license`: an allowed offer, within its own
+    /// validity, no longer than its maximum duration.
+    pub fn allows(&self, license: &License) -> bool {
+        let Some(expires) = license.expires else {
+            return false;
+        };
+        self.offers.contains(&license.offer)
+            && self.not_before <= license.not_before
+            && expires <= self.expires
+            && expires
+                .checked_sub(license.not_before)
+                .is_some_and(|duration| duration <= self.max_duration)
     }
 }
 

@@ -34,6 +34,7 @@ fn license_for(request: &str, expires: Option<u64>) -> License {
         not_before: NOW - DAY,
         expires,
         workstation_key: request.workstation_key,
+        issuer: None,
     }
 }
 
@@ -132,6 +133,7 @@ fn license_for_another_workstation_is_refused() {
     let other = SigningKey::from_bytes(&[5; 32]);
     let license = License {
         workstation_key: other.verifying_key().to_bytes(),
+        issuer: None,
         ..license_for(
             &store.create_activation_request(NOW).expect("request"),
             None,
@@ -154,6 +156,7 @@ fn license_before_activation_is_refused() {
         not_before: NOW,
         expires: None,
         workstation_key: other.verifying_key().to_bytes(),
+        issuer: None,
     };
     assert!(matches!(
         store.install(&issue(&license, &root()), &root().verifying_key(), NOW),

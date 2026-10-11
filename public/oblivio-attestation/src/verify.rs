@@ -2,7 +2,8 @@
 //! (`docs/certificat.md` §1, §4, §5).
 //!
 //! ```text
-//! root key ──signs──► license { workstation key } ──signs──► attestation
+//! root key ──signs──► license v1 { workstation key } ──signs──► attestation
+//! root key ──signs──► issuer { shop key } ──signs──► license v2 ──signs──► attestation
 //! ```
 
 use ed25519_dalek::{SigningKey, VerifyingKey};
@@ -12,17 +13,17 @@ use thiserror::Error;
 use crate::base45;
 use crate::cbor::CborError;
 use crate::cose::{self, CoseError, Unverified};
-use crate::model::{Attestation, License};
+use crate::model::{Attestation, Issuer, License};
 
 /// Prefix of the QR text, version 1.
 pub const QR_PREFIX: &str = "OBV1:";
 /// Largest decompressed attestation accepted from a QR code.
 pub const MAX_ATTESTATION_BYTES: usize = 64 * 1024;
 
-/// A license revoked at a given time.
+/// A license, or every license of an issuer, revoked at a given time.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Revocation {
-    /// Revoked license identifier.
+    /// Revoked license identifier, or issuer identifier (prefix `ISS-`).
     pub license_id: String,
     /// Revocation time, UTC epoch seconds.
     pub revoked_at: u64,
@@ -43,10 +44,12 @@ pub enum VerifyError {
     /// The attestation content is invalid.
     #[error("attestation content: {0}")]
     AttestationContent(CborError),
-    /// The license envelope is invalid or not signed by the root key.
+    /// The license, or its issuer certificate, is invalid or does not chain
+    /// to the root key.
     #[error("license: {0}")]
     License(CoseError),
-    /// The license content is invalid.
+    /// The license or issuer content is invalid, or the issuer was not
+    /// allowed to sign this license.
     #[error("license content: {0}")]
     LicenseContent(CborError),
     /// The workstation key in the license is not a valid Ed25519 key.
@@ -55,7 +58,7 @@ pub enum VerifyError {
     /// The license was not valid when the attestation was issued.
     #[error("license not valid at the attestation date")]
     LicenseNotValid,
-    /// The license was revoked before the attestation was issued.
+    /// The license, or its issuer, was revoked before the attestation was issued.
     #[error("license revoked before the attestation date")]
     LicenseRevoked,
     /// The attestation is not signed by the licensed workstation.
@@ -70,6 +73,8 @@ pub struct Verified {
     pub attestation: Attestation,
     /// The license of the workstation that signed it.
     pub license: License,
+    /// The issuer that signed the license, for a version 2 license.
+    pub issuer: Option<Issuer>,
 }
 
 impl Verified {
@@ -102,13 +107,57 @@ pub fn from_qr_text(text: &str) -> Result<Vec<u8>, VerifyError> {
         .map_err(|_| VerifyError::Corrupted)
 }
 
+/// Authenticates a signed license against the root public key alone: signed
+/// by the root (version 1), or by the shop key of its embedded issuer
+/// certificate, itself signed by the root and allowed to sign this license
+/// (version 2). Validity dates and revocations are the caller's to check.
+pub fn verify_license(
+    signed: &[u8],
+    root: &VerifyingKey,
+) -> Result<(License, Option<Issuer>), VerifyError> {
+    let envelope = Unverified::parse(signed).map_err(VerifyError::License)?;
+    // Parsed before its signature is checked, only to find the signer.
+    let claimed =
+        License::from_cbor(envelope.untrusted_payload()).map_err(VerifyError::LicenseContent)?;
+    let Some(issuer_signed) = &claimed.issuer else {
+        envelope.verify(root).map_err(VerifyError::License)?;
+        return Ok((claimed, None));
+    };
+    let issuer_envelope = Unverified::parse(issuer_signed).map_err(VerifyError::License)?;
+    let issuer_payload = issuer_envelope.verify(root).map_err(VerifyError::License)?;
+    let issuer = Issuer::from_cbor(issuer_payload).map_err(VerifyError::LicenseContent)?;
+    let shop = VerifyingKey::from_bytes(&issuer.key)
+        .map_err(|_| VerifyError::LicenseContent(CborError::Invalid("ipk")))?;
+    envelope.verify(&shop).map_err(VerifyError::License)?;
+    if !issuer.allows(&claimed) {
+        return Err(VerifyError::LicenseContent(CborError::Inconsistent(
+            "license outside the bounds of its issuer",
+        )));
+    }
+    Ok((claimed, Some(issuer)))
+}
+
+/// Whether `license`, or its `issuer`, was revoked at or before `time`.
+pub fn is_revoked(
+    license: &License,
+    issuer: Option<&Issuer>,
+    revocations: &[Revocation],
+    time: u64,
+) -> bool {
+    revocations.iter().any(|revocation| {
+        revocation.revoked_at <= time
+            && (revocation.license_id == license.id
+                || issuer.is_some_and(|issuer| revocation.license_id == issuer.id))
+    })
+}
+
 /// Verifies a signed attestation against the root public key alone.
 ///
 /// Checks, in order: the attestation envelope, its content, the license
-/// signature by the root key, the license validity and revocation at the
-/// attestation date, and finally the attestation signature by the licensed
-/// workstation key. A revocation dated after the attestation does not
-/// invalidate it.
+/// chain to the root key ([`verify_license`]), the license validity and
+/// revocation (license or issuer) at the attestation date, and finally the
+/// attestation signature by the licensed workstation key. A revocation dated
+/// after the attestation does not invalidate it.
 pub fn verify(
     signed: &[u8],
     root: &VerifyingKey,
@@ -119,17 +168,11 @@ pub fn verify(
     let claimed = Attestation::from_cbor(envelope.untrusted_payload())
         .map_err(VerifyError::AttestationContent)?;
 
-    let license_envelope = Unverified::parse(&claimed.license).map_err(VerifyError::License)?;
-    let license_payload = license_envelope
-        .verify(root)
-        .map_err(VerifyError::License)?;
-    let license = License::from_cbor(license_payload).map_err(VerifyError::LicenseContent)?;
+    let (license, issuer) = verify_license(&claimed.license, root)?;
     if !license.is_valid_at(claimed.issued_at) {
         return Err(VerifyError::LicenseNotValid);
     }
-    if revocations.iter().any(|revocation| {
-        revocation.license_id == license.id && revocation.revoked_at <= claimed.issued_at
-    }) {
+    if is_revoked(&license, issuer.as_ref(), revocations, claimed.issued_at) {
         return Err(VerifyError::LicenseRevoked);
     }
 
@@ -141,5 +184,6 @@ pub fn verify(
     Ok(Verified {
         attestation: claimed,
         license,
+        issuer,
     })
 }
