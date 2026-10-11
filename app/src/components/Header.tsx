@@ -15,14 +15,14 @@ export function Header({
   onSettings,
 }: {
   hello: HelloResult | null;
-  mode: "tauri" | "preview";
+  mode: "tauri" | "preview" | "demo";
   connected: boolean;
   license: LicenseStatusResult | null;
   onLicense: () => void;
   onSettings: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const helper = mode === "preview" ? "preview" : connected ? "connected" : "disconnected";
+  const helper = mode === "tauri" ? (connected ? "connected" : "disconnected") : mode;
   return (
     <header className="flex items-center gap-4 border-b border-edge px-6 py-4">
       <img src={wordmark} alt="Oblivio" className="h-6" />
@@ -32,8 +32,8 @@ export function Header({
           <Dot tone="ready" />
           {t("header.offline")}
         </Badge>
-        <Badge tone={helper === "connected" ? "brand" : helper === "preview" ? "blocked" : "sayno"}>
-          <Dot tone={helper === "connected" ? "brand" : helper === "preview" ? "blocked" : "sayno"} />
+        <Badge tone={helper === "connected" || helper === "demo" ? "brand" : helper === "preview" ? "blocked" : "sayno"}>
+          <Dot tone={helper === "connected" || helper === "demo" ? "brand" : helper === "preview" ? "blocked" : "sayno"} />
           {t(`header.helper.${helper}`)}
         </Badge>
         {license && (

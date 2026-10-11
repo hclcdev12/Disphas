@@ -4,6 +4,7 @@
     "helper": {
       "connected": "HELPER VERBUNDEN",
       "preview": "BROWSER-VORSCHAU",
+      "demo": "DEMO · FIKTIVE DATENTRÄGER",
       "disconnected": "HELPER NICHT VERFÜGBAR"
     },
     "license": {

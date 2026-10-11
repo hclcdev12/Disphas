@@ -8,7 +8,9 @@ export const LANGUAGES = ["en", "fr", "de"] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 function systemLanguage(): Language {
-  const tag = navigator.language.slice(0, 2).toLowerCase();
+  // `?lang=` first: the website's demo opens in the language of its page.
+  const requested = new URLSearchParams(window.location.search).get("lang");
+  const tag = (requested ?? navigator.language).slice(0, 2).toLowerCase();
   return (LANGUAGES as readonly string[]).includes(tag) ? (tag as Language) : "en";
 }
 

@@ -28,6 +28,10 @@ fixtures = []
 name = "sample"
 required-features = ["fixtures"]
 
+[[example]]
+name = "demo_certificates"
+required-features = ["fixtures"]
+
 [lints]
 workspace = true
 

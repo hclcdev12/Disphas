@@ -4,6 +4,7 @@
     "helper": {
       "connected": "HELPER CONNECTED",
       "preview": "BROWSER PREVIEW",
+      "demo": "DEMO · FICTIONAL DRIVES",
       "disconnected": "HELPER UNAVAILABLE"
     },
     "license": {

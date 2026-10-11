@@ -4,6 +4,7 @@
     "helper": {
       "connected": "HELPER CONNECTÉ",
       "preview": "APERÇU NAVIGATEUR",
+      "demo": "DÉMO · DISQUES FICTIFS",
       "disconnected": "HELPER INDISPONIBLE"
     },
     "license": {

@@ -19,6 +19,7 @@ import recording from "../dev/demo-recording.json";
 import previewLabels from "../dev/code-labels.json";
 import previewHistory from "../dev/history-sample.json";
 import previewVerification from "../dev/verification-sample.json";
+import { demoApi } from "../demo/api";
 
 /** One report of the certificate history (app/src-tauri/src/history.rs). */
 export type HistoryEntry = {
@@ -100,8 +101,11 @@ export type HelperError = { code: string; detail: string | null };
 export type Outcome<T> = { ok: true; value: T } | { ok: false; error: HelperError };
 
 export interface OblivioApi {
-  /** `tauri`: real helper. `preview`: browser, replays a recording of the demo helper. */
-  readonly mode: "tauri" | "preview";
+  /**
+   * `tauri`: real helper. `preview`: browser, replays a recording of the demo
+   * helper. `demo`: the website's interactive demo, a simulated helper.
+   */
+  readonly mode: "tauri" | "preview" | "demo";
   hello(): Promise<Outcome<HelloResult>>;
   listDevices(): Promise<Outcome<ListDevicesResult>>;
   inspect(device: DeviceRef): Promise<Outcome<InspectResult>>;
@@ -250,4 +254,7 @@ const previewApi: OblivioApi = {
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 
-export const api: OblivioApi = isTauri() ? tauriApi : previewApi;
+// The demo build (`npm run build:demo`) sets VITE_OBLIVIO_DEMO: the bundler then
+// drops the real helper calls and the preview, which it never uses.
+export const api: OblivioApi =
+  import.meta.env.VITE_OBLIVIO_DEMO === "1" ? demoApi : isTauri() ? tauriApi : previewApi;
