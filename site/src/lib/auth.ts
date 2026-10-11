@@ -8,7 +8,7 @@ import { magicLink } from "better-auth/plugins";
 import * as schema from "../db/schema";
 import { db } from "./db";
 import { send } from "./mail";
-import { signInMail } from "./sign-in-mail";
+import { accountMail } from "./account-mail";
 
 // Never run outside development with a default secret or a guessed URL.
 if (!import.meta.env.DEV && (!process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL)) {
@@ -25,11 +25,36 @@ export const auth = betterAuth({
       // Better Auth's default, stated: a link is valid 5 minutes, once.
       expiresIn: 300,
       sendMagicLink: async ({ email, url }) => {
-        const mail = signInMail(url);
-        await send({ to: email, subject: mail.subject, text: mail.text });
+        await send({ to: email, ...accountMail("signIn", url) });
       },
     }),
   ],
+  // Used only by the change of address: the link sent to the new address.
+  emailVerification: {
+    expiresIn: 3600,
+    sendVerificationEmail: async ({ user, url }) => {
+      await send({ to: user.email, ...accountMail("verifyNewEmail", url) });
+    },
+  },
+  user: {
+    // Two steps: confirmed from the current address, then verified from the
+    // new one, so a stolen session alone cannot take the account over.
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+        await send({ to: user.email, ...accountMail("confirmEmailChange", url, newEmail) });
+      },
+    },
+    // Right to erasure: confirmed by a link sent to the address, opened in
+    // the signed-in browser (Better Auth checks both).
+    deleteUser: {
+      enabled: true,
+      deleteTokenExpiresIn: 3600,
+      sendDeleteAccountVerification: async ({ user, url }) => {
+        await send({ to: user.email, ...accountMail("deleteAccount", url) });
+      },
+    },
+  },
   rateLimit: { enabled: true },
   // Off by default in Better Auth; stated so it never depends on the environment.
   telemetry: { enabled: false },

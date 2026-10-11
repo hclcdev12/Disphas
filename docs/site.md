@@ -182,6 +182,16 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
    forger. Hors développement, le site refuse de servir l'espace client sans `DATABASE_URL`, `BETTER_AUTH_SECRET`,
    `BETTER_AUTH_URL`. Testé : parcours complet, lien à usage unique, déconnexion, limites, requête intersite (403),
    téléchargement (identique à l'octet ; 401 sans session ; 404 pour tout nom non listé ou chemin détourné).
+   **Complété le 2026-10-11** (espace client) : **changement d'adresse** en deux étapes (lien à l'adresse actuelle,
+   puis à la nouvelle : une session volée ne suffit pas ; une adresse déjà prise reçoit la même réponse, sans
+   courriel) ; **sessions ouvertes** (navigateur et système, adresse IP, date ; fermer une session ou toutes les
+   autres ; la page ne contient jamais de jeton de session, seulement des identifiants) ; **suppression du compte**
+   (droit à l'effacement : case à cocher, puis lien envoyé à l'adresse, valable une heure, qui ne supprime qu'ouvert
+   dans le navigateur connecté du titulaire ; supprime le compte et ses sessions). Limite : un tiers connecté qui
+   ouvrirait le lien de quelqu'un d'autre le rend inutilisable (comportement de Better Auth), sans rien supprimer.
+   Courriels en FR/EN/DE (`src/lib/account-mail.ts`). Testé de bout en bout sur le serveur de développement.
+   **À valider juridiquement** : la mention « les factures déjà émises restent conservées par Stripe pour nos
+   obligations comptables » de l'écran de suppression.
    **Configuration de production** : `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `SMTP_URL`, `MAIL_FROM`,
    `CONTACT_TO`, `RELEASES_DIR`, `TRUST_PROXY=1`.
 4. **Stripe** (Checkout, webhooks, portail), sièges, clés de licence, espace « Licences et postes ».

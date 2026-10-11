@@ -19,6 +19,7 @@ const status = Astro.url.searchParams.get("status");
 const messages: Record<string, { tone: string; text: string }> = {
   sent: { tone: "border-ready/40 text-ready", text: a.status.sent },
   out: { tone: "border-edge text-ash", text: a.status.out },
+  deleted: { tone: "border-edge text-ash", text: a.status.deleted },
   invalid: { tone: "border-sayno/40 text-sayno", text: a.status.invalid },
   limited: { tone: "border-sayno/40 text-sayno", text: a.status.limited },
   expired: { tone: "border-sayno/40 text-sayno", text: a.status.expired },

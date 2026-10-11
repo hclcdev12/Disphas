@@ -1,10 +1,12 @@
 ---
-// Customer area (docs/site.md §4): downloads now; licenses, workstations
-// and invoices once sales open. Signed-in customers only.
-import { Download, KeyRound, LogOut } from "@lucide/astro";
+// Customer area (docs/site.md §4): downloads, email address, open sessions,
+// deletion; licenses, workstations and invoices once sales open.
+// Signed-in customers only; never cached.
+import { Download, KeyRound, LogOut, Mail, MonitorSmartphone, Trash } from "@lucide/astro";
 import PageHeader from "../../../components/PageHeader.astro";
 import Base from "../../../layouts/Base.astro";
 import { href, isLocale, texts } from "../../../i18n";
+import { auth } from "../../../lib/auth";
 import { listReleases } from "../../../lib/releases";
 
 export const prerender = false;
@@ -14,13 +16,52 @@ if (!isLocale(lang)) {
   return new Response(null, { status: 404 });
 }
 const user = Astro.locals.user;
-if (!user) {
+const current = Astro.locals.session;
+if (!user || !current) {
   return Astro.redirect(href(lang, "login"), 303);
 }
 Astro.response.headers.set("Cache-Control", "private, no-store");
 const a = texts(lang).account;
 const releases = await listReleases();
+// Newest first; tokens never leave the server (forms name sessions by id).
+const sessions = (await auth.api.listSessions({ headers: Astro.request.headers }))
+  .map(({ id, createdAt, ipAddress, userAgent }) => ({ id, createdAt, ipAddress, userAgent }))
+  .sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime());
+
+const status = Astro.url.searchParams.get("status");
+const linkError = Astro.url.searchParams.get("error");
+const good = ["email-sent", "email-step", "delete-sent", "session-closed", "sessions-closed"];
+const notice = linkError
+  ? { tone: "border-sayno/40 text-sayno", text: a.messages.link }
+  : status && status in a.messages
+    ? {
+        tone: good.includes(status) ? "border-ready/40 text-ready" : "border-sayno/40 text-sayno",
+        text: a.messages[status as keyof typeof a.messages],
+      }
+    : null;
+
 const size = (bytes: number) => `${new Intl.NumberFormat(lang, { maximumFractionDigits: 1 }).format(bytes / 1e6)} MB`;
+const date = (value: Date | string) =>
+  new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+/** A readable name for a user agent: browser and system, nothing more. */
+function device(agent: string | null | undefined): string {
+  if (!agent) return a.unknownDevice;
+  const browser =
+    /Edg\//.test(agent) ? "Edge"
+    : /Firefox\//.test(agent) ? "Firefox"
+    : /Chrome\//.test(agent) ? "Chrome"
+    : /Safari\//.test(agent) ? "Safari"
+    : null;
+  const system =
+    /Android/.test(agent) ? "Android"
+    : /iPhone|iPad/.test(agent) ? "iOS"
+    : /Windows/.test(agent) ? "Windows"
+    : /Mac OS X/.test(agent) ? "macOS"
+    : /Linux/.test(agent) ? "Linux"
+    : null;
+  return browser && system ? `${browser} · ${system}` : browser ?? system ?? a.unknownDevice;
+}
+const input = "w-full rounded-lg border border-edge bg-night px-3 py-2 text-sm font-normal text-soft focus:border-brand focus:outline-none";
 ---
 
 <Base locale={lang} title={a.title} noindex>
@@ -36,6 +77,8 @@ const size = (bytes: number) => `${new Intl.NumberFormat(lang, { maximumFraction
         </button>
       </form>
     </section>
+
+    {notice && <p class={`rounded-lg border px-4 py-3 text-sm ${notice.tone}`} role="status">{notice.text}</p>}
 
     <section class="panel p-8">
       <div class="flex items-center gap-3">
@@ -72,6 +115,85 @@ const size = (bytes: number) => `${new Intl.NumberFormat(lang, { maximumFraction
         <h2 class="text-lg font-bold">{a.licensesTitle}</h2>
       </div>
       <p class="mt-2 text-sm text-ash">{a.licensesLead}</p>
+    </section>
+
+    <section class="panel p-8">
+      <div class="flex items-center gap-3">
+        <Mail size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.emailTitle}</h2>
+      </div>
+      <p class="mt-2 text-sm text-ash">{a.emailLead}</p>
+      <form method="post" action="/api/account/email" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <input type="hidden" name="lang" value={lang} />
+        <label class="flex flex-1 flex-col gap-1.5 text-sm font-bold">
+          {a.newEmail}
+          <input class={input} name="email" type="email" required maxlength="254" autocomplete="email" />
+        </label>
+        <button type="submit" class="rounded-lg border border-edge px-4 py-2 text-sm font-bold text-ash hover:text-soft">
+          {a.changeEmail}
+        </button>
+      </form>
+    </section>
+
+    <section class="panel p-8">
+      <div class="flex items-center gap-3">
+        <MonitorSmartphone size={20} stroke-width={1.75} class="text-brand" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.sessionsTitle}</h2>
+      </div>
+      <p class="mt-2 text-sm text-ash">{a.sessionsLead}</p>
+      <ul class="mt-6 flex flex-col divide-y divide-edge">
+        {
+          sessions.map((session) => (
+            <li class="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:gap-6">
+              <span class="text-sm font-bold">{device(session.userAgent)}</span>
+              <span class="font-mono text-xs text-ash">{session.ipAddress ?? ""}</span>
+              <span class="text-xs text-ash">
+                {a.openedOn} {date(session.createdAt)}
+              </span>
+              <span class="sm:ml-auto">
+                {session.id === current.id ? (
+                  <span class="text-xs font-bold text-brand">{a.thisSession}</span>
+                ) : (
+                  <form method="post" action="/api/account/sessions">
+                    <input type="hidden" name="lang" value={lang} />
+                    <input type="hidden" name="id" value={session.id} />
+                    <button type="submit" class="text-xs font-bold text-ash hover:text-soft">{a.closeSession}</button>
+                  </form>
+                )}
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      {
+        sessions.length > 1 && (
+          <form method="post" action="/api/account/sessions" class="mt-4">
+            <input type="hidden" name="lang" value={lang} />
+            <input type="hidden" name="action" value="others" />
+            <button type="submit" class="rounded-lg border border-edge px-3.5 py-2 text-sm font-bold text-ash hover:text-soft">
+              {a.closeOthers}
+            </button>
+          </form>
+        )
+      }
+    </section>
+
+    <section class="rounded-lg border border-sayno/30 p-8">
+      <div class="flex items-center gap-3">
+        <Trash size={20} stroke-width={1.75} class="text-sayno" aria-hidden="true" />
+        <h2 class="text-lg font-bold">{a.deleteTitle}</h2>
+      </div>
+      <p class="mt-2 max-w-3xl text-sm text-ash">{a.deleteLead}</p>
+      <form method="post" action="/api/account/delete" class="mt-6 flex flex-col gap-4">
+        <input type="hidden" name="lang" value={lang} />
+        <label class="flex items-center gap-3 text-sm text-ash">
+          <input type="checkbox" name="confirm" value="yes" required class="h-4 w-4 accent-sayno" />
+          {a.deleteConfirm}
+        </label>
+        <button type="submit" class="w-fit rounded-lg border border-sayno/60 px-4 py-2 text-sm font-bold text-sayno hover:bg-sayno/10">
+          {a.deleteButton}
+        </button>
+      </form>
     </section>
   </div>
 </Base>
