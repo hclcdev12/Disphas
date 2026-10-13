@@ -6,7 +6,7 @@
 const fr = {
   languageName: "Français",
   meta: {
-    title: "Oblivio — L'amnésie matérielle certifiée",
+    title: "disphas — L'amnésie matérielle certifiée",
     description:
       "Effacement sécurisé de disques selon NIST SP 800-88 Rev. 2 et IEEE 2883-2022 : une décision unique, un refus quand l'effacement n'est pas prouvable, un certificat signé vérifiable hors ligne.",
   },
@@ -30,7 +30,7 @@ const fr = {
   home: {
     eyebrow: "Effacement sécurisé de disques",
     title: "Le droit à l'oubli, gravé au niveau métal.",
-    lead: "Oblivio interroge chaque disque au plus bas niveau, applique la méthode d'effacement prévue par NIST SP 800-88 Rev. 2 et IEEE 2883-2022, et scelle le résultat dans un certificat signé, vérifiable hors ligne.",
+    lead: "disphas interroge chaque disque au plus bas niveau, applique la méthode d'effacement prévue par NIST SP 800-88 Rev. 2 et IEEE 2883-2022, et scelle le résultat dans un certificat signé, vérifiable hors ligne.",
     soon: "Bientôt disponible : Linux 64 bits, disques SATA et NVMe.",
     certificate: {
       caption: "Certificat d'effacement (exemple fictif)",
@@ -45,7 +45,7 @@ const fr = {
     },
     steps: {
       title: "Cinq étapes, aucune devinette",
-      lead: "L'opérateur confirme ; Oblivio décide à partir de l'état réel du disque.",
+      lead: "L'opérateur confirme ; disphas décide à partir de l'état réel du disque.",
       items: [
         { title: "Inspecter", text: "Lecture directe du firmware (IDENTIFY NVMe et ATA) : capacités d'effacement, santé, verrous." },
         { title: "Décider", text: "Une décision unique : méthode et catégorie, réserves, devenir du disque — ou un refus." },
@@ -56,12 +56,12 @@ const fr = {
     },
     decision: {
       title: "Une seule décision, prouvée",
-      text: "Oblivio ne certifie que ce qu'il peut prouver. Quand un effacement n'est pas vérifiable, il refuse et prescrit la destruction physique.",
+      text: "disphas ne certifie que ce qu'il peut prouver. Quand un effacement n'est pas vérifiable, il refuse et prescrit la destruction physique.",
       compliant: "CONFORME",
       compliantDetail: "Purge · NVMe Sanitize · validation par échantillons",
       sayNo: "SAY NO",
       sayNoDetail: "Effacement non prouvable · destruction physique requise",
-      example: "Exemples d'états affichés par Oblivio",
+      example: "Exemples d'états affichés par disphas",
     },
     pillars: [
       {
@@ -87,7 +87,7 @@ const fr = {
     },
     band: {
       title: "Préparez votre déploiement",
-      text: "Oblivio est en cours de finalisation. Décrivez votre besoin : nous revenons vers vous.",
+      text: "disphas est en cours de finalisation. Décrivez votre besoin : nous revenons vers vous.",
     },
   },
   product: {
@@ -95,13 +95,13 @@ const fr = {
     lead: "Une application Linux qui inspecte, décide, efface, vérifie et certifie. Elle ne demande qu'une chose à l'opérateur : confirmer.",
     inspection: {
       title: "Inspection au plus bas niveau",
-      text: "Oblivio lit les capacités annoncées par le firmware du disque (NVMe Identify, ATA IDENTIFY) par des appels système directs, sans outil tiers dans la chaîne certifiée. Chaque donnée du certificat indique sa provenance.",
+      text: "disphas lit les capacités annoncées par le firmware du disque (NVMe Identify, ATA IDENTIFY) par des appels système directs, sans outil tiers dans la chaîne certifiée. Chaque donnée du certificat indique sa provenance.",
     },
     states: {
       title: "Quatre états, quatre consignes",
       items: [
-        { tone: "ready", name: "PRÊT", text: "Oblivio peut effacer et prouver l'effacement : la méthode recommandée est proposée." },
-        { tone: "neutral", name: "PROTÉGÉ", text: "Disque système, partition montée, swap actif, membre d'un volume : Oblivio n'y touchera pas." },
+        { tone: "ready", name: "PRÊT", text: "disphas peut effacer et prouver l'effacement : la méthode recommandée est proposée." },
+        { tone: "neutral", name: "PROTÉGÉ", text: "Disque système, partition montée, swap actif, membre d'un volume : disphas n'y touchera pas." },
         { tone: "blocked", name: "BLOQUÉ", text: "Disque sain, mais une action est nécessaire (veille, mot de passe ATA, cycle d'alimentation) : la consigne est affichée." },
         { tone: "sayno", name: "SAY NO", text: "Effacement non prouvable : destruction physique requise, et un rapport de refus signé." },
       ],
@@ -113,7 +113,7 @@ const fr = {
     },
     validation: {
       title: "Vérifier, puis valider",
-      text: "Avant l'effacement, Oblivio pose des échantillons témoins ; après, il les compare. Pour une réécriture, il relit le motif écrit. Sans validation réussie, pas de certificat CONFORME.",
+      text: "Avant l'effacement, disphas pose des échantillons témoins ; après, il les compare. Pour une réécriture, il relit le motif écrit. Sans validation réussie, pas de certificat CONFORME.",
     },
     certificate: {
       title: "Un certificat qui se défend seul",
@@ -146,19 +146,19 @@ const fr = {
   },
   security: {
     title: "Sécurité et conformité",
-    lead: "La preuve d'effacement n'a de valeur que si elle résiste à l'examen. Oblivio est construit pour cela.",
+    lead: "La preuve d'effacement n'a de valeur que si elle résiste à l'examen. disphas est construit pour cela.",
     standards: {
       title: "Normes de référence",
       text: "Les décisions suivent NIST SP 800-88 Rev. 2 (Guidelines for Media Sanitization) et IEEE 2883-2022 (Standard for Sanitizing Storage). Les termes Clear, Purge et Destruct sont ceux de ces normes.",
-      affiliation: "Oblivio n'est affilié ni au NIST ni à l'IEEE et n'est pas certifié par eux ; leurs normes sont citées comme références.",
+      affiliation: "disphas n'est affilié ni au NIST ni à l'IEEE et n'est pas certifié par eux ; leurs normes sont citées comme références.",
     },
     offline: {
       title: "Vos données restent chez vous",
-      text: "L'effacement, la décision, la signature et l'historique se font sur le poste. Aucune donnée de disque ni aucun certificat n'est envoyé à Oblivio. Aucune télémétrie.",
+      text: "L'effacement, la décision, la signature et l'historique se font sur le poste. Aucune donnée de disque ni aucun certificat n'est envoyé à disphas. Aucune télémétrie.",
     },
     chain: {
       title: "Une chaîne de signature vérifiable",
-      text: "Chaque poste détient sa propre clé, autorisée par la licence Oblivio ; elle signe une attestation canonique. Un vérificateur n'a besoin que de la clé publique d'Oblivio, sans connexion.",
+      text: "Chaque poste détient sa propre clé, autorisée par la licence disphas ; elle signe une attestation canonique. Un vérificateur n'a besoin que de la clé publique de disphas, sans connexion.",
     },
     verification: {
       title: "Trois niveaux de vérification",
@@ -174,7 +174,7 @@ const fr = {
     },
     disclosure: {
       title: "Signaler une vulnérabilité",
-      text: "Une faille de sécurité dans Oblivio ? Écrivez-nous en privé via la page de contact, en choisissant « Sécurité ». Une adresse dédiée sera publiée avant la commercialisation.",
+      text: "Une faille de sécurité dans disphas ? Écrivez-nous en privé via la page de contact, en choisissant « Sécurité ». Une adresse dédiée sera publiée avant la commercialisation.",
     },
   },
   pricing: {
@@ -190,13 +190,13 @@ const fr = {
   },
   download: {
     title: "Télécharger",
-    lead: "Oblivio sera téléchargeable depuis votre espace client, gratuitement pour le diagnostic.",
+    lead: "disphas sera téléchargeable depuis votre espace client, gratuitement pour le diagnostic.",
     soon: "Bientôt disponible",
     account: "Un compte gratuit sera nécessaire : il donne accès aux paquets, à leurs empreintes SHA-256 et aux mises à jour.",
   },
   demo: {
     title: "Démo interactive",
-    lead: "La vraie interface d'Oblivio, dans votre navigateur, sur des disques fictifs. Rien n'est installé, aucun disque n'est touché.",
+    lead: "La vraie interface de disphas, dans votre navigateur, sur des disques fictifs. Rien n'est installé, aucun disque n'est touché.",
     launch: "Lancer la démo",
     notice: "Disques fictifs · durées accélérées · certificats signés avec une clé de test publique, donc non authentiques.",
     desktop: "Conçue pour un écran d'ordinateur.",
@@ -205,10 +205,10 @@ const fr = {
       { tone: "ready", label: "PRÊT", drive: "DEMO NVMe Data 2TB", text: "Effacez-le : Purge par NVMe Sanitize, certificat CONFORME." },
       { tone: "ready", label: "PRÊT", drive: "DEMO HDD 4TB", text: "Disque usé : effacement certifié, destruction recommandée plutôt que réemploi." },
       { tone: "blocked", label: "BLOQUÉ", drive: "DEMO SATA SSD 500GB", text: "Gelé (B1) : cliquez sur Actualiser, puis effacez-le. La validation échoue : REFUS." },
-      { tone: "blocked", label: "BLOQUÉ", drive: "DEMO SATA SSD Locked", text: "Verrouillé (B2) : déverrouillez-le avec le mot de passe « oblivio »." },
+      { tone: "blocked", label: "BLOQUÉ", drive: "DEMO SATA SSD Locked", text: "Verrouillé (B2) : déverrouillez-le avec le mot de passe « disphas »." },
       { tone: "sayno", label: "SAY NO", drive: "DEMO Unresponsive 1TB", text: "Inspection impossible : forcez l'effacement, le certificat sera NON CONFORME." },
       { tone: "sayno", label: "SAY NO", drive: "DEMO NVMe Worn 256GB", text: "Lecture seule : aucun effacement possible, destruction physique requise." },
-      { tone: "neutral", label: "PROTÉGÉ", drive: "DEMO NVMe System 1TB", text: "Disque système : Oblivio n'y touche pas." },
+      { tone: "neutral", label: "PROTÉGÉ", drive: "DEMO NVMe System 1TB", text: "Disque système : disphas n'y touche pas." },
     ],
     confirm: "Pour confirmer un effacement, tapez les 4 derniers caractères du numéro de série affiché.",
   },
@@ -258,7 +258,7 @@ const fr = {
     signedInAs: "Connecté en tant que",
     signOut: "Se déconnecter",
     downloadsTitle: "Téléchargements",
-    downloadsLead: "Paquets d'Oblivio pour Linux 64 bits. Vérifiez l'empreinte SHA-256 avant d'installer.",
+    downloadsLead: "Paquets de disphas pour Linux 64 bits. Vérifiez l'empreinte SHA-256 avant d'installer.",
     noRelease: "Aucun paquet n'est encore publié : vous serez prévenu à la sortie.",
     checksum: "SHA-256",
     emailTitle: "Adresse de courriel",
@@ -324,7 +324,7 @@ const fr = {
   },
   footer: {
     madeIn: "Conçu en Europe",
-    affiliation: "Oblivio n'est affilié ni au NIST ni à l'IEEE ; leurs normes sont citées comme références.",
+    affiliation: "disphas n'est affilié ni au NIST ni à l'IEEE ; leurs normes sont citées comme références.",
   },
 };
 

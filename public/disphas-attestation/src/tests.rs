@@ -1,0 +1,892 @@
+//! End-to-end tests of the trust chain, on fictional keys and drives.
+
+use ciborium::Value;
+use ed25519_dalek::SigningKey;
+use sha2::{Digest, Sha256};
+
+use crate::cbor::CborError;
+use crate::cose::{self, CoseError};
+use crate::model::{
+    Category, Code, Device, Disposition, DispositionKind, DriveType, HOST_WRITE_METHOD,
+    Sanitization, Status, Tool, Validation, ValidationMethod,
+};
+use crate::verify::MAX_ATTESTATION_BYTES;
+use crate::*;
+
+const ISSUED_AT: u64 = 1_791_158_400; // 2026-10-05T00:00:00Z
+const JOURNAL: &[u8] = br#"{"timeline":[]}"#;
+
+fn root() -> SigningKey {
+    SigningKey::from_bytes(&[1; 32])
+}
+
+fn workstation() -> SigningKey {
+    SigningKey::from_bytes(&[2; 32])
+}
+
+fn license(expires: Option<u64>) -> License {
+    License {
+        id: "LIC-0001".to_owned(),
+        customer: "Atelier XYZ".to_owned(),
+        offer: "Pro".to_owned(),
+        not_before: ISSUED_AT - 86_400,
+        expires,
+        workstation_key: workstation().verifying_key().to_bytes(),
+        issuer: None,
+    }
+}
+
+fn signed_license(license: &License, root: &SigningKey) -> Vec<u8> {
+    cose::sign(license.to_cbor(), root).expect("signed license")
+}
+
+fn code(text: &str) -> Code {
+    Code::new(text).expect("valid code")
+}
+
+fn attestation(license: Vec<u8>) -> Attestation {
+    Attestation {
+        id: [
+            0x01, 0x92, 0x8c, 0x3e, 0, 0, 0x70, 0, 0x80, 0, 0, 0, 0, 0, 0, 1,
+        ],
+        issued_at: ISSUED_AT,
+        status: Status::Compliant,
+        device: Device {
+            model: "Fictional NVMe SSD 1TB".to_owned(),
+            serial: "FICT0000A001".to_owned(),
+            firmware: "FICT01FW".to_owned(),
+            capacity_bytes: 1_024_209_543_168,
+            drive_type: DriveType::Nvme,
+            wwn: None,
+            eui64: Some("00a07501fe0c0001".to_owned()),
+            nguid: None,
+        },
+        sanitization: Sanitization {
+            category: Category::Purge,
+            method: Some(code("NvmeSanitizeBlockErase")),
+            zero_finish: false,
+            all_namespaces: false,
+            references: vec!["NIST SP 800-88r2".to_owned(), "IEEE 2883-2022".to_owned()],
+        },
+        verified: Some(true),
+        validation: Some(Validation {
+            method: ValidationMethod::Canaries,
+            samples: 1000,
+            seed: [7; 32],
+            passed: true,
+        }),
+        disposition: Some(Disposition {
+            kind: DispositionKind::DestroyRecommended,
+            codes: vec![code("D4")],
+        }),
+        reserves: vec![code("R4")],
+        refusals: vec![],
+        justification: None,
+        organization: Some("Atelier XYZ".to_owned()),
+        operator: Some("J. Martin".to_owned()),
+        batch: None,
+        tool: Tool {
+            version: "0.1.0".to_owned(),
+            rules_version: "1.0.0".to_owned(),
+            binary_sha256: [9; 32],
+        },
+        journal_sha256: Sha256::digest(JOURNAL).into(),
+        license,
+    }
+}
+
+fn valid_signed() -> Vec<u8> {
+    let attestation = attestation(signed_license(&license(None), &root()));
+    sign_attestation(&attestation, &workstation()).expect("signed attestation")
+}
+
+fn root_key() -> ed25519_dalek::VerifyingKey {
+    root().verifying_key()
+}
+
+// --- Content.
+
+#[test]
+fn attestation_round_trips_through_cbor() {
+    let original = attestation(signed_license(&license(None), &root()));
+    assert_eq!(Attestation::from_cbor(&original.to_cbor()), Ok(original));
+}
+
+#[test]
+fn license_round_trips_through_cbor() {
+    let original = license(Some(ISSUED_AT + 1));
+    assert_eq!(License::from_cbor(&original.to_cbor()), Ok(original));
+}
+
+fn as_map(bytes: &[u8]) -> Vec<(Value, Value)> {
+    let value: Value = ciborium::de::from_reader(bytes).expect("valid CBOR");
+    value.into_map().expect("map")
+}
+
+fn raw_encode(entries: Vec<(Value, Value)>) -> Vec<u8> {
+    let mut out = Vec::new();
+    ciborium::ser::into_writer(&Value::Map(entries), &mut out).expect("serializable");
+    out
+}
+
+#[test]
+fn unknown_field_is_rejected() {
+    let mut entries = as_map(&license(None).to_cbor());
+    entries.push((Value::Text("x".to_owned()), Value::Bool(true)));
+    let result = License::from_cbor(&raw_encode(entries));
+    assert!(matches!(
+        result,
+        Err(CborError::Unknown | CborError::NotCanonical)
+    ));
+}
+
+#[test]
+fn null_instead_of_absent_field_is_rejected() {
+    let mut entries = as_map(&license(None).to_cbor());
+    entries.push((Value::Text("exp".to_owned()), Value::Null));
+    assert!(License::from_cbor(&raw_encode(entries)).is_err());
+}
+
+#[test]
+fn unsorted_keys_are_rejected() {
+    let mut entries = as_map(&license(None).to_cbor());
+    entries.reverse();
+    assert_eq!(
+        License::from_cbor(&raw_encode(entries)),
+        Err(CborError::NotCanonical)
+    );
+}
+
+#[test]
+fn trailing_bytes_are_rejected() {
+    let mut bytes = license(None).to_cbor();
+    bytes.push(0x00);
+    assert_eq!(License::from_cbor(&bytes), Err(CborError::NotCanonical));
+}
+
+#[test]
+fn invalid_code_is_rejected() {
+    assert!(Code::new("R4").is_some());
+    assert!(Code::new("").is_none());
+    assert!(Code::new("R4; DROP").is_none());
+}
+
+// --- Chain of trust.
+
+#[test]
+fn verifies_the_whole_chain_from_a_qr_code() {
+    let qr = to_qr_text(&valid_signed());
+    assert!(qr.starts_with("DSV1:"));
+    assert!(qr.len() < 1000, "QR text is {} characters", qr.len());
+    let verified = verify(&from_qr_text(&qr).expect("valid QR"), &root_key(), &[])
+        .expect("authentic attestation");
+    assert_eq!(verified.attestation.device.serial, "FICT0000A001");
+    assert_eq!(verified.license.customer, "Atelier XYZ");
+    assert!(verified.matches_journal(JOURNAL));
+    assert!(!verified.matches_journal(b"{}"));
+}
+
+#[test]
+fn another_root_key_is_rejected() {
+    let other_root = SigningKey::from_bytes(&[3; 32]).verifying_key();
+    assert_eq!(
+        verify(&valid_signed(), &other_root, &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+}
+
+#[test]
+fn attestation_signed_by_an_unlicensed_key_is_rejected() {
+    let attestation = attestation(signed_license(&license(None), &root()));
+    let intruder = SigningKey::from_bytes(&[4; 32]);
+    let signed = sign_attestation(&attestation, &intruder).expect("signed");
+    assert_eq!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::AttestationSignature(CoseError::BadSignature))
+    );
+}
+
+#[test]
+fn self_issued_license_is_rejected() {
+    // A workstation signing its own license instead of the root key.
+    let attestation = attestation(signed_license(&license(None), &workstation()));
+    let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+    assert_eq!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+}
+
+#[test]
+fn license_must_be_valid_at_the_attestation_date() {
+    for license in [
+        license(Some(ISSUED_AT - 1)),
+        License {
+            not_before: ISSUED_AT + 1,
+            ..license(None)
+        },
+    ] {
+        let attestation = attestation(signed_license(&license, &root()));
+        let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+        assert_eq!(
+            verify(&signed, &root_key(), &[]),
+            Err(VerifyError::LicenseNotValid)
+        );
+    }
+}
+
+#[test]
+fn revocation_only_affects_later_attestations() {
+    let revoked = |revoked_at| Revocation {
+        license_id: "LIC-0001".to_owned(),
+        revoked_at,
+    };
+    assert_eq!(
+        verify(&valid_signed(), &root_key(), &[revoked(ISSUED_AT - 1)]),
+        Err(VerifyError::LicenseRevoked)
+    );
+    assert!(verify(&valid_signed(), &root_key(), &[revoked(ISSUED_AT + 1)]).is_ok());
+}
+
+#[test]
+fn any_altered_byte_is_detected() {
+    let signed = valid_signed();
+    for index in (0..signed.len()).step_by(7) {
+        let mut altered = signed.clone();
+        altered[index] ^= 0x01;
+        assert!(
+            verify(&altered, &root_key(), &[]).is_err(),
+            "byte {index} altered without detection"
+        );
+    }
+}
+
+// --- Licenses signed by a shop key (version 2).
+
+fn shop() -> SigningKey {
+    SigningKey::from_bytes(&[5; 32])
+}
+
+fn issuer() -> Issuer {
+    Issuer {
+        id: "ISS-2026-01".to_owned(),
+        key: shop().verifying_key().to_bytes(),
+        not_before: ISSUED_AT - 30 * 86_400,
+        expires: ISSUED_AT + 365 * 86_400,
+        offers: vec!["Atelier".to_owned(), "Pro".to_owned()],
+        max_duration: 90 * 86_400,
+    }
+}
+
+fn signed_issuer(issuer: &Issuer, root: &SigningKey) -> Vec<u8> {
+    cose::sign(issuer.to_cbor(), root).expect("signed issuer")
+}
+
+fn shop_license() -> License {
+    License {
+        id: "DSL-20261005-0123456789abcdef".to_owned(),
+        expires: Some(ISSUED_AT + 37 * 86_400),
+        issuer: Some(signed_issuer(&issuer(), &root())),
+        ..license(None)
+    }
+}
+
+/// Attestation under `license`, signed by the shop key, then by the workstation.
+fn signed_with(license: &License) -> Vec<u8> {
+    let attestation = attestation(signed_license(license, &shop()));
+    sign_attestation(&attestation, &workstation()).expect("signed attestation")
+}
+
+#[test]
+fn issuer_and_shop_license_round_trip_through_cbor() {
+    assert_eq!(Issuer::from_cbor(&issuer().to_cbor()), Ok(issuer()));
+    let license = shop_license();
+    assert_eq!(License::from_cbor(&license.to_cbor()), Ok(license.clone()));
+    assert_eq!(as_map(&license.to_cbor())[0].1, Value::Integer(2.into()));
+}
+
+#[test]
+fn shop_license_verifies_from_a_qr_code() {
+    let qr = to_qr_text(&signed_with(&shop_license()));
+    let verified = verify(&from_qr_text(&qr).expect("valid QR"), &root_key(), &[])
+        .expect("authentic attestation");
+    assert_eq!(verified.issuer, Some(issuer()));
+    assert_eq!(verified.license.offer, "Pro");
+}
+
+#[test]
+fn shop_license_needs_an_issuer_and_an_end_date() {
+    let mut without_issuer = as_map(&shop_license().to_cbor());
+    without_issuer.retain(|(key, _)| key.as_text() != Some("iss"));
+    let mut without_end = as_map(&shop_license().to_cbor());
+    without_end.retain(|(key, _)| key.as_text() != Some("exp"));
+    for entries in [without_issuer, without_end] {
+        assert!(License::from_cbor(&raw_encode(entries)).is_err());
+    }
+    // A version 1 license cannot carry an issuer either.
+    let mut v1_with_issuer = as_map(&shop_license().to_cbor());
+    v1_with_issuer[0].1 = Value::Integer(1.into());
+    assert!(License::from_cbor(&raw_encode(v1_with_issuer)).is_err());
+}
+
+#[test]
+fn issuer_and_license_identifiers_never_overlap() {
+    let as_issuer_id = License {
+        id: "ISS-2026-01".to_owned(),
+        ..license(None)
+    };
+    assert_eq!(
+        License::from_cbor(&as_issuer_id.to_cbor()),
+        Err(CborError::Invalid("id"))
+    );
+    let unprefixed = Issuer {
+        id: "SHOP-1".to_owned(),
+        ..issuer()
+    };
+    assert_eq!(
+        Issuer::from_cbor(&unprefixed.to_cbor()),
+        Err(CborError::Invalid("iid"))
+    );
+}
+
+#[test]
+fn invalid_issuer_certificates_are_rejected() {
+    for invalid in [
+        Issuer {
+            offers: vec![],
+            ..issuer()
+        },
+        Issuer {
+            offers: vec!["Pro".to_owned(), "Atelier".to_owned()],
+            ..issuer()
+        },
+        Issuer {
+            expires: ISSUED_AT - 30 * 86_400,
+            ..issuer()
+        },
+        Issuer {
+            max_duration: 0,
+            ..issuer()
+        },
+    ] {
+        assert!(
+            Issuer::from_cbor(&invalid.to_cbor()).is_err(),
+            "{invalid:?}"
+        );
+    }
+}
+
+#[test]
+fn shop_license_must_chain_to_the_root() {
+    // License signed by another key than the certified shop key.
+    let attestation = attestation(signed_license(&shop_license(), &workstation()));
+    let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+    assert_eq!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+    // Issuer certificate signed by the shop key itself instead of the root.
+    let self_certified = License {
+        issuer: Some(signed_issuer(&issuer(), &shop())),
+        ..shop_license()
+    };
+    assert_eq!(
+        verify(&signed_with(&self_certified), &root_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+    // Shop key presented as the root.
+    assert_eq!(
+        verify(&signed_with(&shop_license()), &shop().verifying_key(), &[]),
+        Err(VerifyError::License(CoseError::BadSignature))
+    );
+}
+
+#[test]
+fn shop_license_must_stay_within_its_issuer_bounds() {
+    let outside = |license: License| {
+        assert_eq!(
+            verify(&signed_with(&license), &root_key(), &[]),
+            Err(VerifyError::LicenseContent(CborError::Inconsistent(
+                "license outside the bounds of its issuer"
+            ))),
+            "{license:?}"
+        );
+    };
+    outside(License {
+        offer: "Grands comptes".to_owned(),
+        ..shop_license()
+    });
+    outside(License {
+        not_before: ISSUED_AT - 31 * 86_400,
+        ..shop_license()
+    });
+    outside(License {
+        expires: Some(ISSUED_AT + 366 * 86_400),
+        ..shop_license()
+    });
+    outside(License {
+        expires: Some(ISSUED_AT - 86_400 + 90 * 86_400 + 1),
+        ..shop_license()
+    });
+    // Exactly the longest duration is allowed.
+    let longest = License {
+        expires: Some(ISSUED_AT - 86_400 + 90 * 86_400),
+        ..shop_license()
+    };
+    verify(&signed_with(&longest), &root_key(), &[]).expect("within bounds");
+}
+
+#[test]
+fn invalid_shop_key_is_rejected() {
+    // 0x02 followed by zeros is not a valid compressed Edwards point.
+    let mut bad_point = [0u8; 32];
+    bad_point[0] = 2;
+    let bad = License {
+        issuer: Some(signed_issuer(
+            &Issuer {
+                key: bad_point,
+                ..issuer()
+            },
+            &root(),
+        )),
+        ..shop_license()
+    };
+    let attestation = attestation(signed_license(&bad, &shop()));
+    let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+    assert!(matches!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::LicenseContent(_) | VerifyError::License(_))
+    ));
+}
+
+#[test]
+fn issuer_revocation_only_affects_later_attestations() {
+    let revoked = |revoked_at| Revocation {
+        license_id: "ISS-2026-01".to_owned(),
+        revoked_at,
+    };
+    let signed = signed_with(&shop_license());
+    assert_eq!(
+        verify(&signed, &root_key(), &[revoked(ISSUED_AT)]),
+        Err(VerifyError::LicenseRevoked)
+    );
+    assert!(verify(&signed, &root_key(), &[revoked(ISSUED_AT + 1)]).is_ok());
+    // Revoking an issuer never touches a license signed by the root.
+    assert!(verify(&valid_signed(), &root_key(), &[revoked(ISSUED_AT - 1)]).is_ok());
+}
+
+// --- QR transport.
+
+#[test]
+fn foreign_qr_code_is_rejected() {
+    assert_eq!(from_qr_text("HC1:6BFOXN"), Err(VerifyError::NotDisphas));
+    assert_eq!(from_qr_text("DSV1:aa"), Err(VerifyError::Corrupted));
+}
+
+#[test]
+fn decompression_is_bounded() {
+    let bomb = vec![0u8; MAX_ATTESTATION_BYTES + 1];
+    let qr = to_qr_text(&bomb);
+    assert!(qr.len() < 1000, "a bomb is small once compressed");
+    assert_eq!(from_qr_text(&qr), Err(VerifyError::Corrupted));
+}
+
+#[test]
+fn batch_round_trips_and_is_bounded() {
+    use crate::model::Batch;
+    let mut with_batch = attestation(vec![1, 2, 3]);
+    with_batch.batch = Some(Batch {
+        id: "LOT-2026_001".to_owned(),
+        label: Some("Commande 4512 — Atelier Œuvre".to_owned()),
+    });
+    assert_eq!(
+        Attestation::from_cbor(&with_batch.to_cbor()),
+        Ok(with_batch.clone())
+    );
+
+    for (id, label) in [
+        ("", None),
+        ("lot with spaces", None),
+        (&"x".repeat(65)[..], None),
+        ("LOT-1", Some("y".repeat(129))),
+    ] {
+        let mut invalid = with_batch.clone();
+        invalid.batch = Some(Batch {
+            id: id.to_owned(),
+            label,
+        });
+        assert!(
+            Attestation::from_cbor(&invalid.to_cbor()).is_err(),
+            "{id:?} accepted"
+        );
+    }
+}
+
+mod batch_verification {
+    use super::*;
+    use crate::batch::{DriveError, is_batch, verify_batch};
+    use crate::display::uuid;
+    use crate::model::Batch;
+
+    fn drive(number: u8, batch: Option<&str>) -> (String, Vec<u8>) {
+        let mut attestation = attestation(signed_license(&license(None), &root()));
+        attestation.id[15] = number;
+        attestation.batch = batch.map(|id| Batch {
+            id: id.to_owned(),
+            label: None,
+        });
+        let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+        (uuid(&attestation.id), signed)
+    }
+
+    fn files(drives: &[(String, Vec<u8>)]) -> Vec<(String, Vec<u8>)> {
+        drives
+            .iter()
+            .flat_map(|(report, signed)| {
+                [
+                    (format!("{report}.cose"), signed.clone()),
+                    (format!("{report}.json"), JOURNAL.to_vec()),
+                ]
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_consistent_batch_is_authentic() {
+        let all = files(&[drive(1, Some("LOT-A")), drive(2, Some("LOT-A"))]);
+        assert!(is_batch(&all));
+        let result = verify_batch(&all, &root().verifying_key(), &[]);
+        assert!(result.authentic());
+        assert_eq!(result.drives.len(), 2);
+        assert_eq!(result.batch.map(|batch| batch.id).as_deref(), Some("LOT-A"));
+    }
+
+    #[test]
+    fn drives_of_two_customers_are_never_one_batch() {
+        let other = |number: u8, customer: &str| {
+            let mut lic = license(None);
+            lic.id = format!("LIC-{customer}");
+            lic.customer = customer.to_owned();
+            let mut attestation = attestation(signed_license(&lic, &root()));
+            attestation.id[15] = number;
+            attestation.batch = Some(Batch {
+                id: "LOT-A".to_owned(),
+                label: None,
+            });
+            let signed = sign_attestation(&attestation, &workstation()).expect("signed");
+            (uuid(&attestation.id), signed)
+        };
+        // Two licenses of the same customer: one batch.
+        let same = files(&[drive(1, Some("LOT-A")), other(2, "Atelier XYZ")]);
+        assert!(verify_batch(&same, &root_key(), &[]).authentic());
+        // Same batch number, another customer: refused.
+        let mixed = files(&[drive(1, Some("LOT-A")), other(2, "Concurrent SA")]);
+        let result = verify_batch(&mixed, &root_key(), &[]);
+        assert!(!result.authentic());
+        assert!(matches!(
+            result.drives[1].outcome,
+            Err(DriveError::OtherCustomer)
+        ));
+    }
+
+    #[test]
+    fn any_bad_drive_fails_the_batch() {
+        // Another batch, no batch, a renamed file, a replaced journal.
+        let mixed = files(&[drive(1, Some("LOT-A")), drive(2, Some("LOT-B"))]);
+        let result = verify_batch(&mixed, &root().verifying_key(), &[]);
+        assert!(!result.authentic());
+        assert!(matches!(
+            result.drives[1].outcome,
+            Err(DriveError::OtherBatch)
+        ));
+
+        let missing = files(&[drive(1, Some("LOT-A")), drive(2, None)]);
+        assert!(!verify_batch(&missing, &root().verifying_key(), &[]).authentic());
+
+        let (report, signed) = drive(1, Some("LOT-A"));
+        let (other, _) = drive(9, Some("LOT-A"));
+        let renamed = vec![
+            (format!("{other}.cose"), signed.clone()),
+            (format!("{other}.json"), JOURNAL.to_vec()),
+        ];
+        let result = verify_batch(&renamed, &root().verifying_key(), &[]);
+        assert!(matches!(
+            result.drives[0].outcome,
+            Err(DriveError::NameMismatch)
+        ));
+
+        let tampered = vec![
+            (format!("{report}.cose"), signed),
+            (format!("{report}.json"), b"{}".to_vec()),
+        ];
+        let result = verify_batch(&tampered, &root().verifying_key(), &[]);
+        assert_eq!(result.drives[0].journal_matches, Some(false));
+        assert!(!result.authentic());
+
+        assert!(!verify_batch(&[], &root().verifying_key(), &[]).authentic());
+    }
+}
+
+/// A compliant host overwrite: Clear, validated by pattern.
+fn host_write(license: Vec<u8>) -> Attestation {
+    let mut host = attestation(license);
+    host.sanitization.category = Category::Clear;
+    host.sanitization.method = Some(code(HOST_WRITE_METHOD));
+    if let Some(validation) = &mut host.validation {
+        validation.method = ValidationMethod::Pattern;
+    }
+    host.reserves = vec![code("R7")];
+    host
+}
+
+#[test]
+fn every_namespace_is_certified_only_for_an_nvme_firmware_method() {
+    let key = workstation();
+    let check = |change: fn(&mut Attestation)| {
+        let mut attestation = attestation(signed_license(&license(None), &root()));
+        attestation.sanitization.all_namespaces = true;
+        change(&mut attestation);
+        let signed = sign_attestation(&attestation, &key).expect("signed");
+        verify(&signed, &root_key(), &[]).map(|verified| verified.attestation)
+    };
+    // An NVMe Sanitize: certified, and round-trips.
+    let fine = check(|_| {}).expect("consistent");
+    assert!(fine.sanitization.all_namespaces);
+    assert_eq!(Attestation::from_cbor(&fine.to_cbor()), Ok(fine));
+    // A refused NVMe Sanitize still erased every namespace.
+    check(|a| {
+        a.status = Status::Refused;
+        a.sanitization.category = Category::None;
+        a.disposition = None;
+        a.refusals = vec![code("N10")];
+    })
+    .expect("refused but executed");
+    for (name, change) in [
+        (
+            "SATA drive",
+            (|a: &mut Attestation| a.device.drive_type = DriveType::SataSsd)
+                as fn(&mut Attestation),
+        ),
+        ("no method", |a| a.sanitization.method = None),
+        ("host write", |a| {
+            a.sanitization.method = Some(code(HOST_WRITE_METHOD));
+            a.sanitization.category = Category::Clear;
+            if let Some(v) = &mut a.validation {
+                v.method = ValidationMethod::Pattern;
+            }
+        }),
+    ] {
+        assert!(
+            matches!(
+                check(change),
+                Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+            ),
+            "{name}"
+        );
+    }
+    // Present only when true.
+    let mut entries = as_map(&attestation(vec![1]).to_cbor());
+    for (key, value) in &mut entries {
+        if key.as_text() == Some("san")
+            && let Value::Map(san) = value
+        {
+            san.push((Value::Text("nsa".to_owned()), Value::Bool(false)));
+        }
+    }
+    assert!(Attestation::from_cbor(&raw_encode(entries)).is_err());
+}
+
+#[test]
+fn a_sata_drive_of_unreported_media_round_trips() {
+    let mut sata = host_write(signed_license(&license(None), &root()));
+    sata.device.drive_type = DriveType::Sata;
+    assert_eq!(DriveType::Sata.as_str(), "SATA");
+    assert_eq!(Attestation::from_cbor(&sata.to_cbor()), Ok(sata));
+}
+
+#[test]
+fn a_drive_type_unknown_to_this_version_is_read_and_shown_as_is() {
+    // A later disphas may sign a new type: this version still reads it.
+    let typ = DriveType::parse("NVMe-ZNS").expect("well-formed");
+    assert!(matches!(typ, DriveType::Other(_)));
+    assert_eq!(typ.as_str(), "NVMe-ZNS");
+    let mut newer = host_write(signed_license(&license(None), &root()));
+    newer.device.drive_type = typ;
+    assert_eq!(Attestation::from_cbor(&newer.to_cbor()), Ok(newer));
+    // A known text always parses to its own variant: one representation.
+    for known in ["NVMe", "SATA-SSD", "SATA-HDD", "SATA", "Unknown"] {
+        let parsed = DriveType::parse(known).expect("known");
+        assert!(!matches!(parsed, DriveType::Other(_)), "{known}");
+        assert_eq!(parsed.as_str(), known);
+    }
+    // Malformed: empty, too long, outside the alphabet.
+    for bad in ["", &"A".repeat(65), "SATA SSD", "NVMe/ZNS", "é"] {
+        assert_eq!(DriveType::parse(bad), None, "{bad:?}");
+    }
+}
+
+#[test]
+fn every_namespace_on_an_unknown_type_is_not_a_contradiction() {
+    // The newer type may be an NVMe variant: `nsa` is not rejected for it.
+    let mut newer = attestation(vec![1]);
+    newer.sanitization.all_namespaces = true;
+    newer.device.drive_type = DriveType::parse("NVMe-ZNS").expect("well-formed");
+    assert_eq!(Attestation::from_cbor(&newer.to_cbor()), Ok(newer));
+}
+
+#[test]
+fn zero_finish_is_present_only_when_true() {
+    let mut finished = host_write(vec![1]);
+    finished.sanitization.zero_finish = true;
+    assert_eq!(
+        Attestation::from_cbor(&finished.to_cbor()),
+        Ok(finished.clone())
+    );
+    // An explicit `z: false` is not canonical: rejected.
+    let mut entries = as_map(&finished.to_cbor());
+    for (key, value) in &mut entries {
+        if key.as_text() == Some("san")
+            && let Value::Map(san) = value
+        {
+            for (field, flag) in san.iter_mut() {
+                if field.as_text() == Some("z") {
+                    *flag = Value::Bool(false);
+                }
+            }
+        }
+    }
+    assert!(Attestation::from_cbor(&raw_encode(entries)).is_err());
+}
+
+#[test]
+fn contradictory_attestations_are_rejected_even_when_signed() {
+    type Change = fn(&mut Attestation);
+    let refuse = |status| {
+        move |a: &mut Attestation| {
+            a.status = status;
+            a.sanitization.category = Category::None;
+            a.disposition = None;
+            a.refusals = vec![code("N10")];
+        }
+    };
+    // Each change alone contradicts the certificate rules.
+    let cases: [(&str, Change); 14] = [
+        ("host write certified Purge", |a| {
+            a.sanitization.category = Category::Purge;
+        }),
+        ("pattern validation certified Purge", |a| {
+            a.sanitization.method = Some(code("Anything"));
+            a.sanitization.category = Category::Purge;
+        }),
+        ("zero pass after a firmware erasure", |a| {
+            a.sanitization.method = Some(code("NvmeSanitizeBlockErase"));
+            if let Some(v) = &mut a.validation {
+                v.method = ValidationMethod::Canaries;
+            }
+            a.sanitization.zero_finish = true;
+        }),
+        ("zero pass not validated", |a| {
+            a.sanitization.zero_finish = true;
+            a.status = Status::NonCompliant;
+            a.justification = Some("x".to_owned());
+            a.refusals = vec![code("N1")];
+            a.disposition = None;
+            if let Some(v) = &mut a.validation {
+                v.passed = false;
+            }
+        }),
+        ("CONFORME not verified", |a| a.verified = Some(false)),
+        ("CONFORME not validated", |a| {
+            if let Some(v) = &mut a.validation {
+                v.passed = false;
+            }
+        }),
+        ("CONFORME without validation", |a| a.validation = None),
+        ("CONFORME without method", |a| a.sanitization.method = None),
+        ("CONFORME without category", |a| {
+            a.sanitization.category = Category::None;
+        }),
+        ("CONFORME without disposition", |a| a.disposition = None),
+        ("CONFORME with refusal", |a| a.refusals = vec![code("N1")]),
+        ("CONFORME forced", |a| {
+            a.justification = Some("x".to_owned())
+        }),
+        ("NON CONFORME without justification", |a| {
+            a.status = Status::NonCompliant;
+            a.refusals = vec![code("N1")];
+        }),
+        ("REFUS with a category", |a| {
+            a.status = Status::Refused;
+            a.disposition = None;
+            a.refusals = vec![code("N10")];
+        }),
+    ];
+    let key = workstation();
+    for (name, change) in cases {
+        let mut contradictory = host_write(signed_license(&license(None), &root()));
+        change(&mut contradictory);
+        let signed = sign_attestation(&contradictory, &key).expect("signed");
+        assert!(
+            matches!(
+                verify(&signed, &root_key(), &[]),
+                Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+            ),
+            "{name}"
+        );
+    }
+
+    // The forms disphas produces are accepted.
+    let mut refused: Attestation = host_write(signed_license(&license(None), &root()));
+    refuse(Status::Refused)(&mut refused);
+    let mut forced = host_write(signed_license(&license(None), &root()));
+    forced.status = Status::NonCompliant;
+    forced.disposition = None;
+    forced.justification = Some("inspection impossible".to_owned());
+    forced.refusals = vec![code("N1")];
+    let mut zeros = host_write(signed_license(&license(None), &root()));
+    zeros.sanitization.zero_finish = true;
+    for fine in [
+        attestation(signed_license(&license(None), &root())),
+        host_write(signed_license(&license(None), &root())),
+        zeros,
+        refused,
+        forced,
+    ] {
+        let signed = sign_attestation(&fine, &key).expect("signed");
+        verify(&signed, &root_key(), &[]).expect("consistent");
+    }
+}
+
+#[test]
+fn declarative_text_must_be_displayable() {
+    use crate::model::{Batch, is_displayable};
+    assert!(is_displayable("Atelier XYZ — Lyon", false));
+    assert!(is_displayable("ligne 1\nligne 2", true));
+    assert!(!is_displayable("ligne 1\nligne 2", false));
+    for bad in [
+        "\u{202E}",
+        "\u{200B}",
+        "\u{2067}",
+        "\u{FEFF}",
+        "\u{E0041}",
+        "\t",
+        "\u{7}",
+    ] {
+        assert!(!is_displayable(&format!("a{bad}b"), true), "{bad:?}");
+    }
+    let batch = |label: &str| Batch {
+        id: "LOT-1".to_owned(),
+        label: Some(label.to_owned()),
+    };
+    assert!(batch("Commande 4512").is_valid());
+    assert!(!batch("Commande \u{202E}2154").is_valid());
+
+    let key = workstation();
+    let mut spoofed = attestation(signed_license(&license(None), &root()));
+    spoofed.organization = Some("Atelier \u{202E}ZYX".to_owned());
+    let signed = sign_attestation(&spoofed, &key).expect("signed");
+    assert!(matches!(
+        verify(&signed, &root_key(), &[]),
+        Err(VerifyError::AttestationContent(CborError::Inconsistent(_)))
+    ));
+}

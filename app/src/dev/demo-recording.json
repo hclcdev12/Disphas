@@ -1,5 +1,5 @@
 {
-  "_comment": "Recorded from `oblivio-helper --features demo` (fictional drives). Browser preview only.",
+  "_comment": "Recorded from `disphas-helper --features demo` (fictional drives). Browser preview only.",
   "hello": {
     "binary_sha256": "7dda3240199fde7077222f8841c9b4ec7a8f3a3b700ac56218e2bb59d5680123",
     "helper_version": "0.1.0",

@@ -1,6 +1,6 @@
-# Oblivio — Certificat d'effacement : format, signature, vérification
+# disphas — Certificat d'effacement : format, signature, vérification
 
-> Statut : **brouillon v0.1 — à valider**. Crates : `oblivio-attestation` (public), `oblivio-license`, `oblivio-report`, signature dans `oblivio-helper`.
+> Statut : **brouillon v0.1 — à valider**. Crates : `disphas-attestation` (public), `disphas-license`, `disphas-report`, signature dans `disphas-helper`.
 > Applique le modèle de confiance du [cadre](cadre_projet.md) §3 et les verdicts du [moteur de décision](moteur_decision.md).
 
 ## 1. Principe : un document, trois couches
@@ -28,11 +28,17 @@ standards ouverts, vérification hors ligne, tient sur papier.
 
 ### Encodage du QR
 
-`attestation COSE` → compression zlib → **Base45** (RFC 9285) → QR en mode alphanumérique, préfixe `OBV1:`.
+`attestation COSE` → compression zlib → **Base45** (RFC 9285) → QR en mode alphanumérique, préfixe `DSV1:`.
 Imprimé à **5,5 cm** avec sa marge blanche (4,4 cm jusqu'au 2026-10-11). Critère : un module d'au moins **0,40 mm**
-imprimé, pour le certificat le plus long (test `largest_certificate_keeps_a_readable_qr_code` d'`oblivio-report`).
+imprimé, pour le certificat le plus long (test `largest_certificate_keeps_a_readable_qr_code` de `disphas-report`).
 Un certificat typique fait environ 1 000 caractères (version 21), le plus long environ 1 300 (version 24) ; la
 licence v2 ajoutera environ 240 caractères ([licences_en_ligne.md](licences_en_ligne.md) §3).
+
+> **Préfixes renommés le 2026-10-13** avec le nom du produit, avant toute mise sur le marché : `OBV1:` → `DSV1:`
+> (QR), `OBR1:` → `DSR1:` (révocation), `OBA1:` → `DSA1:` (activation), `OBL1:` → `DSL1:` (licence),
+> `OBI1:` → `DSI1:` (certificat d'émetteur), identifiants `OBL-` → `DSL-`. Les certificats, licences et
+> certificats d'émetteur émis avant ne sont plus reconnus. **Inchangés** (formats de stockage, les changer rendrait
+> les clés existantes illisibles) : l'en-tête `OBR1` du fichier chiffré de la clé racine et `OBK1` de la clé du poste.
 
 ## 2. Contenu de l'attestation (signée)
 
@@ -52,9 +58,9 @@ licence v2 ajoutera environ 240 caractères ([licences_en_ligne.md](licences_en_
 | `frc` | Si forcé : justification saisie par l'opérateur | — |
 | `org` / `op` | Organisation, opérateur | — |
 | `lot` | Lot d'effacement (identifiant, libellé) | `LOT-2026-001`, `Commande 4512` |
-| `tool` | Version d'Oblivio, `rules_version`, SHA-256 du binaire | — |
+| `tool` | Version de disphas, `rules_version`, SHA-256 du binaire | — |
 | `jh` | SHA-256 du journal détaillé | — |
-| `lic` | Licence du poste (elle-même signée par la racine Oblivio, §4) | — |
+| `lic` | Licence du poste (elle-même signée par la racine disphas, §4) | — |
 
 Le numéro de série figure **en entier** dans l'attestation signée et dans le PDF : c'est lui qui lie la preuve
 à un disque physique. Les identifiants mondiaux (WWN, EUI-64, NGUID), attribués par le constructeur et
@@ -62,7 +68,7 @@ uniques au monde, renforcent ce lien quand le disque les expose.
 
 L'attestation ne contient **aucun texte traduit**, uniquement des codes : la langue relève du rendu (§6).
 
-### Encodage détaillé (`oblivio-attestation`, décidé le 2026-10-04)
+### Encodage détaillé (`disphas-attestation`, décidé le 2026-10-04)
 
 | Clé | Sous-clés | Notes |
 |---|---|---|
@@ -115,7 +121,7 @@ Un disque PROTÉGÉ ou BLOQUÉ ne produit **aucun** document : il n'y a eu ni te
 ## 4. Chaîne de signature
 
 ```
-Racine Oblivio (Ed25519, hors ligne, éditeur)
+Racine disphas (Ed25519, hors ligne, éditeur)
    │  signe (COSE_Sign1)
    ▼
 Licence .lic = { id, client, offre, validité, clé publique du poste }
@@ -136,8 +142,8 @@ Attestation signée par la clé du poste, licence incluse
 `nbf` (début de validité), `exp`? (fin, absente si perpétuelle), `wpk` (clé publique Ed25519 du poste, 32 octets).
 La vérification exige `nbf ≤ iat ≤ exp`, et l'absence de révocation datée **au plus tard** à `iat`.
 
-**Stockage de la clé du poste** (`oblivio-license`, décidé le 2026-10-04) : fichier `keys/workstation.key`
-(en-tête `OBK1` + 32 octets), mode 0600, dans un dossier 0700 sous `/var/lib/oblivio`. Généré par le
+**Stockage de la clé du poste** (`disphas-license`, décidé le 2026-10-04) : fichier `keys/workstation.key`
+(en-tête `OBK1` + 32 octets), mode 0600, dans un dossier 0700 sous `/var/lib/disphas`. Généré par le
 générateur aléatoire de l'OS, **jamais écrasé**, refusé au chargement si le fichier ou son dossier est
 ouvert à d'autres, ou si son propriétaire n'est pas celui du dossier. Aucune fonction ne restitue les octets secrets ;
 effacé de la mémoire après usage. Pas de chiffrement en V1 : sans TPM ni mot de passe, une clé de
@@ -145,28 +151,28 @@ chiffrement stockée sur le même disque n'ajouterait rien aux permissions.
 ⚠️ Limite assumée : le vol du disque ou un accès root donnent la clé. Scellement TPM 2.0 à étudier (V2+).
 
 **Formats texte** (copier-coller, courriel ou QR) :
-- demande d'activation `OBA1:` + Base45 d'un COSE_Sign1 **signé par la clé du poste elle-même**
+- demande d'activation `DSA1:` + Base45 d'un COSE_Sign1 **signé par la clé du poste elle-même**
   (preuve de possession) : `{v, wpk, iat}` ;
-- licence `OBL1:` + Base45 du COSE_Sign1 signé par la racine ; c'est le contenu du fichier `.lic`.
+- licence `DSL1:` + Base45 du COSE_Sign1 signé par la racine ; c'est le contenu du fichier `.lic`.
 L'installation exige la signature de la racine, `wpk` = clé du poste, et une licence non expirée.
 L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé de poste perdue, rend la licence invalide.
 
-**Clé racine et émission** (`tools/oblivio-issuer`, outil de l'éditeur, jamais livré, 2026-10-04) :
-- `oblivio-issuer keygen root.key` : paire Ed25519 tirée du générateur de l'OS ; graine chiffrée par
+**Clé racine et émission** (`tools/disphas-issuer`, outil de l'éditeur, jamais livré, 2026-10-04) :
+- `disphas-issuer keygen root.key` : paire Ed25519 tirée du générateur de l'OS ; graine chiffrée par
   ChaCha20-Poly1305 sous une clé dérivée de la phrase secrète par **Argon2id** (256 Mio, 3 passes) ; l'en-tête
   (paramètres, sel, nonce, clé publique) est authentifié. Fichier 0600, jamais écrasé, phrase ≥ 12 caractères,
   saisie au terminal sans écho.
-- `oblivio-issuer issue root.key --customer … --offer … (--days N | --perpetual) 'OBA1:…'` : vérifie la preuve
-  de possession de la demande, signe la licence `OBL1:…` et l'inscrit au registre `issued-licenses.csv`
-  (base de la future liste de révocation). Identifiant `OBL-AAAAMMJJ-` + 64 bits aléatoires (16 chiffres
+- `disphas-issuer issue root.key --customer … --offer … (--days N | --perpetual) 'DSA1:…'` : vérifie la preuve
+  de possession de la demande, signe la licence `DSL1:…` et l'inscrit au registre `issued-licenses.csv`
+  (base de la future liste de révocation). Identifiant `DSL-AAAAMMJJ-` + 64 bits aléatoires (16 chiffres
   hexadécimaux) ; un identifiant déjà au registre est refusé, généré ou donné par `--id` (la révocation porte sur
   l'identifiant : deux licences ne doivent jamais le partager).
-- `oblivio-issuer certify root.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N` (2026-10-11) :
-  certifie la clé boutique du serveur de licences ; imprime le certificat d'émetteur `OBI1:…` et l'inscrit au registre
+- `disphas-issuer certify root.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N` (2026-10-11) :
+  certifie la clé boutique du serveur de licences ; imprime le certificat d'émetteur `DSI1:…` et l'inscrit au registre
   `issuers.csv`. Un identifiant `ISS-` est refusé par `issue` et désigne un émetteur pour `revoke`
   ([licences_en_ligne.md](licences_en_ligne.md) §3, §10).
-- La clé publique officielle n'existe qu'en un seul endroit : `oblivio_attestation::trust::OFFICIAL_ROOT_KEY`,
-  lue par le helper, l'application et `oblivio-verify`.
+- La clé publique officielle n'existe qu'en un seul endroit : `disphas_attestation::trust::OFFICIAL_ROOT_KEY`,
+  lue par le helper, l'application et `disphas-verify`.
   **Générée le 2026-10-04** : `90241925111469b68676f8041578355a9f3e0bf14d84afd825f24782c3508a0b`.
 - ⚠️ Recommandation : générer et conserver `root.key` sur une machine hors ligne ; deux sauvegardes sur supports
   distincts ; la phrase secrète conservée séparément. Perdre l'une ou l'autre interdit toute nouvelle licence.
@@ -179,20 +185,20 @@ hors ligne de l'activation en ligne décidée le 2026-10-11 ([licences_en_ligne.
 Une attestation signée **avant** la date de révocation reste valide (horodatage `iat`).
 
 Implémentation (2026-10-04) :
-- **Format** (`oblivio_attestation::revocation`) : `OBR1:` + Base45 d'un COSE_Sign1 signé par la racine, sur le
+- **Format** (`disphas_attestation::revocation`) : `DSR1:` + Base45 d'un COSE_Sign1 signé par la racine, sur le
   CBOR déterministe `{v: 1, seq, iat, rev: [[id, date], …]}`, identifiants triés et uniques, 100 000 entrées au plus.
   Une révocation est **définitive** : les listes ne font que grandir, et l'union de listes valides est toujours juste
   (pour une même licence, la date la plus ancienne l'emporte).
-- **Émission** : `oblivio-issuer revoke root.key --id ID [--at EPOCH] (--list DERNIÈRE.obr | --first)
-  [--register FICHIER] --out NOUVELLE.obr`. L'identifiant doit figurer au registre ; la nouvelle liste reprend la
+- **Émission** : `disphas-issuer revoke root.key --id ID [--at EPOCH] (--list DERNIÈRE.dsr | --first)
+  [--register FICHIER] --out NOUVELLE.dsr`. L'identifiant doit figurer au registre ; la nouvelle liste reprend la
   dernière (vérifiée) avec `seq + 1` ; fichier jamais écrasé. `--list` est obligatoire (une liste construite sans la
   précédente perdrait ses révocations) ; seule la toute première liste se fait avec `--first`, refusé dès qu'une
   liste est livrée, de même qu'une liste plus ancienne que celle livrée. `--at` permet d'antidater à la date de compromission d'une clé de poste : tout
   certificat signé depuis devient non authentique. Une date future est refusée.
-- **Livraison** : la liste est copiée dans `public/oblivio-attestation/revocations.obr` et référencée par
+- **Livraison** : la liste est copiée dans `public/disphas-attestation/revocations.dsr` et référencée par
   `trust::OFFICIAL_REVOCATIONS` ; un test vérifie à la compilation qu'elle est signée par la racine officielle.
 - **Application** : le helper refuse de signer avec une licence révoquée (état `Revoked`) ; l'application l'applique à
-  l'historique (état « licence révoquée »), à la vérification et au rendu PDF ; `oblivio-verify` applique la liste
+  l'historique (état « licence révoquée »), à la vérification et au rendu PDF ; `disphas-verify` applique la liste
   intégrée et, avec `--revocations FICHIER`, une liste plus récente signée par la **même** racine, et affiche le numéro
   de la liste la plus récente utilisée. Si la liste intégrée ne se vérifie pas, tout échoue (**fail closed**) : le helper
   ne signe plus et rien n'est déclaré authentique.
@@ -213,21 +219,21 @@ Trois niveaux, tous hors ligne, avec la seule clé publique racine :
 **Outils de vérification :**
 - Intégré à l'application (onglet « Vérifier », implémenté le 2026-10-04) : PDF (lecture de
   `attestation.cose` et `journal.json` joints, tailles bornées), `.cose` ou texte du QR collé. Mêmes contrôles
-  que `oblivio-verify` ; un certificat non authentique est affiché par son motif seulement, jamais par son
+  que `disphas-verify` ; un certificat non authentique est affiché par son motif seulement, jamais par son
   contenu. Un certificat signé par la racine de **développement** est signalé comme sans valeur en production ;
   un journal joint qui ne correspond pas à `jh` est signalé. Niveau *Audit* (relecture des échantillons) : à faire.
-- `oblivio-verify` : vérificateur CLI **gratuit et open source**, dans un dépôt public séparé qui n'expose
+- `disphas-verify` : vérificateur CLI **gratuit et open source**, dans un dépôt public séparé qui n'expose
   que le format de l'attestation et la vérification (voir [cadre](cadre_projet.md) §8).
 - Le vérificateur affiche le résultat dans la langue de **son** utilisateur, quelle que soit la langue du PDF.
 
-**`oblivio-verify` (implémenté le 2026-10-04)** :
-`oblivio-verify [--lang en|fr|de] [--journal FICHIER] [--root-key HEX] (FICHIER | --qr TEXTE)`.
-- Entrées : **PDF** du certificat, texte du QR (`OBV1:…`) ou attestation COSE binaire ; journal optionnel
+**`disphas-verify` (implémenté le 2026-10-04)** :
+`disphas-verify [--lang en|fr|de] [--journal FICHIER] [--root-key HEX] (FICHIER | --qr TEXTE)`.
+- Entrées : **PDF** du certificat, texte du QR (`DSV1:…`) ou attestation COSE binaire ; journal optionnel
   comparé à `jh`. D'un PDF, on vérifie l'attestation **jointe** (`attestation.cose`) et, sauf `--journal`, le
   journal joint ; un PDF sans attestation est **non authentique** (code 1). Lecture PDF (2026-10-04) dans
-  `oblivio-attestation`, option `pdf` (dépendance `lopdf`, MIT ; Rust 1.88), partagée avec l'application.
+  `disphas-attestation`, option `pdf` (dépendance `lopdf`, MIT ; Rust 1.88), partagée avec l'application.
 - Codes de sortie : **0** authentique (et journal conforme s'il est fourni), **1** non authentique, **2** erreur d'usage.
-- Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (Oblivio plus récent) est affiché brut.
+- Langue : `--lang`, sinon celle du système, sinon anglais. Un code inconnu (disphas plus récent) est affiché brut.
 - Clé racine officielle intégrée depuis le 2026-10-04 ; `--root-key` reste possible et le rapport avertit
   alors qu'il s'agit d'une clé non officielle (la liste intégrée, signée par la racine officielle, ne s'applique alors pas ;
   `--revocations` reste possible). La clé officielle donnée par `--root-key` reste officielle : liste intégrée
@@ -256,7 +262,7 @@ avec krilla). typst l'emporte par son moteur de mise en page (retour à la ligne
 gabarit `.typ` lisible, logo personnalisable) ; krilla obligeait à tout positionner à la main.
 Coût accepté : ~40 Mo de binaire contre ~4 Mo, côté application utilisateur (jamais dans le helper root).
 
-**Implémentation (`oblivio-report`)** :
+**Implémentation (`disphas-report`)** :
 - Rendu **depuis l'attestation signée, après vérification** : une attestation qui ne se vérifie pas, ou un
   journal qui ne correspond pas à `jh`, ne produit aucun PDF.
 - PDF/A-3b, **déterministe** (identifiant et date dérivés de l'attestation : mêmes entrées, mêmes octets).
@@ -292,8 +298,8 @@ reste prouvé par sa propre attestation signée).
   disque garde le sien sur son certificat individuel.
 - **Refus de rendu** si une attestation ne se vérifie pas, si un journal ne correspond pas, si un disque n'a pas
   de lot ou appartient à un autre lot, ou s'il est fourni deux fois ; 1 à 2 000 disques par lot.
-- PDF/A-3b, rendu déterministe (`oblivio-report::batch`).
-- **Vérification** (`oblivio_attestation::batch`, partagée par l'application et `oblivio-verify`) : un PDF sans
+- PDF/A-3b, rendu déterministe (`disphas-report::batch`).
+- **Vérification** (`disphas_attestation::batch`, partagée par l'application et `disphas-verify`) : un PDF sans
   `attestation.cose` mais avec des `<rapport>.cose` est traité comme un lot ; chaque disque est vérifié
   (signature, licence, révocation), son journal comparé, son nom de fichier rapproché de son identifiant, et
   tous doivent porter le **même** lot. Le lot n'est authentique que si **chaque** disque l'est ; le résultat est

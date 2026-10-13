@@ -1,11 +1,11 @@
-# Oblivio — Moteur de décision V1 (NVMe & SATA)
+# disphas — Moteur de décision V1 (NVMe & SATA)
 
-> Statut : **brouillon v0.1 — à valider**. Implémentation cible : crate `oblivio-core` (aucun accès disque).
+> Statut : **brouillon v0.1 — à valider**. Implémentation cible : crate `disphas-core` (aucun accès disque).
 > Les points marqués ⚠️ sont à confirmer contre le texte d'IEEE 2883-2022 avant figement.
 
 ## 0. Principe
 
-Le moteur reçoit un **profil matériel** (lu par `oblivio-device`) et rend **un verdict unique** :
+Le moteur reçoit un **profil matériel** (lu par `disphas-device`) et rend **un verdict unique** :
 un état (§1), une méthode (§4), des réserves éventuelles, un devenir (§3.3), et la liste des raisons.
 Il est déterministe : même profil + même version de règles = même verdict.
 La version des règles (`rules_version`) est inscrite dans chaque certificat.
@@ -29,7 +29,7 @@ Le disque est intouchable si l'un de ces cas est vrai (vérifié **dans le helpe
 | P4 | Membre d'un volume LVM / RAID md / dm-crypt / multipath | `/sys/block/*/holders` |
 | P5 | NVMe : un **autre namespace** du même contrôleur est concerné par P1–P4 (Sanitize agit sur tout le contrôleur) | Identify + sysfs |
 
-**Détection** (`oblivio-device::inventory`, décidé le 2026-10-04) : lecture seule de `/sys` et `/proc`,
+**Détection** (`disphas-device::inventory`, décidé le 2026-10-04) : lecture seule de `/sys` et `/proc`,
 aucun nœud `/dev` ouvert, aucun ioctl. Seule exception (S11, revue de sécurité) : un point de montage système
 monté à la demande (autofs, `/boot/efi` par exemple) est listé pour déclencher son montage, comme le ferait
 n'importe quel programme qui le lit ; s'il reste non monté, l'inventaire **échoue**.
@@ -64,7 +64,7 @@ n'importe quel programme qui le lit ; s'il reste non monté, l'inventaire **éch
 
 ## 2. Blocages → BLOQUÉ (orange)
 
-Disque sain mais action impossible en l'état. Oblivio guide l'opérateur, ne prescrit **jamais** la destruction.
+Disque sain mais action impossible en l'état. disphas guide l'opérateur, ne prescrit **jamais** la destruction.
 
 | Code | Condition | Guidage proposé |
 |---|---|---|
@@ -74,7 +74,7 @@ Disque sain mais action impossible en l'état. Oblivio guide l'opérateur, ne pr
 | B4 | Sanitize précédent **en cours** | Attendre (progression lue dans le log), reprise automatique |
 | B5 | Sanitize précédent **en échec** (mode Failure) | Commande d'Exit Failure Mode puis nouvelle tentative |
 | B6 | Compteur de tentatives de mot de passe expiré (mot 128 bit 4) | Cycle d'alimentation |
-| B7 | Sécurité ATA **activée par un tiers** (mot 128 bit 1) sans verrouillage | Retirer le mot de passe existant, puis réinspection. Oblivio ne remplace jamais un mot de passe qu'il n'a pas posé (décidé le 2026-10-04) |
+| B7 | Sécurité ATA **activée par un tiers** (mot 128 bit 1) sans verrouillage | Retirer le mot de passe existant, puis réinspection. disphas ne remplace jamais un mot de passe qu'il n'a pas posé (décidé le 2026-10-04) |
 
 **Portée d'un blocage** (décidé le 2026-10-03) :
 - B2, B4, B5, B6 rendent **toutes** les méthodes indisponibles : ils bloquent toujours.
@@ -126,7 +126,7 @@ Le disque reste PRÊT mais la réserve est **affichée dans l'UI et inscrite au 
 | R5 | ATA 197 (en attente) ou 198 (incorrigibles) > 0 — **si encore > 0 après opération → N8** |
 | R6 | ATA 187 (erreurs non corrigées signalées) > 0 |
 | R7 | Méthode Clear uniquement : les secteurs réalloués ne sont pas couverts par une écriture hôte |
-| R8 | Modèle/firmware présent dans la base de quirks Oblivio |
+| R8 | Modèle/firmware présent dans la base de quirks disphas |
 
 Tous les seuils (50, nombre de tentatives…) sont des **paramètres versionnés** de `rules_version`, pas des constantes dans le code.
 
@@ -171,7 +171,7 @@ Les catégories marquées ⚠️ sont des **paramètres du `RuleSet`** (`categor
 celles des tableaux ci-dessous : leur confirmation contre IEEE 2883 ne changera que `rules_version`, pas le code.
 L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (règle invariante).
 
-**Décodage** (`oblivio-device::decode`, décidé le 2026-10-04) : fonctions pures, octets → profil.
+**Décodage** (`disphas-device::decode`, décidé le 2026-10-04) : fonctions pures, octets → profil.
 - Tampon trop court, somme de contrôle IDENTIFY ATA (mot 255, signature A5h) ou SMART fausse → **rejeté**, jamais interprété.
 - Bits Sanitize ATA (mot 59, bits 13 à 15) ignorés si le bit 12 (jeu Sanitize supporté) est absent.
 - Mot 217 non renseigné : disque traité comme **SSD** (jamais d'Overwrite proposé, Security Erase certifié Clear
@@ -185,7 +185,7 @@ L'écriture hôte, elle, est **toujours** Clear, quel que soit le `RuleSet` (rè
   tests différentiels contre `smartctl --json -x` à faire sur le banc (cadre §9). À vérifier en priorité :
   bits de SANITIZE STATUS EXT (14 = en cours, 13 = gelé), FNA et SANICAP.
 
-**Exécution** (`oblivio-device`, 2026-10-04) : NVMe Sanitize (Block / Crypto Erase) et Format NVM (SES 1/2)
+**Exécution** (`disphas-device`, 2026-10-04) : NVMe Sanitize (Block / Crypto Erase) et Format NVM (SES 1/2)
 par commandes d'administration ; ATA Sanitize (Block Erase, Crypto Scramble, Overwrite 1 passe à zéro) par
 ATA PASS-THROUGH (16) ; progression lue dans le journal / SANITIZE STATUS EXT.
 Le journal Sanitize NVMe (81h) n'est lu à l'inspection que si `SANICAP` annonce une action (bits 2:0, Overwrite
@@ -275,9 +275,9 @@ mesurer sur le banc).
 **Échantillon** : LBA 0, LBA milieu, dernier LBA + **N** blocs aléatoires répartis (N = 1 000 par défaut, minimum 100). Graine aléatoire inscrite au certificat (rejouable).
 Option « validation intégrale » (lecture complète) proposée pour les méthodes hôte.
 
-## 6. Esquisse de types (`oblivio-core`)
+## 6. Esquisse de types (`disphas-core`)
 
-Implémenté dans `crates/oblivio-core` (rules_version **1.0.0**). Forme simplifiée :
+Implémenté dans `crates/disphas-core` (rules_version **1.0.0**). Forme simplifiée :
 
 ```rust
 pub enum Verdict {
@@ -294,7 +294,7 @@ pub struct Ready {
     pub disposition: Disposition,                 // Reuse | DestroyRecommended { reasons: Vec<DispositionCode> }
 }
 
-pub enum Category { Clear, Purge }   // Destruct n'est jamais exécuté par Oblivio
+pub enum Category { Clear, Purge }   // Destruct n'est jamais exécuté par disphas
 
 pub struct RuleSet {
     pub version: semver::Version,

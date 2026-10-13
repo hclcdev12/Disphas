@@ -1,6 +1,6 @@
-# Oblivio — Reprise du projet (passation entre agents)
+# disphas — Reprise du projet (passation entre agents)
 
-État au **2026-10-11**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
+État au **2026-10-13**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
 dit où en est le projet, comment travailler avec le propriétaire et comment piloter le banc de test. Les
 specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les remplace pas.
 
@@ -9,7 +9,7 @@ specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les
 Le produit V1 est **complet et testé sur du vrai matériel** pour SATA (SSD et HDD) :
 
 - Helper root, moteur de décision, protections P1–P5, 9 contrôles de `Sanitize`, signature Ed25519, PDF/A,
-  `oblivio-verify`, licences et révocation, lots et effacement parallèle, paquets `.deb`/`.rpm` (6 distributions
+  `disphas-verify`, licences et révocation, lots et effacement parallèle, paquets `.deb`/`.rpm` (6 distributions
   testées en CI), application Tauri (Disques, Effacements, Historique, Vérifier, réglages).
 - **Revue de sécurité terminée** (S1–S11, L1–L12) : voir [sécurité](securite.md) §5.
 - **Banc de test (2026-10-06)** : effacements réels réussis et certificats vérifiés hors ligne :
@@ -35,6 +35,14 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 
 ## 2. Points ouverts
 
+**Renommage Oblivio → disphas (2026-10-13)** : code, site, paquets, chemins (`/var/lib/disphas`, `/usr/libexec/disphas`),
+variables `DISPHAS_*`, action polkit `org.disphas.helper` et préfixes de format ([certificat](certificat.md) §1) renommés.
+Gardent l'ancien nom : documents d'origine, logos de `assets/logo/` (et sa copie du site), domaines `oblivio.eu` et
+`licence.oblivio.eu` (à trancher par le propriétaire), alias SSH `oblivio-bench`, dépôt GitHub `hclcdev12/Oblivio`,
+groupe `oblivio` supprimé par le paquet, en-têtes `OBR1` (clé racine) et `OBK1` (clé du poste). Reste à faire :
+logos disphas (SVG à demander au graphiste), recherche de marque, refaire le certificat d'émetteur (`DSI1:`) et
+réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc installe déjà la nouvelle règle polkit.
+
 **À faire ensuite (banc)**
 
 1. ~~Tester le paquet de `472cec3` sur le banc~~ → **fait le 2026-10-07**, tout est conforme (détail dans
@@ -51,7 +59,7 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
    « Erreur interne du helper ») ; le libellé de P4 cite le périphérique loop. Vérifié sur le banc (paquet
    `0.1.0+build.12`) ; un disque devenu protégé entre verdict et ouverture répond `PROTECTED` (test du helper
    seulement : la course n'est pas reproductible à la main).
-4. Persistance de `/var/lib/oblivio` sur le banc (option (b) : NFS `no_root_squash`) : prérequis de tout test de
+4. Persistance de `/var/lib/disphas` sur le banc (option (b) : NFS `no_root_squash`) : prérequis de tout test de
    coupure pendant un Security Erase.
 
 **Décisions à soumettre au propriétaire**
@@ -63,7 +71,7 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
 7. ~~Après un effacement, la carte du disque revient à l'ancienne décision~~ → corrigé le 2026-10-07 : l'app
    réinspectait déjà, mais la nouvelle décision est la même ; la carte affiche désormais le dernier effacement de la
    session et son statut. Vérifié sur le banc (Security Erase de sda, CONFORME).
-8. ~~Groupe `oblivio` résiduel~~ → **décidé le 2026-10-07** : supprimé par le paquet à l'installation ou à la mise
+8. ~~Groupe `oblivio` résiduel (ancien nom du produit)~~ → **décidé le 2026-10-07** : supprimé par le paquet à l'installation ou à la mise
    à jour (groupe système seulement), vérifié par la CI *Package* et sur le banc (mise à jour `0.1.0` →
    `0.1.0+build.11` sans `--reinstall`, groupe de test supprimé, historique intact).
 
@@ -81,15 +89,15 @@ Décisions récentes prises sur le banc (toutes documentées dans les specs) :
     depuis l'application (jamais le helper), contrôle des postes, proxy d'entreprise (§5), serveur
     `licence.oblivio.eu`. Avancement (ordre du §10 de ce document-là) :
     - **Étape 1, QR** (2026-10-11) : imprimé à **5,5 cm** (`certificate.typ`), test du certificat le plus long.
-      **Reste** : imprimer `largest-fr.pdf` (exemple `sample` d'`oblivio-report`, licence v2) et le scanner au téléphone.
-    - **Étape 2, format et vérification v2** dans `oblivio-attestation` (2026-10-11) : fait. La liste de révocation
+      **Reste** : imprimer `largest-fr.pdf` (exemple `sample` de `disphas-report`, licence v2) et le scanner au téléphone.
+    - **Étape 2, format et vérification v2** dans `disphas-attestation` (2026-10-11) : fait. La liste de révocation
       reste en `v: 1` (identifiants d'émetteur préfixés `ISS-`), simplification signalée au propriétaire.
-    - **Étape 3, installation d'une licence v2 par le helper** (`oblivio-license`, 2026-10-11) : fait, y compris
+    - **Étape 3, installation d'une licence v2 par le helper** (`disphas-license`, 2026-10-11) : fait, y compris
       le renouvellement (nouvelle licence installée par-dessus) et la révocation par l'émetteur.
-    - **Étape 4, `oblivio-issuer certify`** (2026-10-11) : fait (certificat d'émetteur `OBI1:…`, registre
+    - **Étape 4, `disphas-issuer certify`** (2026-10-11) : fait (certificat d'émetteur `DSI1:…`, registre
       `issuers.csv`, révocation `ISS-…`). Testé en unitaire et sur les erreurs de la ligne de commande ; la cérémonie
       réelle (clé racine officielle, phrase secrète) reste au propriétaire.
-    - **Étape 5, service de signature `oblivio-signer`** (2026-10-11) : fait, testé en unitaire et de bout en bout
+    - **Étape 5, service de signature `disphas-signer`** (2026-10-11) : fait, testé en unitaire et de bout en bout
       (racine de développement). Restent, à l'hébergement : export du registre, chiffrement des clés au repos,
       installation réelle sous systemd.
     - **Suite** : étape 6, activation et renouvellement en ligne dans l'application (ou document d'architecture du
@@ -134,30 +142,30 @@ développement. Disques déclarés sacrifiables : voir CLAUDE.md §2 (seuls ceux
 
 1. Le propriétaire lance `sudo sh setup.sh` sur le banc (`tools/bench/setup.sh`, copié par SSH) : `sudo` sans mot
    de passe pour `goupil`, helper sans demande polkit, `xdotool`.
-2. Copier et installer le paquet : `sudo apt-get install -y /tmp/Oblivio_<version>_amd64.deb` (avec le chemin,
+2. Copier et installer le paquet : `sudo apt-get install -y /tmp/disphas_<version>_amd64.deb` (avec le chemin,
    sinon `apt` cherche un paquet de ce nom). Depuis le 2026-10-07, chaque build a sa version (`0.1.0+build.<n>`) :
-   `--reinstall` n'est plus nécessaire, `dpkg-query -W oblivio` dit quel build est installé.
+   `--reinstall` n'est plus nécessaire, `dpkg-query -W disphas` dit quel build est installé.
 3. Lancer l'app sur l'écran du banc depuis SSH :
-   `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus setsid nohup /usr/bin/oblivio-app > /tmp/oblivio-app.log 2>&1 < /dev/null &`
-4. Licence : l'app crée une demande `OBA1:…` (badge « Sans licence »). Le **propriétaire** la signe sur la machine
+   `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus setsid nohup /usr/bin/disphas-app > /tmp/disphas-app.log 2>&1 < /dev/null &`
+4. Licence : l'app crée une demande `DSA1:…` (badge « Sans licence »). Le **propriétaire** la signe sur la machine
    qui détient la clé racine :
-   `./target/release/oblivio-issuer issue <chemin>/root.key --customer "Banc Oblivio" --offer Pro --days 30 'OBA1:…'`
-   (le registre `issued-licenses.csv` est à côté de `root.key`). La licence `OBL1:…` se colle dans l'app.
+   `./target/release/disphas-issuer issue <chemin>/root.key --customer "Banc disphas" --offer Pro --days 30 'DSA1:…'`
+   (le registre `issued-licenses.csv` est à côté de `root.key`). La licence `DSL1:…` se colle dans l'app.
 
 **Voir et piloter** :
 
 - Capture : `tools/bench/shot.sh <sortie.png> [échelle]` (xwd par SSH, aucune installation sur le banc), puis lire
   l'image. Les coordonnées `xdotool` sont celles de l'écran plein (multiplier par l'échelle).
 - Clic et saisie : `ssh oblivio-bench 'export DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority; xdotool mousemove X Y click 1'`,
-  `xdotool type --delay 80 TEXTE`. Agrandir la fenêtre : `xdotool search --name "^Oblivio$"` puis `windowsize`.
-- Suivre une tâche : relever par de **courtes** connexions répétées (`sudo -n ls /var/lib/oblivio/jobs`,
+  `xdotool type --delay 80 TEXTE`. Agrandir la fenêtre : `xdotool search --name "^disphas$"` puis `windowsize`.
+- Suivre une tâche : relever par de **courtes** connexions répétées (`sudo -n ls /var/lib/disphas/jobs`,
   `/sys/block/sdX/stat`), jamais par une seule longue session SSH. Un Security Erase ne fait bouger aucun compteur :
   le fil du helper reste en état `D` jusqu'à la fin.
-- Certificats : `sudo -n cat /var/lib/oblivio/reports/<id>.cose` (et `.json`), vérifiés avec
-  `./target/release/oblivio-verify` **recompilé à jour** (un ancien binaire rejette les types récents).
-- Test matériel bas niveau : `cargo test --release -p oblivio-device --features hw-tests --test hw --no-run`, copier
-  le binaire, puis `OBLIVIO_TEST_DEVICE=sdX OBLIVIO_TEST_SERIAL=<n° de série> sudo -n <binaire> --nocapture`
-  (`OBLIVIO_TEST_DESTRUCTIVE=I-ACCEPT-DATA-LOSS-ON-THE-TEST-DRIVE` et `--ignored` pour l'écriture).
+- Certificats : `sudo -n cat /var/lib/disphas/reports/<id>.cose` (et `.json`), vérifiés avec
+  `./target/release/disphas-verify` **recompilé à jour** (un ancien binaire rejette les types récents).
+- Test matériel bas niveau : `cargo test --release -p disphas-device --features hw-tests --test hw --no-run`, copier
+  le binaire, puis `DISPHAS_TEST_DEVICE=sdX DISPHAS_TEST_SERIAL=<n° de série> sudo -n <binaire> --nocapture`
+  (`DISPHAS_TEST_DESTRUCTIVE=I-ACCEPT-DATA-LOSS-ON-THE-TEST-DRIVE` et `--ignored` pour l'écriture).
 
 ## 5. Mettre en place un nouveau poste de développement
 
@@ -174,7 +182,7 @@ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 - Node.js **24** (`.node-version`), par exemple avec fnm ; puis `npm ci` dans `app/`.
 - `python3` (outils `tools/`), `pdftotext` pour relire un PDF en texte (paquet poppler).
 - Clés **à recréer sur le nouveau poste** (ne pas copier les anciennes ; révoquer celles du poste précédent) :
-  - clé de déploiement GitHub (accès en écriture) avec l'alias SSH `github-oblivio` (le dépôt pointe sur
+  - clé de déploiement GitHub (accès en écriture) avec l'alias SSH `github-disphas` (le dépôt pointe sur
     `git@github-oblivio:hclcdev12/Oblivio.git`) ;
   - jeton `gh` *fine-grained* sur le dépôt : Actions lecture/écriture, Contents lecture ;
   - clé du banc et alias `oblivio-bench` (`HostName 192.168.1.6`, `User goupil`), installée avec `ssh-copy-id`.

@@ -1,4 +1,4 @@
-# Oblivio website
+# disphas website
 
 Self-contained: everything the site needs lives in this folder (fonts, logos,
 colors, texts). Architecture and decisions: `../docs/site.md`.

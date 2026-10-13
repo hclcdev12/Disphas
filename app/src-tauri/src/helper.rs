@@ -13,9 +13,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use oblivio_protocol::command::Command;
-use oblivio_protocol::response::{ErrorBody, ErrorCode};
-use oblivio_protocol::{Event, MAX_MESSAGE_BYTES, Request, Response, ServerMessage};
+use disphas_protocol::command::Command;
+use disphas_protocol::response::{ErrorBody, ErrorCode};
+use disphas_protocol::{Event, MAX_MESSAGE_BYTES, Request, Response, ServerMessage};
 use tokio::sync::oneshot;
 
 /// Longest wait for one response. Erasures run as jobs: no command blocks long.
@@ -23,7 +23,7 @@ const RESPONSE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Installed location of the helper, launched through pkexec in release builds.
 #[cfg(not(debug_assertions))]
-const INSTALLED_HELPER: &str = "/usr/libexec/oblivio/oblivio-helper";
+const INSTALLED_HELPER: &str = "/usr/libexec/disphas/disphas-helper";
 
 type Pending = Arc<Mutex<HashMap<u64, oneshot::Sender<Response>>>>;
 
@@ -50,16 +50,16 @@ fn unavailable(detail: impl Into<String>) -> ErrorBody {
 /// How the helper is launched.
 ///
 /// Development builds start it directly, as the current user, from
-/// `OBLIVIO_HELPER` or the workspace `target/debug` directory: never through
+/// `DISPHAS_HELPER` or the workspace `target/debug` directory: never through
 /// pkexec, so a developer is never asked for root by surprise.
 /// Release builds always go through pkexec and the installed path.
 fn launcher() -> Process {
     #[cfg(debug_assertions)]
     {
-        let path = std::env::var_os("OBLIVIO_HELPER")
+        let path = std::env::var_os("DISPHAS_HELPER")
             .map(PathBuf::from)
             .unwrap_or_else(|| {
-                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/oblivio-helper")
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/disphas-helper")
             });
         Process::new(path)
     }
@@ -179,7 +179,7 @@ fn read_loop(stdout: impl Read, pending: &Pending, on_event: impl Fn(Event)) {
             }
             Some(ServerMessage::Event(event)) => on_event(event),
             None => {
-                eprintln!("oblivio-app: malformed message from the helper, closing");
+                eprintln!("disphas-app: malformed message from the helper, closing");
                 break;
             }
         }

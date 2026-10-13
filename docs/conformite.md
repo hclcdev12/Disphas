@@ -1,4 +1,4 @@
-# Oblivio — Conformité réglementaire et normative
+# disphas — Conformité réglementaire et normative
 
 État au **2026-10-04**. Document de travail technique, **pas un avis juridique** : les parties RGPD et
 Cyber Resilience Act doivent être validées par un avocat ou un DPO avant la mise sur le marché.
@@ -17,11 +17,11 @@ de licence transitent, jamais de donnée de disque ni de certificat. Conséquenc
 
 | Acteur | Rôle | Pourquoi |
 |---|---|---|
-| Client utilisateur d'Oblivio | **Responsable de traitement** (ou sous-traitant de ses propres clients) | Il produit et conserve les certificats ; Oblivio ne transmet rien à l'éditeur |
+| Client utilisateur de disphas | **Responsable de traitement** (ou sous-traitant de ses propres clients) | Il produit et conserve les certificats ; disphas ne transmet rien à l'éditeur |
 | Éditeur (micro-entreprise) | **Non concerné** par les données des clients | Aucune donnée ne quitte le poste du client |
 | Éditeur | **Responsable de traitement** de son registre de licences | `issued-licenses.csv` : nom du client (souvent une personne physique), offre, dates, clé du poste |
 
-Oblivio **sert** la conformité des clients : effacement avant cession ou fin de location (art. 17,
+disphas **sert** la conformité des clients : effacement avant cession ou fin de location (art. 17,
 28(3)(g) : suppression des données en fin de prestation ; art. 32 : sécurité), preuve signée (art. 5(2),
 responsabilité). La CNIL (fiche n° 15 du guide sécurité, mise à jour 2026) recommande des logiciels
 d'effacement **qualifiés ou certifiés** et renvoie aux certifications CSPN de l'ANSSI.
@@ -44,7 +44,7 @@ durée de conservation (art. 5(1)(e)).
 
 | # | Constat | Action | Statut |
 |---|---|---|---|
-| R1 | Certificats en `0644` dans `/var/lib/oblivio/reports` : lisibles par **tous** les comptes du poste (art. 25(2), accessibilité) | Certificats **root seul** (dossier `0700`, fichiers `0600` ; le paquet restreint aussi ceux d'une installation antérieure), lus par le helper (`ListReports`, `GetReport`) : y accéder exige l'authentification administrateur polkit qui lance Oblivio. Plus de groupe ni de compte à ajouter | **Fait** (2026-10-04, accès par le helper le 2026-10-06) |
+| R1 | Certificats en `0644` dans `/var/lib/disphas/reports` : lisibles par **tous** les comptes du poste (art. 25(2), accessibilité) | Certificats **root seul** (dossier `0700`, fichiers `0600` ; le paquet restreint aussi ceux d'une installation antérieure), lus par le helper (`ListReports`, `GetReport`) : y accéder exige l'authentification administrateur polkit qui lance disphas. Plus de groupe ni de compte à ajouter | **Fait** (2026-10-04, accès par le helper le 2026-10-06) |
 | R2 | Aucune durée de conservation, aucune suppression possible depuis l'application | Suppression **manuelle** depuis l'historique (un certificat, un lot ou tout ce qui précède une date), confirmée, exécutée par le helper (`DeleteReports`) et consignée sans donnée personnelle (art. 5(2)). Pas de suppression automatique en V1 (risque de perdre des preuves) ; les PDF exportés restent à la charge de l'utilisateur | **Fait** (2026-10-04) |
 | R3 | Champs opérateur/organisation | Écran **Réglages** (par compte) : facultatifs, bornés (64 / 128 caractères, contrôlés à nouveau par le helper), l'interface recommande un identifiant (ex. `OP-042`) plutôt qu'un nom ; l'écran de confirmation rappelle ce qui sera signé | **Fait** (2026-10-04) |
 | R4 | Justification libre | Avertissement sous le champ de forçage : texte signé tel quel, sans données personnelles | **Fait** (2026-10-04) |
@@ -53,7 +53,7 @@ durée de conservation (art. 5(1)(e)).
 
 ## 2. Cyber Resilience Act (règlement (UE) 2024/2847)
 
-- **Applicable** : Oblivio est un logiciel commercial, « produit comportant des éléments numériques » (art. 3(1)).
+- **Applicable** : disphas est un logiciel commercial, « produit comportant des éléments numériques » (art. 3(1)).
 - **Classe** : l'effacement de données ne figure ni à l'annexe III (produits importants) ni à l'annexe IV
   (critiques) → **contrôle interne** (module A, art. 32(1)(a)), sans organisme notifié. *Non vérifié :*
   l'acte d'exécution détaillant les catégories de l'annexe III.
@@ -69,13 +69,13 @@ durée de conservation (art. 5(1)(e)).
 | # | Action | Échéance | Statut |
 |---|---|---|---|
 | C1 | Procédure de signalement et contact sécurité (`SECURITY.md`), avant la première vente | Mise sur le marché | **En partie** : `SECURITY.md` rédigé (2026-10-04) ; à compléter : adresse dédiée (`security@<domaine>`, avec le site) et délai définitif (5 jours ouvrés indicatifs). Procédure interne ci-dessous |
-| C2 | Désinstallation complète : clé du poste, licence, certificats, tâches, fichiers de reprise (annexe I (2)(m)) | 11/12/2027 | **Fait** (2026-10-04) : `apt purge` supprime `/var/lib/oblivio` (`packaging/debian/postrm`) ; `apt remove` garde les données (aucune preuve détruite par erreur). Les PDF exportés dans le dossier de l'utilisateur ne sont pas touchés (politique Debian). Limite : suppression de fichiers, pas sanitisation — sur SSD la clé du poste peut subsister dans des cellules non adressées |
+| C2 | Désinstallation complète : clé du poste, licence, certificats, tâches, fichiers de reprise (annexe I (2)(m)) | 11/12/2027 | **Fait** (2026-10-04) : `apt purge` supprime `/var/lib/disphas` (`packaging/debian/postrm`) ; `apt remove` garde les données (aucune preuve détruite par erreur). Les PDF exportés dans le dossier de l'utilisateur ne sont pas touchés (politique Debian). Limite : suppression de fichiers, pas sanitisation — sur SSD la clé du poste peut subsister dans des cellules non adressées |
 | C3 | Revue des exigences essentielles de l'annexe I et documentation technique simplifiée | 11/12/2027 | À faire (à détailler sur le texte) |
 | C4 | Marquage CE et déclaration UE de conformité (module A) | 11/12/2027 | À faire |
 
 ### 2.1 Procédure interne de signalement (art. 14) — dès la mise sur le marché
 
-Si une vulnérabilité d'Oblivio est **activement exploitée**, ou en cas d'incident grave affectant
+Si une vulnérabilité de disphas est **activement exploitée**, ou en cas d'incident grave affectant
 sa sécurité, l'éditeur notifie via la **plateforme unique de signalement** prévue par le CRA :
 1. **alerte précoce sous 24 h** après en avoir eu connaissance (pour une micro-entreprise, pas
    d'amende en cas de dépassement de ce délai — art. 64(10)(a)) ;
@@ -86,12 +86,12 @@ France — à préciser avec l'ANSSI avant la mise sur le marché.
 
 ## 3. Normes et référentiels techniques
 
-| Référentiel | Statut vérifié | Position d'Oblivio |
+| Référentiel | Statut vérifié | Position de disphas |
 |---|---|---|
 | **NIST SP 800-88 Rev. 2** | Finale, septembre 2025, remplace la Rev. 1 | Conforme sur le fond (Clear / Purge / destruction ; validation ; certificat). Le NIST dit *destroy*, nous *Destruct* (terme d'IEEE 2883 et d'ISO/IEC 27040). Son annexe C propose un modèle de certificat : **comparaison champ à champ à faire**. Les techniques par support sont renvoyées à IEEE 2883 |
 | **IEEE 2883-2022** « Standard for Sanitizing Storage » | En vigueur (publiée le 17/08/2022) | Référence technique annoncée. ⚠️ **Texte jamais lu** (payant) : l'implémentation s'appuie sur les spécifications NVMe et ACS et sur le NIST. **À acquérir** (§ 7) |
 | **ANSSI PA-097** (reconditionnement, 30/06/2023) | Publié | **Aligné** : la réécriture ne suffit pas sur SSD ; Sanitize firmware et effacement cryptographique privilégiés |
-| **CNIL**, guide sécurité, fiche n° 15 | Mise à jour 2026 | Oblivio répond à la recommandation (effacement sécurisé avant fin de vie) ; certification visée : § 3.2 |
+| **CNIL**, guide sécurité, fiche n° 15 | Mise à jour 2026 | disphas répond à la recommandation (effacement sécurisé avant fin de vie) ; certification visée : § 3.2 |
 | **BSI IT-Grundschutz CON.6** (Édition 2023) | Vérifié sur le PDF officiel | Voir § 3.1 |
 | **ISO/IEC 27040:2024** « Storage security » | Existe ; contenu **non vérifié** (accès bloqué) | À acquérir (§ 7) |
 | **ISO/IEC 27001:2022** | Contrôles d'annexe A **non vérifiés** | Certifie des organisations, pas des produits ; nos certificats servent de preuve aux audits des clients |
@@ -102,7 +102,7 @@ France — à préciser avec l'ANSSI avant la mise sur le marché.
 CON.6.A12 (exigence de base) impose : supports réinscriptibles **non chiffrés** → réécriture complète par
 un **flux de valeurs aléatoires (PRNG)** ; supports **chiffrés** → suppression sécurisée de la clé.
 
-| Méthode Oblivio | CON.6.A12 | Remarque |
+| Méthode disphas | CON.6.A12 | Remarque |
 |---|---|---|
 | Écriture hôte | ✅ **Alignée** (depuis le 2026-10-04) | Flux ChaCha20 dérivé de la graine, validé bloc à bloc ([moteur](moteur_decision.md) §5). Reste certifiée Clear (règle invariante) |
 | NVMe Sanitize Crypto Erase, ATA Crypto Scramble, NVMe Format (SES 2) | ✅ Point « clé » | Si le concept de chiffrement du client reconnaît le chiffrement intégré au disque |
@@ -123,7 +123,7 @@ référence trouvée (Blancco Drive Eraser, ANSSI-CSPN-2021/04) est **non mainte
 
 Annexe I, catégorie 5 partie 2, 5A002.a, note technique 1 : la cryptographie servant uniquement à
 l'authentification, la signature, l'intégrité ou la gestion des clés associées n'est pas de la
-« cryptographie pour la confidentialité des données » → **non contrôlée**. Oblivio signe (Ed25519) et
+« cryptographie pour la confidentialité des données » → **non contrôlée**. disphas signe (Ed25519) et
 utilise ChaCha20 **comme générateur pseudo-aléatoire** de réécriture, sans chiffrer de données. Le
 chiffrement de la clé racine (Argon2id + ChaCha20-Poly1305) est dans l'outil de l'éditeur, **jamais livré**.
 *Non vérifié :* la dernière version consolidée de l'annexe I et la réglementation française de cryptologie.
@@ -138,7 +138,7 @@ Mono : licences jointes (`assets/fonts`).
 
 | # | Constat | Action | Statut |
 |---|---|---|---|
-| L1 | Le `.deb` ne contenait **aucun avis de licences tierces** (exigé par MIT/BSD/Apache) | `tools/third_party_notices.py` génère `packaging/THIRD-PARTY-NOTICES.txt` (505 composants : crates liées au helper et à l'application sous Linux, paquets npm réellement présents dans le bundle d'après la source map de Vite, polices ; textes de licence lus dans chaque paquet, textes SPDX officiels pour les 34 paquets qui n'en contiennent pas). Installé dans `/usr/share/doc/oblivio/` ; la CI échoue s'il n'est plus à jour | **Fait** (2026-10-04) |
+| L1 | Le `.deb` ne contenait **aucun avis de licences tierces** (exigé par MIT/BSD/Apache) | `tools/third_party_notices.py` génère `packaging/THIRD-PARTY-NOTICES.txt` (505 composants : crates liées au helper et à l'application sous Linux, paquets npm réellement présents dans le bundle d'après la source map de Vite, polices ; textes de licence lus dans chaque paquet, textes SPDX officiels pour les 34 paquets qui n'en contiennent pas). Installé dans `/usr/share/doc/disphas/` ; la CI échoue s'il n'est plus à jour | **Fait** (2026-10-04) |
 | L2 | Crates publiques déclarées Apache-2.0 **sans fichier `LICENSE`** | Texte officiel (apache.org, SHA-256 `cfc7749b…`) dans `public/*/LICENSE` | **Fait** (2026-10-04) |
 
 ## 6. Plan d'actions
@@ -158,7 +158,7 @@ Mono : licences jointes (`assets/fonts`).
    **ISO/IEC 27040**. ISO/IEC 27001 et 21964 ne sont pas nécessaires au produit.
 2. Les PDF sont rangés **hors du dépôt** (droit d'auteur : jamais commités ni publiés).
 3. Analyse d'écarts clause par clause, consignée ici **sans reproduire le texte** des normes : exigence →
-   état d'Oblivio → action.
+   état de disphas → action.
 
 ## 8. Sources (consultées le 2026-10-04)
 

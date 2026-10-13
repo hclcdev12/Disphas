@@ -5,7 +5,7 @@ import type { MethodChoice } from "../bindings/MethodChoice";
 /**
  * Warnings the operator must acknowledge to execute `choice`: disposition
  * codes, reserves, then NS_ALL. Mirrors `MethodChoice::required_acknowledgements`
- * in oblivio-protocol, only to build the checklist: the helper checks again
+ * in disphas-protocol, only to build the checklist: the helper checks again
  * and refuses with ACK_MISSING if anything is missing.
  */
 export function requiredAcknowledgements(

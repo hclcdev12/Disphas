@@ -1,6 +1,6 @@
 # Fonts
 
-Embedded in `oblivio-report` so that certificates render offline and identically everywhere.
+Embedded in `disphas-report` so that certificates render offline and identically everywhere.
 
 | File | Family | Subset | Source |
 |---|---|---|---|

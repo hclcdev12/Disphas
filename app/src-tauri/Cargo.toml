@@ -1,15 +1,15 @@
 [package]
-name = "oblivio-app"
-description = "Oblivio desktop application: Tauri shell relaying the UI to the root helper."
+name = "disphas-app"
+description = "disphas desktop application: Tauri shell relaying the UI to the root helper."
 version.workspace = true
 edition.workspace = true
-# oblivio-report (typst) requires Rust 1.92.
+# disphas-report (typst) requires Rust 1.92.
 rust-version = "1.92"
 license.workspace = true
 publish.workspace = true
 
 [lib]
-name = "oblivio_app_lib"
+name = "disphas_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -17,10 +17,10 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 base64 = "0.23.1"
-oblivio-attestation = { workspace = true, features = ["pdf"] }
-oblivio-license.workspace = true
-oblivio-protocol.workspace = true
-oblivio-report.workspace = true
+disphas-attestation = { workspace = true, features = ["pdf"] }
+disphas-license.workspace = true
+disphas-protocol.workspace = true
+disphas-report.workspace = true
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = [] }
@@ -31,6 +31,6 @@ zeroize = "1.9.0"
 workspace = true
 
 [dev-dependencies]
-oblivio-report = { path = "../../crates/oblivio-report", features = ["fixtures"] }
+disphas-report = { path = "../../crates/disphas-report", features = ["fixtures"] }
 sha2 = "0.11"
 tempfile = "3.27.0"

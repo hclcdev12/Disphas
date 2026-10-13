@@ -1,5 +1,5 @@
 [package]
-name = "oblivio-fuzz"
+name = "disphas-fuzz"
 description = "Fuzz targets for every parser of untrusted input (cargo-fuzz, nightly)."
 version = "0.0.0"
 edition = "2024"
@@ -10,12 +10,12 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-oblivio-attestation = { path = "../public/oblivio-attestation", features = ["pdf"] }
-oblivio-core = { path = "../crates/oblivio-core" }
-oblivio-device = { path = "../crates/oblivio-device" }
-oblivio-helper = { path = "../crates/oblivio-helper" }
-oblivio-license = { path = "../crates/oblivio-license" }
-oblivio-protocol = { path = "../crates/oblivio-protocol" }
+disphas-attestation = { path = "../public/disphas-attestation", features = ["pdf"] }
+disphas-core = { path = "../crates/disphas-core" }
+disphas-device = { path = "../crates/disphas-device" }
+disphas-helper = { path = "../crates/disphas-helper" }
+disphas-license = { path = "../crates/disphas-license" }
+disphas-protocol = { path = "../crates/disphas-protocol" }
 
 # Not a member of the main workspace: built by cargo-fuzz with nightly.
 [workspace]

@@ -10,7 +10,7 @@ stable stays the default for the project).
 | `protocol_server_message` | responses and events, as decoded by the app (+ round trip) |
 | `helper_serve` | a whole helper session on arbitrary input — no drive, no license, no file written |
 | `attestation` | signed attestations, QR text, CBOR payloads, revocation lists |
-| `pdf_attachments` | certificate PDFs given to the app or to `oblivio-verify` |
+| `pdf_attachments` | certificate PDFs given to the app or to `disphas-verify` |
 | `license_text` | license texts, activation requests sent by customers |
 | `device_decode` | IDENTIFY, logs and SMART data returned by drives |
 

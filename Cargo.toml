@@ -1,17 +1,17 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/oblivio-protocol",
-    "crates/oblivio-core",
-    "crates/oblivio-device",
-    "crates/oblivio-license",
-    "crates/oblivio-helper",
-    "crates/oblivio-report",
-    "public/oblivio-attestation",
-    "public/oblivio-verify",
+    "crates/disphas-protocol",
+    "crates/disphas-core",
+    "crates/disphas-device",
+    "crates/disphas-license",
+    "crates/disphas-helper",
+    "crates/disphas-report",
+    "public/disphas-attestation",
+    "public/disphas-verify",
     "app/src-tauri",
-    "tools/oblivio-issuer",
-    "tools/oblivio-signer",
+    "tools/disphas-issuer",
+    "tools/disphas-signer",
 ]
 # cargo-fuzz project, built with nightly on its own.
 exclude = ["fuzz"]
@@ -27,12 +27,12 @@ license = "LicenseRef-Proprietary"
 publish = false
 
 [workspace.dependencies]
-oblivio-attestation = { path = "public/oblivio-attestation" }
-oblivio-protocol = { path = "crates/oblivio-protocol" }
-oblivio-core = { path = "crates/oblivio-core" }
-oblivio-device = { path = "crates/oblivio-device" }
-oblivio-license = { path = "crates/oblivio-license" }
-oblivio-report = { path = "crates/oblivio-report" }
+disphas-attestation = { path = "public/disphas-attestation" }
+disphas-protocol = { path = "crates/disphas-protocol" }
+disphas-core = { path = "crates/disphas-core" }
+disphas-device = { path = "crates/disphas-device" }
+disphas-license = { path = "crates/disphas-license" }
+disphas-report = { path = "crates/disphas-report" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

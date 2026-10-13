@@ -1054,6 +1054,155 @@ dependencies = [
 ]
 
 [[package]]
+name = "disphas-app"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "disphas-attestation",
+ "disphas-license",
+ "disphas-protocol",
+ "disphas-report",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tauri",
+ "tauri-build",
+ "tempfile",
+ "tokio",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-attestation"
+version = "0.1.0"
+dependencies = [
+ "ciborium",
+ "coset",
+ "ed25519-dalek",
+ "lopdf",
+ "miniz_oxide 0.9.1",
+ "sha2 0.11.0",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "disphas-core"
+version = "0.1.0"
+dependencies = [
+ "semver",
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "disphas-device"
+version = "0.1.0"
+dependencies = [
+ "disphas-core",
+ "getrandom 0.4.3",
+ "libc",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-helper"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "chacha20",
+ "disphas-attestation",
+ "disphas-core",
+ "disphas-device",
+ "disphas-license",
+ "disphas-protocol",
+ "getrandom 0.4.3",
+ "rustix",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-issuer"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "chacha20poly1305",
+ "disphas-attestation",
+ "disphas-license",
+ "getrandom 0.4.3",
+ "rpassword",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-license"
+version = "0.1.0"
+dependencies = [
+ "disphas-attestation",
+ "getrandom 0.4.3",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "ts-rs",
+ "zeroize",
+]
+
+[[package]]
+name = "disphas-report"
+version = "0.1.0"
+dependencies = [
+ "disphas-attestation",
+ "fluent-bundle",
+ "qrcode",
+ "rqrr",
+ "sha2 0.11.0",
+ "thiserror 2.0.21",
+ "typst",
+ "typst-as-lib",
+ "typst-layout",
+ "typst-pdf",
+ "unic-langid",
+]
+
+[[package]]
+name = "disphas-signer"
+version = "0.1.0"
+dependencies = [
+ "disphas-attestation",
+ "disphas-license",
+ "getrandom 0.4.3",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "disphas-verify"
+version = "0.1.0"
+dependencies = [
+ "disphas-attestation",
+ "sha2 0.11.0",
+ "tempfile",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3317,155 +3466,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff76201f031d8863c38aa7f905eca4f53abbfa15f609db4277d44cd8938f33fe"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "oblivio-app"
-version = "0.1.0"
-dependencies = [
- "base64 0.23.1",
- "oblivio-attestation",
- "oblivio-license",
- "oblivio-protocol",
- "oblivio-report",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "tauri",
- "tauri-build",
- "tempfile",
- "tokio",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-attestation"
-version = "0.1.0"
-dependencies = [
- "ciborium",
- "coset",
- "ed25519-dalek",
- "lopdf",
- "miniz_oxide 0.9.1",
- "sha2 0.11.0",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "oblivio-core"
-version = "0.1.0"
-dependencies = [
- "semver",
- "serde",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "oblivio-device"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.4.3",
- "libc",
- "oblivio-core",
- "tempfile",
- "thiserror 2.0.21",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-helper"
-version = "0.1.0"
-dependencies = [
- "base64 0.23.1",
- "chacha20",
- "getrandom 0.4.3",
- "oblivio-attestation",
- "oblivio-core",
- "oblivio-device",
- "oblivio-license",
- "oblivio-protocol",
- "rustix",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "tempfile",
- "thiserror 2.0.21",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-issuer"
-version = "0.1.0"
-dependencies = [
- "argon2",
- "chacha20poly1305",
- "getrandom 0.4.3",
- "oblivio-attestation",
- "oblivio-license",
- "rpassword",
- "tempfile",
- "thiserror 2.0.21",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-license"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.4.3",
- "oblivio-attestation",
- "tempfile",
- "thiserror 2.0.21",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-protocol"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "ts-rs",
- "zeroize",
-]
-
-[[package]]
-name = "oblivio-report"
-version = "0.1.0"
-dependencies = [
- "fluent-bundle",
- "oblivio-attestation",
- "qrcode",
- "rqrr",
- "sha2 0.11.0",
- "thiserror 2.0.21",
- "typst",
- "typst-as-lib",
- "typst-layout",
- "typst-pdf",
- "unic-langid",
-]
-
-[[package]]
-name = "oblivio-signer"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.4.3",
- "oblivio-attestation",
- "oblivio-license",
- "serde",
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "oblivio-verify"
-version = "0.1.0"
-dependencies = [
- "oblivio-attestation",
- "sha2 0.11.0",
- "tempfile",
 ]
 
 [[package]]

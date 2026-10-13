@@ -1,11 +1,11 @@
-# Oblivio — Protocole UI ↔ helper root
+# disphas — Protocole UI ↔ helper root
 
 > Statut : **v0.1 — décisions validées le 2026-10-03** (lancement par session via pkexec, JSON par ligne,
-> tâche menée à terme si l'UI se ferme). Crate : `oblivio-protocol`.
+> tâche menée à terme si l'UI se ferme). Crate : `disphas-protocol`.
 
 ## 1. Rôle et menaces
 
-Ce protocole est **la frontière de sécurité** d'Oblivio. Il est conçu comme si l'UI pouvait être boguée ou compromise.
+Ce protocole est **la frontière de sécurité** de disphas. Il est conçu comme si l'UI pouvait être boguée ou compromise.
 
 | Risque | Parade |
 |---|---|
@@ -17,11 +17,11 @@ Ce protocole est **la frontière de sécurité** d'Oblivio. Il est conçu comme 
 ## 2. Couches
 
 ```
-React (WebView)  ──tauri::command──►  oblivio-app (Rust, utilisateur)  ──pipe JSON──►  oblivio-helper (root)
+React (WebView)  ──tauri::command──►  disphas-app (Rust, utilisateur)  ──pipe JSON──►  disphas-helper (root)
                  ◄──événements Tauri──                                 ◄──────────────
 ```
 
-React ne parle **jamais** directement au helper. `oblivio-app` relaie, traduit, rend le PDF.
+React ne parle **jamais** directement au helper. `disphas-app` relaie, traduit, rend le PDF.
 Les types TypeScript sont générés depuis les types Rust : une seule source de vérité.
 Outil retenu le 2026-10-04 : **`ts-rs`** (stable, comprend les attributs serde) plutôt que `specta` / `tauri-specta`
 (encore en version candidate). Génération : `npm run bindings` dans `app/`, vers `app/src/bindings/`.
@@ -29,8 +29,8 @@ Les entiers 64 bits sont exportés en `number` (toutes les valeurs du protocole 
 
 ## 3. Cycle de vie
 
-1. Au démarrage, `oblivio-app` lance `pkexec /usr/libexec/oblivio/oblivio-helper`.
-   Une action polkit dédiée (`org.oblivio.helper`, exigence `auth_admin`) affiche un message clair à l'utilisateur.
+1. Au démarrage, `disphas-app` lance `pkexec /usr/libexec/disphas/disphas-helper`.
+   Une action polkit dédiée (`org.disphas.helper`, exigence `auth_admin`) affiche un message clair à l'utilisateur.
 2. Le helper vérifie qu'il est bien lancé par pkexec (`PKEXEC_UID`), purge son environnement, puis attend `Hello`.
    *Implémenté le 2026-10-04 (builds release)* : refus de démarrer si l'UID effectif (lu dans `/proc/self/status`)
    n'est pas 0 ou si `PKEXEC_UID` est absent. **Écart** : l'environnement n'est pas réécrit
@@ -41,8 +41,8 @@ Les entiers 64 bits sont exportés en `number` (toutes les valeurs du protocole 
 4. **Fermeture de l'UI** (fin de stdin) :
    - aucune tâche en cours → le helper s'arrête immédiatement ;
    - tâche en cours → elle va **à son terme** (exécution, vérification, validation, signature),
-     le résultat est rangé dans `/var/lib/oblivio/reports/`, puis le helper s'arrête.
-5. Au prochain lancement, l'UI retrouve les résultats via `ListJobs` ou en lisant `/var/lib/oblivio/reports/`.
+     le résultat est rangé dans `/var/lib/disphas/reports/`, puis le helper s'arrête.
+5. Au prochain lancement, l'UI retrouve les résultats via `ListJobs` ou en lisant `/var/lib/disphas/reports/`.
 
 ## 4. Transport
 
@@ -162,7 +162,7 @@ l'ouverture (protections revérifiées à l'ouverture) est refusé en `PROTECTED
 ## 10. Persistance et reprise
 
 ```
-/var/lib/oblivio/
+/var/lib/disphas/
 ├── keys/      clé privée du poste (0600, root)
 ├── license/   .lic installé
 ├── jobs/      état de chaque tâche, écrit à chaque changement de phase
@@ -179,11 +179,11 @@ l'ouverture (protections revérifiées à l'ouverture) est refusé en `PROTECTED
   L'app vérifie **chaque** rapport elle-même (signature, chaîne de licence vers une racine de confiance, empreinte du
   journal, identifiant = nom du fichier) avant de l'afficher ; un rapport qui échoue n'est montré que par son
   identifiant, jamais par son contenu. 5 000 rapports les plus récents au plus. Le dossier d'état est défini une
-  seule fois, dans `oblivio_license::state_dir()`.
+  seule fois, dans `disphas_license::state_dir()`.
   Arborescence créée par le paquet, **root seul** (dossier et sous-dossiers 0700, certificats 0600, jamais écrasés) ;
   le helper fixe `umask 077` et refuse de démarrer si le dossier d'état ou un sous-dossier n'est pas à lui, est un lien
   ou est ouvert en écriture aux autres ([sécurité](securite.md) S1). Le contrôle d'accès aux certificats est celui du
-  helper : l'authentification administrateur polkit exigée pour lancer Oblivio ([conformité](conformite.md) R1).
+  helper : l'authentification administrateur polkit exigée pour lancer disphas ([conformité](conformite.md) R1).
 - Si le helper plante en cours de tâche, le lancement suivant reprend depuis `jobs/` :
   - **Sanitize firmware** : lecture du journal de statut du disque, puis vérification, validation et signature ;
   - **réécriture hôte** : la tâche est marquée *interrompue*, sans attestation ; l'opérateur relance (nouvelle inspection).
@@ -244,9 +244,9 @@ UI                                   helper
  │  [app rend le PDF dans la langue choisie]
 ```
 
-## 13. Implémentation (`oblivio-protocol`, décidé le 2026-10-04)
+## 13. Implémentation (`disphas-protocol`, décidé le 2026-10-04)
 
-- **Indépendance du moteur** : `oblivio-protocol` ne dépend pas de `oblivio-core`. Il définit son propre format
+- **Indépendance du moteur** : `disphas-protocol` ne dépend pas de `disphas-core`. Il définit son propre format
   (verdict, codes, méthodes) ; le helper convertit par `match` exhaustif, si bien qu'un code ajouté au moteur
   sans équivalent dans le protocole casse la compilation. L'app n'embarque donc jamais le moteur de décision.
 - **Décodage en deux temps** : l'enveloppe (`type`, `id`, `cmd`, `args`) est lue strictement, puis `args` est
@@ -265,10 +265,10 @@ UI                                   helper
   à l'intérieur de `args` ne sont pas rejetées (la dernière l'emporte) ; bornes de longueur par champ à ajouter
   côté helper lors de la validation métier.
 
-### Helper (`oblivio-helper`, squelette du 2026-10-04)
+### Helper (`disphas-helper`, squelette du 2026-10-04)
 
 - Bibliothèque + binaire : session, boucle et conversion testables sans processus, sans root ni disque.
-  Le binaire tourne sur `NoDevices` (aucun disque visible) tant que `oblivio-device` n'est pas branché.
+  Le binaire tourne sur `NoDevices` (aucun disque visible) tant que `disphas-device` n'est pas branché.
 - Toute commande avant un `Hello` réussi → `BAD_REQUEST`.
 - Ligne illisible **sans `id` exploitable** (JSON invalide, UTF-8 invalide) : la connexion est fermée,
   faute de pouvoir répondre à une requête précise. Avec un `id` : réponse d'erreur, la session continue.
@@ -295,14 +295,14 @@ UI                                   helper
 - États sur le fil : `Missing`, `Valid`, `Expired`, `Revoked`, plus `NotYetValid` et `Invalid`
   (fichier altéré, mauvaise racine ou mauvais poste), que la licence distinguait déjà.
 - L'état est relu et revérifié à chaque `Hello`, `LicenseStatus` et contrôle 8 de `Sanitize`.
-- **Racines de confiance** (`oblivio_license::trusted_roots()`, 2026-10-04) : la **clé racine officielle**
-  (`oblivio_attestation::trust::OFFICIAL_ROOT_KEY`, générée hors ligne le 2026-10-04) ; en développement
-  **en plus**, la clé racine de développement publique (`oblivio_license::dev_root`), absente des binaires
+- **Racines de confiance** (`disphas_license::trusted_roots()`, 2026-10-04) : la **clé racine officielle**
+  (`disphas_attestation::trust::OFFICIAL_ROOT_KEY`, générée hors ligne le 2026-10-04) ; en développement
+  **en plus**, la clé racine de développement publique (`disphas_license::dev_root`), absente des binaires
   release (vérifié : 0 occurrence de sa graine). Une licence ou un certificat est accepté s'il remonte à l'une
-  d'elles. `oblivio-verify` n'utilise que la clé officielle, sauf `--root-key` explicite (avec avertissement).
-- **Dossier d'état** : `/var/lib/oblivio` en release (environnement ignoré) ; en développement,
-  `OBLIVIO_STATE_DIR` ou `~/.local/state/oblivio-dev`.
-- Licence de développement : `cargo run -p oblivio-license --example issue_dev_license -- 'OBA1:…' [jours]`.
+  d'elles. `disphas-verify` n'utilise que la clé officielle, sauf `--root-key` explicite (avec avertissement).
+- **Dossier d'état** : `/var/lib/disphas` en release (environnement ignoré) ; en développement,
+  `DISPHAS_STATE_DIR` ou `~/.local/state/disphas-dev`.
+- Licence de développement : `cargo run -p disphas-license --example issue_dev_license -- 'DSA1:…' [jours]`.
 - **Licences en ligne** (décidé le 2026-10-11, non implémenté, [licences_en_ligne.md](licences_en_ligne.md)) :
   **aucune commande nouvelle**. L'application obtient la demande par `CreateActivationRequest`, l'échange elle-même
   avec le serveur de licences, puis installe la réponse par `InstallLicense`, vérifiée comme toute licence. Le

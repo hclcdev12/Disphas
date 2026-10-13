@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Oblivio",
+  "productName": "disphas",
   "version": "0.1.0",
-  "identifier": "org.oblivio.app",
+  "identifier": "org.disphas.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build && cargo build --release -p oblivio-helper",
+    "beforeBuildCommand": "npm run build && cargo build --release -p disphas-helper",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "Oblivio",
+        "title": "disphas",
         "width": 1100,
         "height": 820,
         "minWidth": 760,
@@ -33,7 +33,7 @@
     ],
     "category": "Utility",
     "shortDescription": "Certified storage sanitization (NIST SP 800-88 / IEEE 2883)",
-    "longDescription": "Oblivio inspects storage devices, decides the compliant sanitization method, erases, validates and issues a signed certificate verifiable offline.",
+    "longDescription": "disphas inspects storage devices, decides the compliant sanitization method, erases, validates and issues a signed certificate verifiable offline.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -59,10 +59,10 @@
         "postInstallScript": "../../packaging/debian/postinst",
         "postRemoveScript": "../../packaging/debian/postrm",
         "files": {
-          "/usr/libexec/oblivio/oblivio-helper": "../../target/release/oblivio-helper",
-          "/usr/share/polkit-1/actions/org.oblivio.helper.policy": "../../packaging/polkit/org.oblivio.helper.policy",
-          "/usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt": "../../packaging/THIRD-PARTY-NOTICES.txt",
-          "/usr/share/doc/oblivio/manuel_operateur.md": "../../docs/manuel_operateur.md"
+          "/usr/libexec/disphas/disphas-helper": "../../target/release/disphas-helper",
+          "/usr/share/polkit-1/actions/org.disphas.helper.policy": "../../packaging/polkit/org.disphas.helper.policy",
+          "/usr/share/doc/disphas/THIRD-PARTY-NOTICES.txt": "../../packaging/THIRD-PARTY-NOTICES.txt",
+          "/usr/share/doc/disphas/manuel_operateur.md": "../../docs/manuel_operateur.md"
         }
       },
       "rpm": {
@@ -83,10 +83,10 @@
           "libgio-2.0.so.0()(64bit)"
         ],
         "files": {
-          "/usr/libexec/oblivio/oblivio-helper": "../../target/release/oblivio-helper",
-          "/usr/share/polkit-1/actions/org.oblivio.helper.policy": "../../packaging/polkit/org.oblivio.helper.policy",
-          "/usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt": "../../packaging/THIRD-PARTY-NOTICES.txt",
-          "/usr/share/doc/oblivio/manuel_operateur.md": "../../docs/manuel_operateur.md"
+          "/usr/libexec/disphas/disphas-helper": "../../target/release/disphas-helper",
+          "/usr/share/polkit-1/actions/org.disphas.helper.policy": "../../packaging/polkit/org.disphas.helper.policy",
+          "/usr/share/doc/disphas/THIRD-PARTY-NOTICES.txt": "../../packaging/THIRD-PARTY-NOTICES.txt",
+          "/usr/share/doc/disphas/manuel_operateur.md": "../../docs/manuel_operateur.md"
         },
         "postInstallScript": "../../packaging/rpm/post"
       }

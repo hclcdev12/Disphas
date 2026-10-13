@@ -1,7 +1,11 @@
-# Oblivio — Cadre du projet (v0.1)
+# disphas — Cadre du projet (v0.1)
 
 > Document de référence. Il prime sur les autres specs en cas de contradiction.
 > Validé le 2026-10-03. Licences en ligne (§1, §2, §3, §6) : décidé le 2026-10-11.
+>
+> **Nom du produit : disphas** (décidé le 2026-10-13). Ancien nom : Oblivio. Le nom s'écrit en minuscules ;
+> identité visuelle livrée par le graphiste dans `graphism_Disphas/`. Gardent l'ancien nom : les documents
+> d'origine (§1 de `CLAUDE.md`, point 5), les logos de `assets/logo/` et les domaines `oblivio.eu`.
 
 ## 1. Périmètre V1
 
@@ -27,7 +31,7 @@
 
 ```
 ┌─────────────────────────┐   pipe privé stdin/stdout, JSON    ┌──────────────────────────┐
-│  oblivio (UI Tauri)     │  ◄──────────────────────────────►  │  oblivio-helper (root)   │
+│  disphas (UI Tauri)     │  ◄──────────────────────────────►  │  disphas-helper (root)   │
 │  utilisateur normal     │   requêtes / réponses / événements │  lancé via pkexec,       │
 │  WebView + React        │                                    │  1 fois par session      │
 │  rendu PDF, traductions │                                    │  ioctl, moteur, signature│
@@ -40,7 +44,7 @@
 - Protocole détaillé : [protocole_ipc.md](protocole_ipc.md).
 - **Réseau** (décidé le 2026-10-11, non implémenté) : seule la partie Rust de l'application (compte utilisateur)
   peut contacter le serveur de licences, pour activer ou renouveler la licence ; jamais la WebView (CSP inchangée),
-  jamais le helper. Le helper ne reçoit que des textes `OBA1`/`OBL1` par les commandes existantes
+  jamais le helper. Le helper ne reçoit que des textes `DSA1`/`DSL1` par les commandes existantes
   ([licences_en_ligne.md](licences_en_ligne.md) §5).
 - **Côté éditeur** : site (comptes, abonnements, sièges) et **service de signature** isolé, seul détenteur de la
   clé boutique ([licences_en_ligne.md](licences_en_ligne.md) §6).
@@ -49,18 +53,18 @@
 
 | Crate | Rôle | Accès disque | Dépôt |
 |---|---|---|---|
-| `oblivio-attestation` | Schéma de l'attestation, CBOR/COSE, vérification | Non | **Public** |
-| `oblivio-verify` | CLI de vérification | Non | **Public** |
-| `oblivio-protocol` | Types des messages UI ↔ helper, version du protocole | Non | Privé |
-| `oblivio-core` | Modèles, moteur de décision, règles, machine d'états | Non (100 % testable) | Privé |
-| `oblivio-device` | ioctl NVMe/ATA, SG_IO, O_DIRECT (buffers alignés), sysfs | Oui | Privé |
-| `oblivio-license` | Parsing/vérification `.lic`, clé du poste, activation | Non | Privé |
-| `oblivio-helper` | Binaire root : core + device + license + signature | Oui | Privé |
-| `oblivio-report` | Rendu PDF/A-3, QR, traductions (Fluent) | Non | Privé |
-| `oblivio-app` | Shell Tauri + frontend React | Non | Privé |
-| `oblivio-issuer` (`tools/`) | Outil de l'éditeur : clé racine, licences, révocations, certification de la clé boutique. Jamais livré | Non | Privé |
-| `oblivio-signer` (`tools/`) | Service de signature du serveur de licences : clés boutique, certificats `OBI1`, registre, socket locale ([licences_en_ligne.md](licences_en_ligne.md) §6). Jamais livré aux clients | Non | Privé |
-| `oblivio-fuzz` (`fuzz/`) | Cibles de fuzzing (cargo-fuzz), hors workspace | Non | Privé |
+| `disphas-attestation` | Schéma de l'attestation, CBOR/COSE, vérification | Non | **Public** |
+| `disphas-verify` | CLI de vérification | Non | **Public** |
+| `disphas-protocol` | Types des messages UI ↔ helper, version du protocole | Non | Privé |
+| `disphas-core` | Modèles, moteur de décision, règles, machine d'états | Non (100 % testable) | Privé |
+| `disphas-device` | ioctl NVMe/ATA, SG_IO, O_DIRECT (buffers alignés), sysfs | Oui | Privé |
+| `disphas-license` | Parsing/vérification `.lic`, clé du poste, activation | Non | Privé |
+| `disphas-helper` | Binaire root : core + device + license + signature | Oui | Privé |
+| `disphas-report` | Rendu PDF/A-3, QR, traductions (Fluent) | Non | Privé |
+| `disphas-app` | Shell Tauri + frontend React | Non | Privé |
+| `disphas-issuer` (`tools/`) | Outil de l'éditeur : clé racine, licences, révocations, certification de la clé boutique. Jamais livré | Non | Privé |
+| `disphas-signer` (`tools/`) | Service de signature du serveur de licences : clés boutique, certificats `DSI1`, registre, socket locale ([licences_en_ligne.md](licences_en_ligne.md) §6). Jamais livré aux clients | Non | Privé |
+| `disphas-fuzz` (`fuzz/`) | Cibles de fuzzing (cargo-fuzz), hors workspace | Non | Privé |
 
 ### Stack technique (état au 2026-10-04)
 
@@ -74,14 +78,14 @@ Versions relevées dans `Cargo.lock` et `app/package-lock.json` ; ce sont elles 
 | Style, icônes | Tailwind CSS 4 (plugin Vite), Lucide | 4.3, lucide-react 1.51 | `app/src` |
 | Traductions UI | i18next + react-i18next (FR, EN, DE) | 26.4 / 17.0 | `app/src/i18n` |
 | Lint frontend | oxlint | 1.86 | `app/` |
-| Types partagés UI ↔ helper | ts-rs (génère `app/src/bindings`) | 12.0 | `oblivio-protocol` |
+| Types partagés UI ↔ helper | ts-rs (génère `app/src/bindings`) | 12.0 | `disphas-protocol` |
 | Sérialisation, erreurs | serde, serde_json ; thiserror | 1.0 ; 2.0 | partout |
-| Attestation | CBOR (`ciborium`), COSE_Sign1 (`coset`), Ed25519 (`ed25519-dalek`), SHA-256 (`sha2`), zlib (`miniz_oxide`) | 0.2 ; 0.4 ; 3.0 ; 0.11 ; 0.9 | `oblivio-attestation` |
-| Lecture PDF (option `pdf`) | `lopdf` (MIT) | 0.45 | `oblivio-attestation` |
-| Rendu du certificat | Typst (PDF/A-3b), Fluent (traductions), `qrcode` | 0.15 ; fluent-bundle 0.16 ; 0.14 | `oblivio-report` |
-| Accès disques | ioctl directs via `libc` (NVMe admin, SG_IO / ATA PASS-THROUGH), sysfs | libc 0.2 | `oblivio-device` |
+| Attestation | CBOR (`ciborium`), COSE_Sign1 (`coset`), Ed25519 (`ed25519-dalek`), SHA-256 (`sha2`), zlib (`miniz_oxide`) | 0.2 ; 0.4 ; 3.0 ; 0.11 ; 0.9 | `disphas-attestation` |
+| Lecture PDF (option `pdf`) | `lopdf` (MIT) | 0.45 | `disphas-attestation` |
+| Rendu du certificat | Typst (PDF/A-3b), Fluent (traductions), `qrcode` | 0.15 ; fluent-bundle 0.16 ; 0.14 | `disphas-report` |
+| Accès disques | ioctl directs via `libc` (NVMe admin, SG_IO / ATA PASS-THROUGH), sysfs | libc 0.2 | `disphas-device` |
 | Secrets | `zeroize`, aléa de l'OS (`getrandom`) | 1.9 ; 0.4 | device, protocol, license |
-| Clé racine (éditeur) | Argon2id + ChaCha20-Poly1305 | argon2 0.6 ; 0.11 | `tools/oblivio-issuer` |
+| Clé racine (éditeur) | Argon2id + ChaCha20-Poly1305 | argon2 0.6 ; 0.11 | `tools/disphas-issuer` |
 | Fuzzing | cargo-fuzz + libFuzzer, toolchain nightly | cargo-fuzz 0.13 | `fuzz/` |
 | Node.js (développement) | via fnm | 24 | `app/` |
 | CI | GitHub Actions (dépôt privé) : contrôles à chaque push, fuzzing hebdomadaire | — | `.github/workflows/` |
@@ -93,7 +97,7 @@ Versions relevées dans `Cargo.lock` et `app/package-lock.json` ; ce sont elles 
 ## 3. Modèle de confiance du certificat
 
 ```
-Clé racine Oblivio (offline, éditeur)
+Clé racine disphas (offline, éditeur)
    ├── signe ──► Licence v1 .lic  { client, offre, validité, clé publique du poste }      (implémenté)
    └── signe ──► Certificat d'émetteur { clé boutique, validité 1 an, offres, durée max }  (décidé le 2026-10-11)
                      └── clé boutique (serveur) ── signe ──► Licence v2 { …, certificat d'émetteur }
@@ -161,10 +165,10 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
 ## 8. Vérificateur open source (décidé le 2026-10-03)
 
 - Dépôt public séparé, ne contenant **que** :
-  - `oblivio-attestation` : schéma de l'attestation, décodage QR/CBOR/COSE, vérification de signature et de chaîne ;
-  - `oblivio-verify` : CLI de vérification ;
+  - `disphas-attestation` : schéma de l'attestation, décodage QR/CBOR/COSE, vérification de signature et de chaîne ;
+  - `disphas-verify` : CLI de vérification ;
   - la clé publique racine et les libellés des codes (EN/FR/DE).
-- Le dépôt privé dépend de `oblivio-attestation` ; l'inverse est interdit.
+- Le dépôt privé dépend de `disphas-attestation` ; l'inverse est interdit.
 - Rien du moteur de décision, des seuils, de l'accès disque, du helper ni de la génération de licences
   n'est publié. Ce qui est public l'est déjà de fait : tout ce que contient un QR est lisible par quiconque le scanne.
 - Licence proposée : Apache-2.0.
@@ -172,11 +176,11 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
 ## 9. smartmontools (décidé le 2026-10-03)
 
 - **Jamais dans le chemin de décision.** Les capacités (Sanitize, Crypto Erase, Security) viennent de
-  l'IDENTIFY firmware (NVMe Identify Controller `SANICAP`, ATA IDENTIFY), lu par `oblivio-device`.
+  l'IDENTIFY firmware (NVMe Identify Controller `SANICAP`, ATA IDENTIFY), lu par `disphas-device`.
 - **Usage 1 — oracle de test (dev)** : tests différentiels entre notre parsing et `smartctl --json -x`
   sur le banc de disques.
 - **Usage 2 — avis secondaire (runtime, optionnel)** : si `smartctl` est présent, lecture seule
   `smartctl --json -x` ; divergences affichées et consignées comme « source secondaire ».
   Absent → aucune dégradation.
 - **Pas d'embarquement de `drivedb.h`** dans le binaire (GPL-2.0) ; lecture éventuelle du fichier installé sur le système.
-- Base de quirks propre à Oblivio (firmwares connus défaillants sur Sanitize, etc.), versionnée et signée.
+- Base de quirks propre à disphas (firmwares connus défaillants sur Sanitize, etc.), versionnée et signée.

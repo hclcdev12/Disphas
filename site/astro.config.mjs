@@ -1,4 +1,4 @@
-// Oblivio website (docs/site.md). Self-contained: nothing outside site/ is used.
+// disphas website (docs/site.md). Self-contained: nothing outside site/ is used.
 import { defineConfig } from "astro/config";
 import node from "@astrojs/node";
 import tailwindcss from "@tailwindcss/vite";

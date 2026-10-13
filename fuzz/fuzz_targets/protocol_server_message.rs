@@ -2,7 +2,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use oblivio_protocol::ServerMessage;
+use disphas_protocol::ServerMessage;
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(line) = std::str::from_utf8(data)

@@ -1,4 +1,4 @@
-# CLAUDE.md — Oblivio
+# CLAUDE.md — disphas
 
 Logiciel professionnel d'effacement sécurisé de disques (Rust + Tauri v2), conforme NIST SP 800-88 Rev. 2 / IEEE 2883-2022.
 Décision unique, politique « Say NO », certificat signé Ed25519 vérifiable hors ligne, 100 % offline
@@ -34,16 +34,16 @@ Ce projet écrit du code capable de détruire des données. **Tu travailles sur 
   d'administration vers un vrai périphérique (`/dev/sd*`, `/dev/nvme*`, `/dev/hd*`, `/dev/mmcblk*`…).
 - **Ne jamais** lancer le helper ou un test avec `sudo`/`pkexec` sans accord explicite du propriétaire, pour ce lancement précis.
 - Tests d'I/O uniquement sur des **fichiers image** ou des **loop devices** créés pour l'occasion.
-- Les tests matériels réels sont derrière la feature `hw-tests` **et** la variable `OBLIVIO_TEST_DEVICE`,
+- Les tests matériels réels sont derrière la feature `hw-tests` **et** la variable `DISPHAS_TEST_DEVICE`,
   qui doit désigner explicitement un disque de test ; ils ne tournent jamais par défaut ni en CI.
-- `oblivio-device` doit refuser par construction un disque PROTÉGÉ, même en test.
+- `disphas-device` doit refuser par construction un disque PROTÉGÉ, même en test.
 - **Exception : le banc de test** (`oblivio-bench`, 192.168.1.6, système amnésique démarré en PXE ; autorisé par le
   propriétaire le 2026-10-06). Lancements root, tests destructifs et effacements y sont autorisés **sans accord au cas
   par cas**, **uniquement** sur les disques de test déclarés sacrifiables par le propriétaire, identifiés par leur
   n° de série : sda `EI53N01701160366G`, sdb `E38345631J6UDN`, sdc `X9AHTNIET`. Le n° de série est vérifié avant
   toute écriture. Tout autre disque, et toute autre machine (dont le poste de développement), restent soumis aux
   règles ci-dessus. Chaque opération est rapportée au propriétaire. Pas de test de coupure pendant un Security Erase
-  tant que `/var/lib/oblivio` n'est pas persistant. Les mots de passe et la clé racine restent au propriétaire :
+  tant que `/var/lib/disphas` n'est pas persistant. Les mots de passe et la clé racine restent au propriétaire :
   l'accès root passe par la règle `NOPASSWD` de `tools/bench/setup.sh`, que lui seul installe.
 
 ## 3. Règles invariantes du produit (ne jamais enfreindre)
@@ -57,7 +57,7 @@ Ce projet écrit du code capable de détruire des données. **Tu travailles sur 
 6. L'attestation signée ne contient **aucun texte traduit**, uniquement des codes. Termes *Clear*/*Purge*/*Destruct* jamais traduits.
 7. Tous les seuils du moteur sont des paramètres de `RuleSet` versionné (`rules_version`), jamais des constantes en dur.
 8. Aucun appel réseau ni télémétrie, à une exception près : l'application peut contacter le serveur de licences
-   d'Oblivio pour activer ou renouveler la licence (`docs/licences_en_ligne.md`, décidé le 2026-10-11). Seuls
+   de disphas pour activer ou renouveler la licence (`docs/licences_en_ligne.md`, décidé le 2026-10-11). Seuls
    transitent la clé de licence, la clé publique du poste et l'identifiant de licence. Le **helper n'ouvre jamais
    de connexion**. Aucune donnée de disque ni de certificat ne quitte le poste.
 9. Secrets (clé privée, mot de passe ATA) : `zeroize`, jamais journalisés.
@@ -65,35 +65,35 @@ Ce projet écrit du code capable de détruire des données. **Tu travailles sur 
 ## 4. Organisation du code
 
 ```
-oblivio/
+disphas/
 ├── CLAUDE.md
 ├── README.md
 ├── docs/
 ├── assets/                 logo, polices embarquées
 ├── public/                 → futur dépôt PUBLIC (Apache-2.0)
-│   ├── oblivio-attestation/
-│   └── oblivio-verify/
+│   ├── disphas-attestation/
+│   └── disphas-verify/
 ├── crates/                 → PRIVÉ
-│   ├── oblivio-protocol/
-│   ├── oblivio-core/
-│   ├── oblivio-device/
-│   ├── oblivio-license/
-│   ├── oblivio-helper/
-│   └── oblivio-report/
-└── app/                    oblivio-app : Tauri v2 + React/Vite/Tailwind
+│   ├── disphas-protocol/
+│   ├── disphas-core/
+│   ├── disphas-device/
+│   ├── disphas-license/
+│   ├── disphas-helper/
+│   └── disphas-report/
+└── app/                    disphas-app : Tauri v2 + React/Vite/Tailwind
 ```
 
 **Dépendances autorisées :**
 - `public/*` ne dépend de **rien** dans `crates/` ni `app/`. Elles seront extraites telles quelles en dépôt public.
-- `oblivio-core` : aucun accès disque, aucune I/O. 100 % testable en unitaire.
-- `oblivio-device` : seule crate qui parle aux périphériques.
-- `oblivio-helper` : seul binaire root. Assemble protocol + core + device + license + attestation.
-- `oblivio-report` et `app/` : jamais d'accès disque bas niveau, jamais de clé privée.
+- `disphas-core` : aucun accès disque, aucune I/O. 100 % testable en unitaire.
+- `disphas-device` : seule crate qui parle aux périphériques.
+- `disphas-helper` : seul binaire root. Assemble protocol + core + device + license + attestation.
+- `disphas-report` et `app/` : jamais d'accès disque bas niveau, jamais de clé privée.
 
 ## 5. Conventions
 
 - Rust stable récent, édition 2024, workspace Cargo unique. `cargo fmt` et `cargo clippy -- -D warnings` propres.
-- `unsafe` limité à `oblivio-device` (ioctl, buffers alignés), chaque bloc commenté par `// SAFETY:`.
+- `unsafe` limité à `disphas-device` (ioctl, buffers alignés), chaque bloc commenté par `// SAFETY:`.
 - Erreurs : `thiserror` dans les bibliothèques, pas de `unwrap()` hors tests.
 - Désérialisation stricte (`#[serde(deny_unknown_fields)]`) pour tout ce qui traverse le protocole.
 - **On n'invente rien** (règle universelle du propriétaire) : toute commande, option, chemin, API ou comportement
@@ -117,7 +117,7 @@ oblivio/
    Déplacer `gemini-svg.svg` vers `assets/logo/oblivio-logo-draft.svg`.
 2. **Git** — `git init`, `.gitignore` (Rust, Node, Tauri), premier commit avec les docs.
 3. **Ossature** — workspace Cargo avec les crates du §4 (vides mais compilables), `app/` laissé pour plus tard.
-4. **`oblivio-core`** — types du verdict (`docs/moteur_decision.md` §6), `RuleSet`, fonction `decide()`
+4. **`disphas-core`** — types du verdict (`docs/moteur_decision.md` §6), `RuleSet`, fonction `decide()`
    couvrant les étapes 1 à 4 du moteur, avec tests unitaires sur des profils fictifs (un test par code P/B/N/D/R).
 
 Faire valider par le propriétaire à la fin de chaque tâche avant de passer à la suivante.

@@ -1,7 +1,7 @@
 // Packages offered to signed-in customers (docs/site.md §4, §7): read from
 // RELEASES_DIR, outside the web root, never from a path the visitor gives.
-//   RELEASES_DIR/oblivio_0.1.0_amd64.deb
-//   RELEASES_DIR/oblivio-0.1.0-1.x86_64.rpm
+//   RELEASES_DIR/disphas_0.1.0_amd64.deb
+//   RELEASES_DIR/disphas-0.1.0-1.x86_64.rpm
 //   RELEASES_DIR/SHA256SUMS            "<sha256>  <file name>" per line
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
@@ -14,7 +14,7 @@ export interface Release {
 }
 
 /** Only these names are ever served: no path, no hidden file. */
-const PACKAGE = /^oblivio[-_][0-9A-Za-z.+~_-]+\.(deb|rpm)$/;
+const PACKAGE = /^disphas[-_][0-9A-Za-z.+~_-]+\.(deb|rpm)$/;
 
 function releasesDir(): string | null {
   return process.env.RELEASES_DIR ?? (import.meta.env.DEV ? ".data/releases" : null);

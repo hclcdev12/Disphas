@@ -1,15 +1,15 @@
-# Oblivio — Licences : émission en ligne, activation et renouvellement
+# disphas — Licences : émission en ligne, activation et renouvellement
 
 > **Validé par le propriétaire le 2026-10-11. En cours d'implémentation** (§10) : format, vérification et
-> installation par le helper de la licence v2, certification de la clé boutique (`oblivio-issuer certify`), service
-> de signature (`oblivio-signer`) faits ; activation en ligne (application) et site à faire.
+> installation par le helper de la licence v2, certification de la clé boutique (`disphas-issuer certify`), service
+> de signature (`disphas-signer`) faits ; activation en ligne (application) et site à faire.
 > D'ici là, les licences s'émettent et s'activent comme le décrit le [certificat](certificat.md) §4.
 > Référence des licences, avec le [cadre](cadre_projet.md) §3 qui le résume.
 
 ## 1. Besoin (exprimé par le propriétaire le 2026-10-11)
 
 1. Le client achète en ligne (Stripe) et obtient sa licence **sans intervention de l'éditeur**.
-2. **Un seul copier-coller** : une clé de licence prise dans l'espace client, collée dans les réglages d'Oblivio.
+2. **Un seul copier-coller** : une clé de licence prise dans l'espace client, collée dans les réglages de disphas.
 3. **Renouvellement automatique** tant que l'abonnement est payé, sans refaire la manipulation.
 4. **Contrôle du nombre de postes** par abonnement.
 5. Les données des disques et les certificats ne quittent **jamais** le poste.
@@ -26,11 +26,11 @@ site, et renouveler exige que le poste apprenne le paiement. D'où une **connexi
 | D3 | Licence **toujours liée au poste** (`wpk`), comme aujourd'hui | — (inchangé) |
 | D4 | **Un identifiant de licence = un siège** : stable d'un renouvellement à l'autre | Un identifiant par licence émise |
 | D5 | Licences émises par la clé boutique **toujours datées** (pas de perpétuelle) ; l'offre « à vie » est renouvelée gratuitement | — |
-| D6 | **Secours hors ligne** conservé : demande `OBA1` collée dans l'espace client, licence recopiée à la main | — (le parcours actuel reste valable) |
+| D6 | **Secours hors ligne** conservé : demande `DSA1` collée dans l'espace client, licence recopiée à la main | — (le parcours actuel reste valable) |
 | D7 | Licences v1 signées par la racine **toujours acceptées** (grands comptes, postes sans Internet, devis) | — |
 
 **Règle 8 reformulée** (reportée dans `CLAUDE.md` §3) : *Aucun appel réseau ni télémétrie, à une exception près : l'application peut
-contacter le serveur de licences d'Oblivio pour activer ou renouveler la licence. Seuls transitent la clé de licence,
+contacter le serveur de licences de disphas pour activer ou renouveler la licence. Seuls transitent la clé de licence,
 la clé publique du poste et l'identifiant de licence. Le helper n'ouvre jamais de connexion. Aucune donnée de disque
 ni de certificat ne quitte le poste.*
 
@@ -38,14 +38,14 @@ ni de certificat ne quitte le poste.*
 
 ```
 Clé racine (hors ligne, éditeur)                     inchangée
-   ├──signe──► Licence v1 OBL1 {…, wpk}               émission manuelle (oblivio-issuer), toujours acceptée
-   └──signe──► Certificat d'émetteur OBI1             1 par an, cérémonie hors ligne
+   ├──signe──► Licence v1 DSL1 {…, wpk}               émission manuelle (disphas-issuer), toujours acceptée
+   └──signe──► Certificat d'émetteur DSI1             1 par an, cérémonie hors ligne
                   {v: 1, iid, ipk, nbf, exp, off[], maxd}
-                     └── clé boutique (serveur) ──signe──► Licence v2 OBL1 {v: 2, id, cli, off, nbf, exp, wpk, iss}
+                     └── clé boutique (serveur) ──signe──► Licence v2 DSL1 {v: 2, id, cli, off, nbf, exp, wpk, iss}
                                                               └── clé du poste ──signe──► Attestation (inchangée)
 ```
 
-**Certificat d'émetteur** (CBOR déterministe, COSE_Sign1 par la racine ; `oblivio_attestation::Issuer`) : `iid`
+**Certificat d'émetteur** (CBOR déterministe, COSE_Sign1 par la racine ; `disphas_attestation::Issuer`) : `iid`
 identifiant d'émetteur, **préfixe `ISS-` obligatoire**, 64 caractères au plus ; `ipk` clé publique Ed25519 de la
 boutique ; `nbf`/`exp` validité, `exp > nbf` (1 an, avec chevauchement pour la rotation) ; `off` offres qu'il peut
 émettre, non vide, triées, sans doublon ; `maxd` durée maximale d'une licence en secondes, non nulle (90 jours, le
@@ -55,16 +55,16 @@ plafond du §4).
 (octets du COSE_Sign1), **embarqué** pour que le `.lic` et le QR restent vérifiables seuls, hors ligne, avec la seule
 clé racine. Une licence `v: 1` ne porte jamais `iss`. Aucun identifiant de licence (v1 ou v2) ne commence par `ISS-`.
 
-**Vérification v2** (`oblivio_attestation::verify_license`, utilisée par `verify`) : certificat d'émetteur signé par
+**Vérification v2** (`disphas_attestation::verify_license`, utilisée par `verify`) : certificat d'émetteur signé par
 la racine ; licence signée par `ipk` ; `off` ∈ `iss.off` ; `[nbf, exp]` de la licence inclus dans celui de
 l'émetteur ; `exp − nbf ≤ maxd` ; ni la licence ni l'émetteur révoqués à la date `iat` de l'attestation
 (`is_revoked`). Erreurs rendues avec les codes existants (`License`, `LicenseContent`, `LicenseRevoked`) : les
 interfaces de vérification n'ont pas changé.
 
-**Révocation** (simplifiée à l'implémentation, 2026-10-11) : la liste `OBR1` **reste en `v: 1`**. Ses entrées
+**Révocation** (simplifiée à l'implémentation, 2026-10-11) : la liste `DSR1` **reste en `v: 1`**. Ses entrées
 `[[id, date], …]` désignent une licence **ou** un émetteur : le préfixe `ISS-`, réservé aux émetteurs et interdit aux
 licences, lève toute ambiguïté. Mêmes règles (définitive, la date la plus ancienne l'emporte). Révoquer un siège =
-révoquer son `id` ; révoquer un émetteur = révoquer son `iid`. `oblivio-issuer revoke` et `oblivio-verify` restent
+révoquer son `id` ; révoquer un émetteur = révoquer son `iid`. `disphas-issuer revoke` et `disphas-verify` restent
 compatibles.
 
 **Taille du QR** (mesurée le 2026-10-11, certificat d'émetteur d'abord simulé, puis réel ;
@@ -79,12 +79,12 @@ QR niveau M ; taille d'un module = largeur imprimée / (modules + 8 de marge bla
 | Pire cas, format v2 implémenté (`fixture::signed_largest`) | v2 | — | 1 540 car. | 26 (121 modules) | 0,34 mm | **0,43 mm** |
 
 - La v2 ajoute **188 octets** (signature et clé de l'émetteur, incompressibles), soit **≈ 240 caractères**.
-- Avec un identifiant de licence réel (`OBL-AAAAMMJJ-…`), le cas typique v1 est **déjà à 991 caractères** : le
+- Avec un identifiant de licence réel (`DSL-AAAAMMJJ-…`), le cas typique v1 est **déjà à 991 caractères** : le
   test actuel (`< 1000`, identifiant fictif court `LIC-0001`) sous-estime, et la cible « < 1 000 » est déjà
   dépassée aujourd'hui par le pire cas v1. La vraie contrainte est la **lisibilité du QR imprimé** (taille d'un module).
 - **Décidé le 2026-10-11** : QR imprimé à **5,5 cm** (au lieu de 4,4 cm), pour que le pire cas v2 garde un module
   d'au moins 0,40 mm, celui d'un certificat typique à 4,4 cm. Garde-fou : test
-  `largest_certificate_keeps_a_readable_qr_code` d'`oblivio-report` (certificat le plus long, `fixture::signed_largest`),
+  `largest_certificate_keeps_a_readable_qr_code` de `disphas-report` (certificat le plus long, `fixture::signed_largest`),
   qui échoue à 4,4 cm. **Reste à faire** : essai réel, impression du pire cas (`largest-fr.pdf` de l'exemple `sample`)
   et lecture au téléphone (le certificat de l'exemple porte déjà une licence v2).
 
@@ -97,8 +97,8 @@ Repli possible : le QR ne porte que `iid`, et les certificats d'émetteur sont l
 
 1. Espace client : l'abonnement affiche une **clé de licence** (secret aléatoire de 128 bits, en groupes lisibles)
    et le nombre de postes utilisés / autorisés.
-2. Oblivio, Réglages → Licence : le client colle la clé, puis **Activer**.
-3. L'application demande au helper une demande d'activation `OBA1` (commande existante), l'envoie au serveur avec la clé.
+2. disphas, Réglages → Licence : le client colle la clé, puis **Activer**.
+3. L'application demande au helper une demande d'activation `DSA1` (commande existante), l'envoie au serveur avec la clé.
 4. Le serveur vérifie la clé, l'abonnement actif et les postes disponibles, fait signer une licence v2 pour ce `wpk`
    et la renvoie. L'application la transmet au helper (`InstallLicense`, commande existante), qui la vérifie comme
    aujourd'hui.
@@ -106,9 +106,9 @@ Repli possible : le QR ne porte que `iid`, et les certificats d'émetteur sont l
 ### Renouvellement (automatique)
 
 - Au lancement puis toutes les quelques heures, si la licence expire dans moins de **10 jours** et que le
-  renouvellement en ligne est activé, l'application envoie une nouvelle `OBA1` et l'identifiant de licence.
+  renouvellement en ligne est activé, l'application envoie une nouvelle `DSA1` et l'identifiant de licence.
 - Abonnement payé → licence prolongée, même `id`, installée sans action du client. Sinon → rien ; la licence expire
-  à sa date et Oblivio retombe en diagnostic seul (comportement actuel).
+  à sa date et disphas retombe en diagnostic seul (comportement actuel).
 - Une licence renvoyée ne sert à rien sans la clé privée du poste, qui ne quitte jamais le poste : le renouvellement
   ne consomme pas de poste et n'expose rien.
 
@@ -129,8 +129,8 @@ liste de révocation (effective avec la mise à jour suivante).
 
 ### Secours hors ligne
 
-Poste sans Internet : le client colle la demande `OBA1` dans l'espace client (Ajouter un poste) et recopie la licence
-dans Oblivio, comme aujourd'hui. Les renouvellements se recopient de même depuis l'espace client (le serveur connaît
+Poste sans Internet : le client colle la demande `DSA1` dans l'espace client (Ajouter un poste) et recopie la licence
+dans disphas, comme aujourd'hui. Les renouvellements se recopient de même depuis l'espace client (le serveur connaît
 déjà le `wpk`, aucune nouvelle demande n'est nécessaire). Réglage **Renouvellement en ligne** : activé si
 l'activation s'est faite en ligne, désactivable à tout moment.
 
@@ -145,7 +145,7 @@ l'activation s'est faite en ligne, désactivable à tout moment.
   V1 : authentification NTLM/Kerberos, configuration automatique (PAC, WPAD) ; ces postes passent par le secours
   hors ligne (§4). Un proxy qui inspecte peut lire la clé de licence (il appartient à l'entreprise du client), mais
   ne peut pas forger de licence : la signature est toujours vérifiée.
-- Le **helper ne change pas** : il ne voit que des textes `OBA1`/`OBL1`, comme aujourd'hui.
+- Le **helper ne change pas** : il ne voit que des textes `DSA1`/`DSL1`, comme aujourd'hui.
 - Rappel local de l'échéance (« Votre licence expire dans N jours »), sans réseau.
 - L'indicateur « HORS LIGNE » devient exact au mot près : affiché en permanence, sauf pendant une requête de licence.
 
@@ -160,8 +160,8 @@ l'activation s'est faite en ligne, désactivable à tout moment.
 Internet ──HTTPS──► site Astro (licence.oblivio.eu, espace client, Stripe, base de données)
                         │  socket Unix locale, JSON (§6.3) — jamais exposée au réseau
                         ▼
-                    oblivio-signer (Rust, compte système dédié, aucun accès réseau)
-                        └─ clés boutique, certificats OBI1, registre des licences
+                    disphas-signer (Rust, compte système dédié, aucun accès réseau)
+                        └─ clés boutique, certificats DSI1, registre des licences
 ```
 
 - Le **site** décide **qui** a droit à une licence : clé de licence, abonnement payé, postes disponibles, poste libéré.
@@ -169,24 +169,24 @@ Internet ──HTTPS──► site Astro (licence.oblivio.eu, espace client, Str
   tout ce qui sort des bornes du certificat d'émetteur et de ses propres règles (§6.4). Un site piraté ne peut donc
   obtenir que des licences bornées (offres prévues, 90 jours au plus), toutes inscrites au registre.
 
-### 6.2 `oblivio-signer` (binaire Rust, `tools/oblivio-signer`, jamais livré aux clients)
+### 6.2 `disphas-signer` (binaire Rust, `tools/disphas-signer`, jamais livré aux clients)
 
-Réutilise `oblivio-license` et `oblivio-attestation` : **une seule implémentation** du format. Commandes :
+Réutilise `disphas-license` et `disphas-attestation` : **une seule implémentation** du format. Commandes :
 
 | Commande | Effet |
 |---|---|
-| `oblivio-signer keygen` | Crée une nouvelle clé boutique (aléa de l'OS) et affiche sa clé publique (64 chiffres hexadécimaux), à porter sur la machine hors ligne pour `oblivio-issuer certify` |
-| `oblivio-signer install 'OBI1:…'` | Vérifie le certificat avec la **racine officielle** (`decode_issuer`), exige que sa clé soit une clé boutique détenue ici, et l'enregistre |
-| `oblivio-signer status` | Certificats installés, dates, offres ; alerte si le certificat courant expire dans moins de 120 jours |
-| `oblivio-signer serve` | Sert la socket (§6.3) ; lancé par systemd |
+| `disphas-signer keygen` | Crée une nouvelle clé boutique (aléa de l'OS) et affiche sa clé publique (64 chiffres hexadécimaux), à porter sur la machine hors ligne pour `disphas-issuer certify` |
+| `disphas-signer install 'DSI1:…'` | Vérifie le certificat avec la **racine officielle** (`decode_issuer`), exige que sa clé soit une clé boutique détenue ici, et l'enregistre |
+| `disphas-signer status` | Certificats installés, dates, offres ; alerte si le certificat courant expire dans moins de 120 jours |
+| `disphas-signer serve` | Sert la socket (§6.3) ; lancé par systemd |
 
-- **État** dans `/var/lib/oblivio-signer` (0700, compte `oblivio-signer`) : `keys/` (graines 0600), `issuers/`
-  (certificats `OBI1`), `register.csv` (§6.5). Clés **exclues des sauvegardes** du serveur : en cas de perte, on
+- **État** dans `/var/lib/disphas-signer` (0700, compte `disphas-signer`) : `keys/` (graines 0600), `issuers/`
+  (certificats `DSI1`), `register.csv` (§6.5). Clés **exclues des sauvegardes** du serveur : en cas de perte, on
   génère une clé et on la fait certifier, sans rien perdre d'autre.
 - **Rotation** : une clé par certificat. Le certificat suivant (nouvelle clé) est installé **au moins 90 jours avant**
   l'expiration du courant ; le service signe avec le certificat valide qui expire le plus tard. Aucune licence n'est
   donc raccourcie par une fin de certificat.
-- **Socket** `/run/oblivio-signer/signer.sock`, mode 0660, groupe du site uniquement. Unité systemd durcie : pas de
+- **Socket** `/run/disphas-signer/signer.sock`, mode 0660, groupe du site uniquement. Unité systemd durcie : pas de
   réseau (`PrivateNetwork=yes`), système de fichiers en lecture seule sauf l'état, pas de nouveaux privilèges.
 - *Non tranché* : chiffrer les graines au repos (`systemd-creds`). Sans TPM sur le VPS, cela protège surtout les
   copies du disque ; à vérifier sur l'offre Infomaniak retenue.
@@ -197,12 +197,12 @@ Désérialisation stricte (champs inconnus refusés), réponses bornées, comme 
 
 | Requête | Champs | Réponse |
 |---|---|---|
-| `Activate` | `request` (`OBA1:…`), `customer`, `offer`, `expires` | `id` (nouveau, `OBL-AAAAMMJJ-` + 64 bits), `workstation_key` (hex), `license` (`OBL1:…`) |
-| `Renew` | `id`, `expires` | `license` (`OBL1:…`) — même `id`, même poste, même client, même offre, lus **dans le registre** |
+| `Activate` | `request` (`DSA1:…`), `customer`, `offer`, `expires` | `id` (nouveau, `DSL-AAAAMMJJ-` + 64 bits), `workstation_key` (hex), `license` (`DSL1:…`) |
+| `Renew` | `id`, `expires` | `license` (`DSL1:…`) — même `id`, même poste, même client, même offre, lus **dans le registre** |
 | `Status` | — | Certificats installés, licences signées aujourd'hui / ce mois |
 
 - `Activate` vérifie la preuve de possession de la demande (`read_activation_request`) : le site n'a jamais à
-  décoder `OBA1` lui-même.
+  décoder `DSA1` lui-même.
 - `Renew` ne permet de changer **que la date de fin** : un site piraté ne peut pas déplacer une licence vers un
   autre poste ni changer d'offre.
 - `not_before` est fixé par le service (heure courante − 60 s), jamais par le site.
@@ -230,13 +230,13 @@ Contrat entre l'application et le site ; l'application ne connaît que ces deux 
 
 | Appel | Corps | Réponses |
 |---|---|---|
-| `POST /v1/activate` | `{"key": "<clé de licence>", "request": "OBA1:…"}` | `200 {"license": "OBL1:…"}` ; `403 {"error": "invalid_key" \| "inactive" \| "no_seat"}` ; `400` |
-| `POST /v1/renew` | `{"id": "OBL-…", "request": "OBA1:…"}` | `200 {"license": "OBL1:…"}` ; `200 {"renewed": false, "reason": "inactive" \| "released" \| "revoked"}` ; `400` |
+| `POST /v1/activate` | `{"key": "<clé de licence>", "request": "DSA1:…"}` | `200 {"license": "DSL1:…"}` ; `403 {"error": "invalid_key" \| "inactive" \| "no_seat"}` ; `400` |
+| `POST /v1/renew` | `{"id": "DSL-…", "request": "DSA1:…"}` | `200 {"license": "DSL1:…"}` ; `200 {"renewed": false, "reason": "inactive" \| "released" \| "revoked"}` ; `400` |
 
-- `renew` exige une demande `OBA1` **du même poste** (clé comparée au registre) : seul le poste concerné peut
+- `renew` exige une demande `DSA1` **du même poste** (clé comparée au registre) : seul le poste concerné peut
   interroger sa licence ; la licence renvoyée reste inutilisable sans sa clé privée.
 - Corps de 8 Kio au plus ; débit limité par adresse IP ; aucun cookie, aucun autre en-tête que `User-Agent:
-  Oblivio/<version>`.
+  disphas/<version>`.
 - Le **secours hors ligne** (§4) passe par l'espace client, qui appelle les mêmes `Activate` / `Renew` du service.
 
 ## 7. Sécurité
@@ -272,32 +272,32 @@ La clé racine ne touche jamais le réseau.
 
 **À l'implémentation** (ils décrivent le produit livré, qui reste hors ligne d'ici là) :
 [manuel de l'opérateur](manuel_operateur.md) (activation en ligne, secours hors ligne, indicateur « HORS LIGNE »),
-accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%20Narration%20de%20Marque.md) :
+accroche du `README.md` et [identité de marque](disphas%20—%20Identité%20&%20Narration%20de%20Marque.md) :
 « 100 % offline » → « 100 % hors ligne pour vos données ; seule la licence se connecte ».
 
 ## 10. Lot de travail (après validation, dans cet ordre)
 
 1. ~~Mesurer la marge du QR~~ → **fait le 2026-10-11** (§3) ; QR imprimé à 5,5 cm.
-2. ~~`oblivio-attestation` (public) : certificat d'émetteur, licence v2, révocation, vérification ; tests, fuzzing~~ →
+2. ~~`disphas-attestation` (public) : certificat d'émetteur, licence v2, révocation, vérification ; tests, fuzzing~~ →
    **fait le 2026-10-11** (`Issuer`, `verify_license`, `is_revoked` ; 10 tests ; cible de fuzzing `attestation`).
-   L'application, `oblivio-verify` et le rendu PDF vérifient les certificats sous licence v2.
-3. ~~`oblivio-license` : installation et état des licences v2~~ → **fait le 2026-10-11** : `decode_license` passe par
+   L'application, `disphas-verify` et le rendu PDF vérifient les certificats sous licence v2.
+3. ~~`disphas-license` : installation et état des licences v2~~ → **fait le 2026-10-11** : `decode_license` passe par
    `verify_license` ; `InstalledLicense.issuer` ; l'état `Revoked` tient compte de l'émetteur ; une licence installée
    remplace la précédente (renouvellement, même `id`). Le helper installe une v2 et signe avec (`InstallLicense`
    inchangé). Tests : installation, renouvellement, émetteur non certifié, durée hors limites, émetteur révoqué.
-4. ~~`oblivio-issuer` : signer un certificat d'émetteur, révoquer un émetteur~~ → **fait le 2026-10-11** :
-   `oblivio-issuer certify ROOT.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N [--from EPOCH]
-   [--register FILE]` imprime le certificat `OBI1:…` à installer sur le serveur et l'inscrit au registre
+4. ~~`disphas-issuer` : signer un certificat d'émetteur, révoquer un émetteur~~ → **fait le 2026-10-11** :
+   `disphas-issuer certify ROOT.key --id ISS-… --shop-key HEX --offers A,B --days N --max-days N [--from EPOCH]
+   [--register FILE]` imprime le certificat `DSI1:…` à installer sur le serveur et l'inscrit au registre
    `issuers.csv` (à côté de la clé racine ; identifiant unique). La clé boutique est générée sur le serveur ; seule sa
    clé publique (64 chiffres hexadécimaux) vient sur la machine hors ligne ; elle ne peut pas être la racine.
    `revoke --id ISS-…` vérifie l'identifiant dans `issuers.csv` ; `issue` refuse un identifiant `ISS-`.
-   `oblivio-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
+   `disphas-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
    `certify --id ISS-2027-01 --offers Atelier,Pro --days 400 --max-days 90` (1 an + chevauchement).
-5. ~~Service de signature (`oblivio-signer`, §6.2 à §6.5)~~ → **fait le 2026-10-11** (`tools/oblivio-signer`) :
+5. ~~Service de signature (`disphas-signer`, §6.2 à §6.5)~~ → **fait le 2026-10-11** (`tools/disphas-signer`) :
    commandes `keygen`, `install`, `status`, `serve` ; requêtes `Activate`, `Renew`, `Status` ; règles du §6.4
    (débit 30/min et 2 000/jour, ce dernier recompté depuis le registre au redémarrage) ; chaque licence est revérifiée
    comme le fera le poste, puis inscrite au registre avant d'être renvoyée. Un certificat installé est pris en compte
-   au **redémarrage** du service. Unité systemd durcie `tools/oblivio-signer/oblivio-signer.service` (vérifiée par
+   au **redémarrage** du service. Unité systemd durcie `tools/disphas-signer/disphas-signer.service` (vérifiée par
    `systemd-analyze verify`, pas encore lancée sous systemd). Tests : 11 unitaires, et essai du binaire de bout en
    bout avec la racine de développement (socket, activation, renouvellement, refus, installation sur un poste).
    Non fait : export quotidien du registre, chiffrement des clés au repos (à trancher avec l'hébergement).

@@ -100,7 +100,7 @@ export type HelperError = { code: string; detail: string | null };
 
 export type Outcome<T> = { ok: true; value: T } | { ok: false; error: HelperError };
 
-export interface OblivioApi {
+export interface DisphasApi {
   /**
    * `tauri`: real helper. `preview`: browser, replays a recording of the demo
    * helper. `demo`: the website's interactive demo, a simulated helper.
@@ -166,7 +166,7 @@ async function settingsCall(command: string, args: Record<string, unknown>): Pro
   }
 }
 
-const tauriApi: OblivioApi = {
+const tauriApi: DisphasApi = {
   mode: "tauri",
   hello: () => call<HelloResult>({ cmd: "Hello", args: { protocol_version: 1, app_version: "0.1.0" } }),
   listDevices: () => call<ListDevicesResult>({ cmd: "ListDevices" }),
@@ -177,7 +177,7 @@ const tauriApi: OblivioApi = {
   licenseStatus: () => call<LicenseStatusResult>({ cmd: "LicenseStatus" }),
   createActivationRequest: () => call<ActivationRequestResult>({ cmd: "CreateActivationRequest" }),
   installLicense: (license) => call<LicenseStatusResult>({ cmd: "InstallLicense", args: { license } }),
-  onEvent: (handler) => listen<HelperEvent>("oblivio://event", (event) => handler(event.payload)),
+  onEvent: (handler) => listen<HelperEvent>("disphas://event", (event) => handler(event.payload)),
   renderCertificate: async (jobId, lang) => {
     try {
       return { ok: true, value: await invoke<string>("render_certificate", { jobId, lang }) };
@@ -220,8 +220,8 @@ const unavailable = {
   error: { code: "UNAVAILABLE", detail: "browser preview: no helper" },
 } as const;
 
-/** Browser preview: replays answers recorded from `oblivio-helper --features demo`. */
-const previewApi: OblivioApi = {
+/** Browser preview: replays answers recorded from `disphas-helper --features demo`. */
+const previewApi: DisphasApi = {
   mode: "preview",
   hello: async () => ({ ok: true, value: recording.hello as HelloResult }),
   listDevices: async () => ({ ok: true, value: { devices: recording.devices } as ListDevicesResult }),
@@ -254,7 +254,7 @@ const previewApi: OblivioApi = {
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],
 };
 
-// The demo build (`npm run build:demo`) sets VITE_OBLIVIO_DEMO: the bundler then
+// The demo build (`npm run build:demo`) sets VITE_DISPHAS_DEMO: the bundler then
 // drops the real helper calls and the preview, which it never uses.
-export const api: OblivioApi =
-  import.meta.env.VITE_OBLIVIO_DEMO === "1" ? demoApi : isTauri() ? tauriApi : previewApi;
+export const api: DisphasApi =
+  import.meta.env.VITE_DISPHAS_DEMO === "1" ? demoApi : isTauri() ? tauriApi : previewApi;

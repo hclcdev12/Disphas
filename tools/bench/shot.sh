@@ -1,6 +1,6 @@
 #!/bin/sh
 # Screenshot of the test bench's display (:0) over SSH, as a PNG on this
-# machine: lets an agent see the Oblivio interface it drives with xdotool.
+# machine: lets an agent see the disphas interface it drives with xdotool.
 # Needs the `oblivio-bench` SSH alias (docs/reprise.md) and python3; no
 # root and nothing installed on the bench (xwd ships with it).
 #

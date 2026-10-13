@@ -1,14 +1,14 @@
 #!/bin/sh
-# Oblivio %post (RPM): the helper's state tree, root only. Certificates are
+# disphas %post (RPM): the helper's state tree, root only. Certificates are
 # read through the helper (docs/protocole_ipc.md §10): no group, no account
-# to add. RPM has no purge: removing the package keeps /var/lib/oblivio; to
-# delete every data and setting: sudo rm -rf /var/lib/oblivio
-state=/var/lib/oblivio
+# to add. RPM has no purge: removing the package keeps /var/lib/disphas; to
+# delete every data and setting: sudo rm -rf /var/lib/disphas
+state=/var/lib/disphas
 # Owned by root (docs/securite.md, S1). A symbolic link where a folder is
 # expected means tampering: stop.
 for path in "$state" "$state/keys" "$state/license" "$state/jobs" "$state/recovery" "$state/reports"; do
     if [ -L "$path" ]; then
-        echo "oblivio: $path is a symbolic link, refusing to continue" >&2
+        echo "disphas: $path is a symbolic link, refusing to continue" >&2
         exit 1
     fi
 done
@@ -28,6 +28,6 @@ find "$state/reports" -maxdepth 1 -type f \( -name '*.cose' -o -name '*.json' \)
 # upgrade. A group in the range of user ids is someone else's: kept.
 gid=$(getent group oblivio | cut -d: -f3)
 if [ -n "$gid" ] && [ "$gid" -lt 1000 ]; then
-    groupdel oblivio || echo "oblivio: the former oblivio group could not be removed" >&2
+    groupdel oblivio || echo "disphas: the former oblivio group could not be removed" >&2
 fi
 exit 0

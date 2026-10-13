@@ -1,0 +1,55 @@
+# License signing service of the disphas license server
+# (docs/licences_en_ligne.md §6.2). Install on the server only:
+#   useradd --system --no-create-home --shell /usr/sbin/nologin disphas-signer
+#   usermod -aG disphas-signer <site user>     # the site connects to the socket
+#   install -m 0755 disphas-signer /usr/local/bin/
+#   install -m 0644 disphas-signer.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now disphas-signer
+# Shop keys, certificates and the register live in /var/lib/disphas-signer:
+# exclude keys/ from backups; export the register daily (§6.5).
+
+[Unit]
+Description=disphas license signing service
+After=local-fs.target
+
+[Service]
+Type=simple
+User=disphas-signer
+Group=disphas-signer
+ExecStart=/usr/local/bin/disphas-signer --state /var/lib/disphas-signer serve --socket /run/disphas-signer/signer.sock
+Restart=on-failure
+
+StateDirectory=disphas-signer
+StateDirectoryMode=0700
+RuntimeDirectory=disphas-signer
+RuntimeDirectoryMode=0750
+UMask=0077
+
+# No network at all: the site talks to the Unix socket.
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=multi-user.target

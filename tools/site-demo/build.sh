@@ -17,7 +17,7 @@ cp -R "$root/app/dist-demo" "$work/app"
 
 echo "== fictional certificates"
 mkdir -p "$work/app/pdf"
-(cd "$root" && cargo run -q -p oblivio-report --features fixtures --example demo_certificates -- "$work/app/pdf")
+(cd "$root" && cargo run -q -p disphas-report --features fixtures --example demo_certificates -- "$work/app/pdf")
 
 echo "== audit"
 "$root/tools/site-demo/audit.sh" "$work/app"

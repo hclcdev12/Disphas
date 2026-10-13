@@ -2,7 +2,7 @@
 // helper signs it into each attestation (docs/certificat.md §6.1).
 import type { BatchArgs } from "../bindings/BatchArgs";
 
-const KEY = "oblivio.currentBatch";
+const KEY = "disphas.currentBatch";
 
 /** A new batch identifier: LOT-YYYYMMDD-XXXX (matches the attestation bounds). */
 export function newBatchId(now = new Date()): string {

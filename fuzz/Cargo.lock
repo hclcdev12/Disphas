@@ -511,7 +511,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oblivio-attestation"
+name = "disphas-attestation"
 version = "0.1.0"
 dependencies = [
  "ciborium",
@@ -524,7 +524,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oblivio-core"
+name = "disphas-core"
 version = "0.1.0"
 dependencies = [
  "semver",
@@ -533,41 +533,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "oblivio-device"
+name = "disphas-device"
 version = "0.1.0"
 dependencies = [
  "getrandom",
  "libc",
- "oblivio-core",
+ "disphas-core",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
-name = "oblivio-fuzz"
+name = "disphas-fuzz"
 version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
- "oblivio-attestation",
- "oblivio-core",
- "oblivio-device",
- "oblivio-helper",
- "oblivio-license",
- "oblivio-protocol",
+ "disphas-attestation",
+ "disphas-core",
+ "disphas-device",
+ "disphas-helper",
+ "disphas-license",
+ "disphas-protocol",
 ]
 
 [[package]]
-name = "oblivio-helper"
+name = "disphas-helper"
 version = "0.1.0"
 dependencies = [
  "base64",
  "chacha20",
  "getrandom",
- "oblivio-attestation",
- "oblivio-core",
- "oblivio-device",
- "oblivio-license",
- "oblivio-protocol",
+ "disphas-attestation",
+ "disphas-core",
+ "disphas-device",
+ "disphas-license",
+ "disphas-protocol",
  "rustix",
  "serde",
  "serde_json",
@@ -577,17 +577,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "oblivio-license"
+name = "disphas-license"
 version = "0.1.0"
 dependencies = [
  "getrandom",
- "oblivio-attestation",
+ "disphas-attestation",
  "thiserror",
  "zeroize",
 ]
 
 [[package]]
-name = "oblivio-protocol"
+name = "disphas-protocol"
 version = "0.1.0"
 dependencies = [
  "serde",

@@ -1,16 +1,16 @@
 #!/bin/sh
-# Oblivio postrm.
-#   remove: the program is gone; data stays in /var/lib/oblivio (workstation
+# disphas postrm.
+#   remove: the program is gone; data stays in /var/lib/disphas (workstation
 #           key, license, certificates): no proof is destroyed by mistake.
 #   purge:  every data and setting is deleted (Cyber Resilience Act,
-#           Annex I, Part I (2)(m)): /var/lib/oblivio.
+#           Annex I, Part I (2)(m)): /var/lib/disphas.
 # Certificates exported to users' home folders are theirs and stay
 # (Debian Policy: packages never touch home directories).
 set -e
 
 case "$1" in
     purge)
-        rm -rf /var/lib/oblivio
+        rm -rf /var/lib/disphas
         ;;
 esac
 

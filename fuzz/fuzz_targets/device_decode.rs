@@ -3,7 +3,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use oblivio_device::decode::{ata, nvme};
+use disphas_device::decode::{ata, nvme};
 
 fuzz_target!(|data: &[u8]| {
     let _ = nvme::identify_controller(data);

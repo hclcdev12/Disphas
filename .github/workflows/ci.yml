@@ -1,6 +1,6 @@
 # Checks run on every push and pull request. No secret is available here and
 # nothing touches a real drive: hardware tests need the `hw-tests` feature and
-# OBLIVIO_TEST_DEVICE, never set in CI (CLAUDE.md §2).
+# DISPHAS_TEST_DEVICE, never set in CI (CLAUDE.md §2).
 name: CI
 
 on:
@@ -62,23 +62,23 @@ jobs:
 
       - name: Clippy (helper features)
         run: |
-          cargo clippy -p oblivio-helper --all-targets --features demo -- -D warnings
-          cargo clippy -p oblivio-helper --all-targets --features real-devices -- -D warnings
+          cargo clippy -p disphas-helper --all-targets --features demo -- -D warnings
+          cargo clippy -p disphas-helper --all-targets --features real-devices -- -D warnings
 
       - name: Clippy (release)
-        run: cargo clippy --release -p oblivio-helper -p oblivio-app -- -D warnings
+        run: cargo clippy --release -p disphas-helper -p disphas-app -- -D warnings
 
       - name: Tests
         run: |
           cargo test --workspace
-          cargo test -p oblivio-helper --features demo
+          cargo test -p disphas-helper --features demo
           # Pure tests of the real backend (lookups, sanitize polling): no drive is opened.
-          cargo test -p oblivio-helper --features real-devices system::
+          cargo test -p disphas-helper --features real-devices system::
 
       - name: Third-party notices are up to date
         run: python3 tools/third_party_notices.py --check
 
       - name: TypeScript bindings are up to date
         run: |
-          cargo test -q -p oblivio-protocol --features ts-rs export_bindings
+          cargo test -q -p disphas-protocol --features ts-rs export_bindings
           git diff --exit-code app/src/bindings

@@ -6,7 +6,7 @@ import { Badge, Button, Mono } from "./ui";
 
 /**
  * Offline activation (certificat.md §4): the workstation creates a request
- * holding its public key, the operator sends it to Oblivio and pastes the
+ * holding its public key, the operator sends it to disphas and pastes the
  * license received. The helper verifies and installs it.
  */
 export function LicenseDialog({
@@ -124,7 +124,7 @@ export function LicenseDialog({
           <textarea
             className="mt-2 block h-20 w-full resize-none rounded-md border border-edge bg-night p-2 font-mono text-xs font-normal break-all"
             spellCheck={false}
-            placeholder="OBL1:…"
+            placeholder="DSL1:…"
             value={license}
             onChange={(event) => setLicense(event.target.value)}
           />
@@ -132,7 +132,7 @@ export function LicenseDialog({
         <Button
           variant="primary"
           className="mt-2"
-          disabled={busy || !license.trim().startsWith("OBL1:")}
+          disabled={busy || !license.trim().startsWith("DSL1:")}
           onClick={() => void install()}
         >
           {t("license.installButton")}

@@ -4,7 +4,7 @@ import type { Texts } from "./fr";
 const en: Texts = {
   languageName: "English",
   meta: {
-    title: "Oblivio — Certified hardware amnesia",
+    title: "disphas — Certified hardware amnesia",
     description:
       "Secure drive erasure following NIST SP 800-88 Rev. 2 and IEEE 2883-2022: one decision, a refusal when erasure cannot be proven, a signed certificate that verifies offline.",
   },
@@ -28,7 +28,7 @@ const en: Texts = {
   home: {
     eyebrow: "Secure drive erasure",
     title: "The right to be forgotten, engraved at the metal.",
-    lead: "Oblivio questions every drive at the lowest level, applies the erasure method set out by NIST SP 800-88 Rev. 2 and IEEE 2883-2022, and seals the result in a signed certificate that verifies offline.",
+    lead: "disphas questions every drive at the lowest level, applies the erasure method set out by NIST SP 800-88 Rev. 2 and IEEE 2883-2022, and seals the result in a signed certificate that verifies offline.",
     soon: "Coming soon: 64-bit Linux, SATA and NVMe drives.",
     certificate: {
       caption: "Erasure certificate (fictional example)",
@@ -43,7 +43,7 @@ const en: Texts = {
     },
     steps: {
       title: "Five steps, no guessing",
-      lead: "The operator confirms; Oblivio decides from the actual state of the drive.",
+      lead: "The operator confirms; disphas decides from the actual state of the drive.",
       items: [
         { title: "Inspect", text: "Direct firmware reads (NVMe and ATA IDENTIFY): erasure capabilities, health, locks." },
         { title: "Decide", text: "One decision: method and category, reservations, what the drive should become — or a refusal." },
@@ -54,12 +54,12 @@ const en: Texts = {
     },
     decision: {
       title: "One decision, proven",
-      text: "Oblivio only certifies what it can prove. When an erasure cannot be verified, it refuses and prescribes physical destruction.",
+      text: "disphas only certifies what it can prove. When an erasure cannot be verified, it refuses and prescribes physical destruction.",
       compliant: "COMPLIANT",
       compliantDetail: "Purge · NVMe Sanitize · sample validation",
       sayNo: "SAY NO",
       sayNoDetail: "Erasure not provable · physical destruction required",
-      example: "Examples of states shown by Oblivio",
+      example: "Examples of states shown by disphas",
     },
     pillars: [
       {
@@ -85,7 +85,7 @@ const en: Texts = {
     },
     band: {
       title: "Plan your rollout",
-      text: "Oblivio is being finalised. Describe your needs: we will get back to you.",
+      text: "disphas is being finalised. Describe your needs: we will get back to you.",
     },
   },
   product: {
@@ -93,13 +93,13 @@ const en: Texts = {
     lead: "A Linux application that inspects, decides, erases, verifies and certifies. It asks the operator one thing only: to confirm.",
     inspection: {
       title: "Inspection at the lowest level",
-      text: "Oblivio reads the capabilities announced by the drive firmware (NVMe Identify, ATA IDENTIFY) through direct system calls, with no third-party tool in the certified chain. Every value in the certificate states where it comes from.",
+      text: "disphas reads the capabilities announced by the drive firmware (NVMe Identify, ATA IDENTIFY) through direct system calls, with no third-party tool in the certified chain. Every value in the certificate states where it comes from.",
     },
     states: {
       title: "Four states, four instructions",
       items: [
-        { tone: "ready", name: "READY", text: "Oblivio can erase and prove the erasure: the recommended method is offered." },
-        { tone: "neutral", name: "PROTECTED", text: "System drive, mounted partition, active swap, volume member: Oblivio will not touch it." },
+        { tone: "ready", name: "READY", text: "disphas can erase and prove the erasure: the recommended method is offered." },
+        { tone: "neutral", name: "PROTECTED", text: "System drive, mounted partition, active swap, volume member: disphas will not touch it." },
         { tone: "blocked", name: "BLOCKED", text: "Healthy drive, but an action is needed (sleep, ATA password, power cycle): the instruction is shown." },
         { tone: "sayno", name: "SAY NO", text: "Erasure not provable: physical destruction required, with a signed refusal report." },
       ],
@@ -111,7 +111,7 @@ const en: Texts = {
     },
     validation: {
       title: "Verify, then validate",
-      text: "Before erasing, Oblivio plants witness samples; afterwards, it compares them. For an overwrite, it reads the written pattern back. Without a successful validation, no COMPLIANT certificate.",
+      text: "Before erasing, disphas plants witness samples; afterwards, it compares them. For an overwrite, it reads the written pattern back. Without a successful validation, no COMPLIANT certificate.",
     },
     certificate: {
       title: "A certificate that stands on its own",
@@ -144,19 +144,19 @@ const en: Texts = {
   },
   security: {
     title: "Security and compliance",
-    lead: "Proof of erasure is only worth something if it withstands scrutiny. Oblivio is built for that.",
+    lead: "Proof of erasure is only worth something if it withstands scrutiny. disphas is built for that.",
     standards: {
       title: "Reference standards",
       text: "Decisions follow NIST SP 800-88 Rev. 2 (Guidelines for Media Sanitization) and IEEE 2883-2022 (Standard for Sanitizing Storage). Clear, Purge and Destruct are the terms of these standards.",
-      affiliation: "Oblivio is not affiliated with, nor certified by, NIST or IEEE; their standards are cited as references.",
+      affiliation: "disphas is not affiliated with, nor certified by, NIST or IEEE; their standards are cited as references.",
     },
     offline: {
       title: "Your data stays with you",
-      text: "Erasure, decision, signature and history all happen on the workstation. No drive data and no certificate is sent to Oblivio. No telemetry.",
+      text: "Erasure, decision, signature and history all happen on the workstation. No drive data and no certificate is sent to disphas. No telemetry.",
     },
     chain: {
       title: "A verifiable signature chain",
-      text: "Each workstation holds its own key, authorised by the Oblivio license; it signs a canonical attestation. A verifier only needs Oblivio's public key, with no connection.",
+      text: "Each workstation holds its own key, authorised by the disphas license; it signs a canonical attestation. A verifier only needs disphas's public key, with no connection.",
     },
     verification: {
       title: "Three levels of verification",
@@ -172,7 +172,7 @@ const en: Texts = {
     },
     disclosure: {
       title: "Report a vulnerability",
-      text: "Found a security flaw in Oblivio? Write to us privately through the contact page, choosing “Security”. A dedicated address will be published before sales open.",
+      text: "Found a security flaw in disphas? Write to us privately through the contact page, choosing “Security”. A dedicated address will be published before sales open.",
     },
   },
   pricing: {
@@ -188,13 +188,13 @@ const en: Texts = {
   },
   download: {
     title: "Download",
-    lead: "Oblivio will be downloadable from your customer area, free of charge for diagnostics.",
+    lead: "disphas will be downloadable from your customer area, free of charge for diagnostics.",
     soon: "Coming soon",
     account: "A free account will be required: it gives access to the packages, their SHA-256 checksums and updates.",
   },
   demo: {
     title: "Interactive demo",
-    lead: "Oblivio's real interface, in your browser, on fictional drives. Nothing is installed, no drive is touched.",
+    lead: "disphas's real interface, in your browser, on fictional drives. Nothing is installed, no drive is touched.",
     launch: "Launch the demo",
     notice: "Fictional drives · accelerated durations · certificates signed with a public test key, so not authentic.",
     desktop: "Designed for a computer screen.",
@@ -203,10 +203,10 @@ const en: Texts = {
       { tone: "ready", label: "READY", drive: "DEMO NVMe Data 2TB", text: "Erase it: Purge by NVMe Sanitize, COMPLIANT certificate." },
       { tone: "ready", label: "READY", drive: "DEMO HDD 4TB", text: "Worn drive: erasure certified, destruction recommended over reuse." },
       { tone: "blocked", label: "BLOCKED", drive: "DEMO SATA SSD 500GB", text: "Frozen (B1): click Refresh, then erase it. Validation fails: REFUSED." },
-      { tone: "blocked", label: "BLOCKED", drive: "DEMO SATA SSD Locked", text: "Locked (B2): unlock it with the password “oblivio”." },
+      { tone: "blocked", label: "BLOCKED", drive: "DEMO SATA SSD Locked", text: "Locked (B2): unlock it with the password “disphas”." },
       { tone: "sayno", label: "SAY NO", drive: "DEMO Unresponsive 1TB", text: "Inspection impossible: force the erasure, the certificate will be NON-COMPLIANT." },
       { tone: "sayno", label: "SAY NO", drive: "DEMO NVMe Worn 256GB", text: "Read-only: no erasure possible, physical destruction required." },
-      { tone: "neutral", label: "PROTECTED", drive: "DEMO NVMe System 1TB", text: "System drive: Oblivio does not touch it." },
+      { tone: "neutral", label: "PROTECTED", drive: "DEMO NVMe System 1TB", text: "System drive: disphas does not touch it." },
     ],
     confirm: "To confirm an erasure, type the last 4 characters of the serial number shown.",
   },
@@ -256,7 +256,7 @@ const en: Texts = {
     signedInAs: "Signed in as",
     signOut: "Sign out",
     downloadsTitle: "Downloads",
-    downloadsLead: "Oblivio packages for 64-bit Linux. Check the SHA-256 checksum before installing.",
+    downloadsLead: "disphas packages for 64-bit Linux. Check the SHA-256 checksum before installing.",
     noRelease: "No package has been published yet: you will be told when it is out.",
     checksum: "SHA-256",
     emailTitle: "Email address",
@@ -322,7 +322,7 @@ const en: Texts = {
   },
   footer: {
     madeIn: "Designed in Europe",
-    affiliation: "Oblivio is not affiliated with NIST or IEEE; their standards are cited as references.",
+    affiliation: "disphas is not affiliated with NIST or IEEE; their standards are cited as references.",
   },
 };
 

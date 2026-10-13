@@ -4,12 +4,12 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use oblivio_core::RuleSet;
-use oblivio_helper::backend::NoDevices;
-use oblivio_helper::licensing::{Licensing, Signer};
-use oblivio_helper::serve::serve;
-use oblivio_helper::session::{Session, SessionConfig};
-use oblivio_protocol::response::{ErrorBody, ErrorCode, LicenseState, LicenseStatusResult};
+use disphas_core::RuleSet;
+use disphas_helper::backend::NoDevices;
+use disphas_helper::licensing::{Licensing, Signer};
+use disphas_helper::serve::serve;
+use disphas_helper::session::{Session, SessionConfig};
+use disphas_protocol::response::{ErrorBody, ErrorCode, LicenseState, LicenseStatusResult};
 
 #[derive(Debug)]
 struct NoLicensing;
@@ -47,7 +47,7 @@ fuzz_target!(|data: &[u8]| {
         SessionConfig {
             rules: RuleSet::baseline(),
             binary_sha256: [0; 32],
-            reports_dir: std::path::PathBuf::from("/nonexistent/oblivio-fuzz"),
+            reports_dir: std::path::PathBuf::from("/nonexistent/disphas-fuzz"),
             jobs_dir: None,
             licensing: Box::new(NoLicensing),
         },

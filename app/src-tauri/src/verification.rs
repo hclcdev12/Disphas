@@ -1,14 +1,14 @@
 //! Verification of a certificate given by the user: a PDF (its attached
 //! attestation and journal), a binary COSE attestation or the QR text
-//! (`OBV1:…`). Same checks as `oblivio-verify`: signature, license chain to a
+//! (`DSV1:…`). Same checks as `disphas-verify`: signature, license chain to a
 //! trusted root, license validity at the attestation date, journal digest.
 
-use oblivio_attestation::batch::{BatchVerification, DriveError, is_batch, verify_batch};
-use oblivio_attestation::display::uuid;
-use oblivio_attestation::pdf::{ExtractError, all_attachments, certificate};
+use disphas_attestation::batch::{BatchVerification, DriveError, is_batch, verify_batch};
+use disphas_attestation::display::uuid;
+use disphas_attestation::pdf::{ExtractError, all_attachments, certificate};
 
 use crate::trust::Trust;
-use oblivio_attestation::{Verified, VerifyError, from_qr_text, verify};
+use disphas_attestation::{Verified, VerifyError, from_qr_text, verify};
 use serde::Serialize;
 
 /// Largest input accepted (a certificate PDF is well under 1 MiB).
@@ -28,7 +28,7 @@ pub enum Source {
 /// Root the certificate chains to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum Root {
-    /// The official Oblivio root key.
+    /// The official disphas root key.
     Official,
     /// Another trusted root: the public development root (debug builds).
     Development,
@@ -108,7 +108,7 @@ pub struct Details {
     pub batch_id: Option<String>,
     /// Batch label.
     pub batch_label: Option<String>,
-    /// Oblivio version.
+    /// disphas version.
     pub tool_version: String,
     /// Rule set version.
     pub rules_version: String,
@@ -171,7 +171,7 @@ pub struct Report {
 
 fn reason(error: &VerifyError) -> &'static str {
     match error {
-        VerifyError::NotOblivio => "NotOblivio",
+        VerifyError::NotDisphas => "NotDisphas",
         VerifyError::Corrupted => "Corrupted",
         VerifyError::AttestationEnvelope(_) | VerifyError::AttestationContent(_) => {
             "AttestationInvalid"
@@ -203,7 +203,7 @@ fn hex(bytes: &[u8]) -> String {
 
 fn details(verified: &Verified) -> Details {
     let a = &verified.attestation;
-    let codes = |codes: &[oblivio_attestation::model::Code]| {
+    let codes = |codes: &[disphas_attestation::model::Code]| {
         codes.iter().map(|code| code.as_str().to_owned()).collect()
     };
     Details {
@@ -278,7 +278,7 @@ pub fn check(input: &[u8], trust: &Trust) -> Report {
         }
     } else {
         match std::str::from_utf8(input).map(str::trim) {
-            Ok(text) if text.starts_with("OBV1:") => match from_qr_text(text) {
+            Ok(text) if text.starts_with("DSV1:") => match from_qr_text(text) {
                 Ok(signed) => (Source::Qr, signed, None),
                 Err(error) => return rejected(Some(Source::Qr), reason(&error)),
             },
@@ -392,15 +392,15 @@ fn check_batch(files: &[(String, Vec<u8>)], trust: &Trust) -> Report {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oblivio_attestation::display::Lang;
-    use oblivio_attestation::model::Status;
-    use oblivio_attestation::to_qr_text;
-    use oblivio_report::fixture::{JOURNAL, root, signed};
-    use oblivio_report::{RenderOptions, render};
+    use disphas_attestation::display::Lang;
+    use disphas_attestation::model::Status;
+    use disphas_attestation::to_qr_text;
+    use disphas_report::fixture::{JOURNAL, root, signed};
+    use disphas_report::{RenderOptions, render};
 
     fn trust(
         official: bool,
-        roots: Vec<oblivio_attestation::ed25519_dalek::VerifyingKey>,
+        roots: Vec<disphas_attestation::ed25519_dalek::VerifyingKey>,
     ) -> Trust {
         Trust {
             official: if official {
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn certificate_of_a_revoked_license_is_rejected() {
         let mut revoked = roots();
-        revoked.revocations.push(oblivio_attestation::Revocation {
+        revoked.revocations.push(disphas_attestation::Revocation {
             license_id: "LIC-0001".to_owned(),
             revoked_at: 0,
         });
@@ -454,9 +454,9 @@ mod tests {
 
     #[test]
     fn batch_pdf_is_verified_drive_by_drive() {
-        use oblivio_attestation::model::Batch;
-        use oblivio_report::batch::{BatchEntry, render_batch};
-        use oblivio_report::fixture::signed_in_batch;
+        use disphas_attestation::model::Batch;
+        use disphas_report::batch::{BatchEntry, render_batch};
+        use disphas_report::fixture::signed_in_batch;
         let lot = Some(Batch {
             id: "LOT-T".to_owned(),
             label: None,
@@ -489,7 +489,7 @@ mod tests {
         assert_eq!(batch.drives.len(), 2);
         assert!(batch.drives.iter().all(|drive| drive.accepted));
 
-        let stranger = oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
+        let stranger = disphas_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
         let report = check(&pdf, &trust(false, vec![stranger.verifying_key()]));
         assert!(!report.authentic);
         assert!(
@@ -527,7 +527,7 @@ mod tests {
         assert!(report.details.is_none());
         assert!(report.reason.is_some());
 
-        let stranger = oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
+        let stranger = disphas_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]);
         let report = check(
             &signed(Status::Compliant, "x"),
             &trust(false, vec![stranger.verifying_key()]),
@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(report.reason.as_deref(), Some("LicenseInvalid"));
 
         assert_eq!(
-            check(b"OBV1:!!!", &roots()).reason.as_deref(),
+            check(b"DSV1:!!!", &roots()).reason.as_deref(),
             Some("Corrupted")
         );
         assert_eq!(

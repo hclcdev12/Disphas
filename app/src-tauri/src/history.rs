@@ -5,9 +5,9 @@
 //! verify is never displayed.
 
 use base64::Engine;
-use oblivio_attestation::display::uuid;
-use oblivio_attestation::{VerifyError, verify};
-use oblivio_protocol::response::StoredReport;
+use disphas_attestation::display::uuid;
+use disphas_attestation::{VerifyError, verify};
+use disphas_protocol::response::StoredReport;
 
 use crate::trust::Trust;
 use serde::Serialize;
@@ -68,7 +68,7 @@ pub struct Entry {
     pub summary: Option<Summary>,
 }
 
-/// Whether `id` has the UUID shape Oblivio uses for report files.
+/// Whether `id` has the UUID shape disphas uses for report files.
 pub fn is_report_id(id: &str) -> bool {
     id.len() == 36
         && id.char_indices().all(|(index, c)| match index {
@@ -161,13 +161,13 @@ pub fn check_all(reports: &[StoredReport], trust: &Trust) -> Vec<Entry> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oblivio_attestation::model::Status;
-    use oblivio_report::fixture::{JOURNAL, root, signed};
+    use disphas_attestation::model::Status;
+    use disphas_report::fixture::{JOURNAL, root, signed};
     use sha2::Digest;
 
     fn trust_in(
-        roots: Vec<oblivio_attestation::ed25519_dalek::VerifyingKey>,
-        revocations: Vec<oblivio_attestation::Revocation>,
+        roots: Vec<disphas_attestation::ed25519_dalek::VerifyingKey>,
+        revocations: Vec<disphas_attestation::Revocation>,
     ) -> Trust {
         Trust {
             official: roots.first().copied(),
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn report_of_a_revoked_license_is_flagged() {
         let report = stored(&signed(Status::Compliant, "x"), JOURNAL);
-        let revoked = oblivio_attestation::Revocation {
+        let revoked = disphas_attestation::Revocation {
             license_id: "LIC-0001".to_owned(),
             revoked_at: 0,
         };
@@ -231,7 +231,7 @@ mod tests {
     fn untrusted_or_tampered_reports_show_no_content() {
         let report = stored(&signed(Status::Compliant, "x"), JOURNAL);
         let stranger =
-            oblivio_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]).verifying_key();
+            disphas_attestation::ed25519_dalek::SigningKey::from_bytes(&[9; 32]).verifying_key();
         let entry = check(&report, &trust_in(vec![stranger], vec![]));
         assert_eq!(entry.check, Check::Invalid);
         assert!(entry.summary.is_none());

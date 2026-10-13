@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks a built Oblivio .deb before release (packaging/README.md):
+"""Checks a built disphas .deb before release (packaging/README.md):
 
 - no shipped program needs a glibc newer than --max-glibc (2.35 covers
   Ubuntu 22.04, Debian 12 and newer);
@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-PROGRAMS = ("usr/bin/oblivio-app", "usr/libexec/oblivio/oblivio-helper")
+PROGRAMS = ("usr/bin/disphas-app", "usr/libexec/disphas/disphas-helper")
 
 
 def version(text: str) -> tuple[int, ...]:
@@ -57,7 +57,7 @@ def main() -> int:
         work = Path(tmp) / "shlib"
         (work / "debian").mkdir(parents=True)
         (work / "debian" / "control").write_text(
-            "Source: oblivio\n\nPackage: oblivio\nArchitecture: amd64\n"
+            "Source: disphas\n\nPackage: disphas\nArchitecture: amd64\n"
         )
         output = run("dpkg-shlibdeps", "-O", *map(str, programs), cwd=work)
         found = output.split("=", 1)[1].strip()

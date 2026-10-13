@@ -4,10 +4,10 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use oblivio_attestation::ed25519_dalek::SigningKey;
-use oblivio_attestation::model::{ActivationRequest, Attestation, Issuer, License};
-use oblivio_attestation::revocation::RevocationList;
-use oblivio_attestation::{from_qr_text, verify, verify_license};
+use disphas_attestation::ed25519_dalek::SigningKey;
+use disphas_attestation::model::{ActivationRequest, Attestation, Issuer, License};
+use disphas_attestation::revocation::RevocationList;
+use disphas_attestation::{from_qr_text, verify, verify_license};
 
 fuzz_target!(|data: &[u8]| {
     let root = SigningKey::from_bytes(&[1; 32]).verifying_key();

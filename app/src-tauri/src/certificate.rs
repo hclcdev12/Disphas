@@ -5,16 +5,16 @@
 use std::path::{Path, PathBuf};
 
 use base64::Engine;
-use oblivio_attestation::display::Lang;
-use oblivio_protocol::response::JobResult;
-use oblivio_report::{Logo, LogoFormat, RenderOptions, ReportError, render};
+use disphas_attestation::display::Lang;
+use disphas_protocol::response::JobResult;
+use disphas_report::{Logo, LogoFormat, RenderOptions, ReportError, render};
 
 use crate::trust::Trust;
 
-/// Folder where certificates are saved: `~/Documents/Oblivio`.
+/// Folder where certificates are saved: `~/Documents/disphas`.
 pub fn output_dir() -> Result<PathBuf, String> {
     let home = std::env::var_os("HOME").ok_or("HOME is not set")?;
-    Ok(PathBuf::from(home).join("Documents/Oblivio"))
+    Ok(PathBuf::from(home).join("Documents/disphas"))
 }
 
 /// A customer logo, as loaded from the settings.
@@ -76,7 +76,7 @@ pub fn save_signed(
         Lang::Fr => "fr",
         Lang::De => "de",
     };
-    let path = dir.join(format!("oblivio-{id}-{tag}.pdf"));
+    let path = dir.join(format!("disphas-{id}-{tag}.pdf"));
     std::fs::write(&path, pdf).map_err(|error| format!("{}: {error}", path.display()))?;
     Ok(path)
 }
@@ -84,7 +84,7 @@ pub fn save_signed(
 /// Renders the batch certificate of `batch_id` from `files`, the signed
 /// attestation and journal of each report of that batch (fetched through
 /// the helper), each verified again by the renderer. Saved as
-/// `oblivio-lot-<batch>-<lang>.pdf`. `None` for a batch without any
+/// `disphas-lot-<batch>-<lang>.pdf`. `None` for a batch without any
 /// certificate.
 pub fn save_batch(
     batch_id: &str,
@@ -93,8 +93,8 @@ pub fn save_batch(
     trust: &Trust,
     logo: &CustomLogo,
 ) -> Result<Option<PathBuf>, String> {
-    use oblivio_attestation::model::Batch;
-    use oblivio_report::batch::{BatchEntry, BatchError, render_batch};
+    use disphas_attestation::model::Batch;
+    use disphas_report::batch::{BatchEntry, BatchError, render_batch};
     if !Batch::valid_id(batch_id) {
         return Err("invalid batch identifier".to_owned());
     }
@@ -130,7 +130,7 @@ pub fn save_batch(
         Lang::Fr => "fr",
         Lang::De => "de",
     };
-    let path = out.join(format!("oblivio-lot-{batch_id}-{tag}.pdf"));
+    let path = out.join(format!("disphas-lot-{batch_id}-{tag}.pdf"));
     std::fs::write(&path, pdf).map_err(|error| format!("{}: {error}", path.display()))?;
     Ok(Some(path))
 }
@@ -143,7 +143,7 @@ pub fn open(path: &Path) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     let path = path.canonicalize().map_err(|error| error.to_string())?;
     if !path.starts_with(&dir) || path.extension().is_none_or(|ext| ext != "pdf") {
-        return Err("only certificates in the Oblivio folder can be opened".to_owned());
+        return Err("only certificates in the disphas folder can be opened".to_owned());
     }
     std::process::Command::new("xdg-open")
         .arg(&path)

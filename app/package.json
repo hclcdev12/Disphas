@@ -1,5 +1,5 @@
 {
-  "name": "oblivio-app",
+  "name": "disphas-app",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "bindings": "cd .. && cargo test -q -p oblivio-protocol --features ts-rs export_bindings",
+    "bindings": "cd .. && cargo test -q -p disphas-protocol --features ts-rs export_bindings",
     "tauri": "tauri",
-    "demo": "cargo build -q --manifest-path ../Cargo.toml -p oblivio-helper --features demo && tauri dev",
-    "build:demo": "tsc -b && VITE_OBLIVIO_DEMO=1 vite build --base /demo/app/ --outDir dist-demo --emptyOutDir"
+    "demo": "cargo build -q --manifest-path ../Cargo.toml -p disphas-helper --features demo && tauri dev",
+    "build:demo": "tsc -b && VITE_DISPHAS_DEMO=1 vite build --base /demo/app/ --outDir dist-demo --emptyOutDir"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

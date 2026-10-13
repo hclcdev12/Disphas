@@ -19,7 +19,7 @@ function toBase64(bytes: Uint8Array): string {
 /**
  * Verifies a certificate received from anywhere: a PDF (its attached signed
  * attestation and journal), a `.cose` file or the QR text. Same checks as the
- * open-source `oblivio-verify`; the content of a certificate that does not
+ * open-source `disphas-verify`; the content of a certificate that does not
  * verify is never shown.
  */
 export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
@@ -88,7 +88,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
         {t("verify.qr")}
         <textarea
           className="mt-1.5 block h-16 w-full rounded-md border border-edge bg-night p-2 font-mono text-xs font-normal"
-          placeholder="OBV1:…"
+          placeholder="DSV1:…"
           spellCheck={false}
           value={qr}
           onChange={(event) => setQr(event.target.value)}
@@ -96,7 +96,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
       </label>
       <div className="mt-2 flex justify-end">
         <Button
-          disabled={busy || !qr.trim().startsWith("OBV1:")}
+          disabled={busy || !qr.trim().startsWith("DSV1:")}
           onClick={() => void run(new TextEncoder().encode(qr.trim()), t("verify.qrSource"))}
         >
           {t("verify.verifyQr")}
@@ -157,7 +157,7 @@ function Result({
   const d = report.details;
   const tone = d.status === "CONFORME" ? "ready" : "sayno";
   const date = new Intl.DateTimeFormat(lang, { dateStyle: "long", timeStyle: "medium", timeZone: "UTC" });
-  // A journal that is not the signed one fails the check, as in oblivio-verify:
+  // A journal that is not the signed one fails the check, as in disphas-verify:
   // never a green header.
   const journalOk = report.journal !== "Mismatch";
   return (
@@ -238,7 +238,7 @@ function Result({
           {d.customer} · <Mono>{d.license_id}</Mono>
         </Row>
         <Row label={t("verify.field.tool")}>
-          Oblivio {d.tool_version} · {t("verify.rules", { version: d.rules_version })}
+          disphas {d.tool_version} · {t("verify.rules", { version: d.rules_version })}
         </Row>
         <Row label={t("verify.field.binary")}>
           <Mono>{d.binary_sha256}</Mono>

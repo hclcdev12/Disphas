@@ -1,16 +1,16 @@
 #!/bin/sh
-# Oblivio postinst: the helper's state tree, root only. Certificates are read
+# disphas postinst: the helper's state tree, root only. Certificates are read
 # through the helper (docs/protocole_ipc.md §10): no group, no account to add.
 set -e
 
 case "$1" in
     configure)
-        state=/var/lib/oblivio
+        state=/var/lib/disphas
         # Owned by root (docs/securite.md, S1). A symbolic link where a folder
         # is expected means tampering: stop.
         for path in "$state" "$state/keys" "$state/license" "$state/jobs" "$state/recovery" "$state/reports"; do
             if [ -L "$path" ]; then
-                echo "oblivio: $path is a symbolic link, refusing to continue" >&2
+                echo "disphas: $path is a symbolic link, refusing to continue" >&2
                 exit 1
             fi
         done
@@ -30,7 +30,7 @@ case "$1" in
         # upgrade. A group in the range of user ids is someone else's: kept.
         gid=$(getent group oblivio | cut -d: -f3)
         if [ -n "$gid" ] && [ "$gid" -lt 1000 ]; then
-            groupdel oblivio || echo "oblivio: the former oblivio group could not be removed" >&2
+            groupdel oblivio || echo "disphas: the former oblivio group could not be removed" >&2
         fi
         ;;
 esac

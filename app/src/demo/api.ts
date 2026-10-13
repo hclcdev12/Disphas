@@ -1,9 +1,9 @@
 // Interactive demo for the website (docs/site.md): a simulated helper on
 // fictional drives, built with `npm run build:demo`. Nothing here touches a
 // drive, the network or the real helper. Verdicts come from a recording of
-// `oblivio-helper --features demo`; erasures are played back in accelerated
+// `disphas-helper --features demo`; erasures are played back in accelerated
 // time, and certificates are PDFs rendered beforehand by the real renderer
-// with public test keys (crates/oblivio-report/examples/demo_certificates.rs).
+// with public test keys (crates/disphas-report/examples/demo_certificates.rs).
 import type { Event as HelperEvent } from "../bindings/Event";
 import type { DeviceSummary } from "../bindings/DeviceSummary";
 import type { FinalStatus } from "../bindings/FinalStatus";
@@ -16,7 +16,7 @@ import type { MethodChoice } from "../bindings/MethodChoice";
 import type { SanitizeArgs } from "../bindings/SanitizeArgs";
 import type { Verdict } from "../bindings/Verdict";
 import type { Language } from "../i18n";
-import type { HistoryEntry, OblivioApi, Outcome, Settings, VerificationReport } from "../lib/api";
+import type { HistoryEntry, DisphasApi, Outcome, Settings, VerificationReport } from "../lib/api";
 import recording from "../dev/demo-recording.json";
 import labels from "../dev/code-labels.json";
 import history from "../dev/history-sample.json";
@@ -55,7 +55,7 @@ const SATA_READY: Verdict = {
 /** The SATA SSD reads back badly: every erasure of it ends in a REFUS (N8). */
 const READ_ERRORS = "DEMO-SSD-F0Z3";
 /** Password of the locked drive, as in the demo helper. */
-const PASSWORD = "oblivio";
+const PASSWORD = "disphas";
 const MAX_UNLOCK_ATTEMPTS = 5;
 
 const ok = <T,>(value: T): Outcome<T> => ({ ok: true, value });
@@ -290,7 +290,7 @@ function historyEntry(job: Job): HistoryEntry {
   };
 }
 
-export const demoApi: OblivioApi = {
+export const demoApi: DisphasApi = {
   mode: "demo",
   hello: async () =>
     ok({ ...(recording.hello as HelloResult), binary_sha256: "0".repeat(64), license: LICENSE }),

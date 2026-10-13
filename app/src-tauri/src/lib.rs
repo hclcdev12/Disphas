@@ -1,4 +1,4 @@
-//! Oblivio desktop application: the Tauri shell between the React interface
+//! disphas desktop application: the Tauri shell between the React interface
 //! and the root helper. Runs as the normal user; renders, translates and
 //! relays, but never touches a device and never decides.
 
@@ -11,9 +11,9 @@ mod verification;
 
 use std::collections::HashMap;
 
-use oblivio_attestation::display::{KNOWN_CODES, Lang, code};
-use oblivio_protocol::command::Command;
-use oblivio_protocol::response::{ErrorBody, ErrorCode};
+use disphas_attestation::display::{KNOWN_CODES, Lang, code};
+use disphas_protocol::command::Command;
+use disphas_protocol::response::{ErrorBody, ErrorCode};
 use tauri::{Emitter, Manager, State};
 
 use crate::helper::Helper;
@@ -35,7 +35,7 @@ async fn helper(
 }
 
 /// Renders the PDF certificate of a finished job in `lang` and saves it in
-/// `~/Documents/Oblivio`. Returns the path of the file.
+/// `~/Documents/disphas`. Returns the path of the file.
 #[tauri::command]
 async fn render_certificate(
     job_id: String,
@@ -48,11 +48,11 @@ async fn render_certificate(
         detail: Some(detail),
     };
     let helper = state.0.as_ref().map_err(|reason| failure(reason.clone()))?;
-    let command = Command::GetJobResult(oblivio_protocol::command::JobArgs {
-        job_id: oblivio_protocol::command::JobId(job_id),
+    let command = Command::GetJobResult(disphas_protocol::command::JobArgs {
+        job_id: disphas_protocol::command::JobId(job_id),
     });
     let value = helper.request(command).await?.outcome?;
-    let result: oblivio_protocol::response::JobResult =
+    let result: disphas_protocol::response::JobResult =
         serde_json::from_value(value).map_err(|error| failure(error.to_string()))?;
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
     // Typst layout is CPU-bound: keep it off the async runtime.
@@ -80,9 +80,9 @@ fn helper_of(state: &HelperState) -> Result<&Helper, ErrorBody> {
 /// the reports are root-only (docs/protocole_ipc.md §10).
 async fn fetch_reports(
     helper: &Helper,
-) -> Result<Vec<oblivio_protocol::response::StoredReport>, ErrorBody> {
-    use oblivio_protocol::command::ListReportsArgs;
-    use oblivio_protocol::response::ListReportsResult;
+) -> Result<Vec<disphas_protocol::response::StoredReport>, ErrorBody> {
+    use disphas_protocol::command::ListReportsArgs;
+    use disphas_protocol::response::ListReportsResult;
     let mut reports = Vec::new();
     let mut before = None;
     loop {
@@ -103,8 +103,8 @@ async fn fetch_reports(
 /// The signed attestation and journal of report `id`, through the helper.
 async fn fetch_report(helper: &Helper, id: &str) -> Result<(Vec<u8>, Vec<u8>), ErrorBody> {
     use base64::Engine;
-    use oblivio_protocol::command::ReportArgs;
-    use oblivio_protocol::response::ReportResult;
+    use disphas_protocol::command::ReportArgs;
+    use disphas_protocol::response::ReportResult;
     if !history::is_report_id(id) {
         return Err(internal("invalid report identifier"));
     }
@@ -202,7 +202,7 @@ async fn render_batch(
     Ok(path.map(|path| path.to_string_lossy().into_owned()))
 }
 
-/// Folder of this account's settings (`~/.config/org.oblivio.app`).
+/// Folder of this account's settings (`~/.config/org.disphas.app`).
 fn config_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     app.path()
         .app_config_dir()
@@ -290,10 +290,10 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             let helper = Helper::spawn(move |event| {
-                let _ = handle.emit("oblivio://event", event);
+                let _ = handle.emit("disphas://event", event);
             });
             if let Err(reason) = &helper {
-                eprintln!("oblivio-app: {reason}");
+                eprintln!("disphas-app: {reason}");
             }
             app.manage(HelperState(helper));
             Ok(())
@@ -314,7 +314,7 @@ pub fn run() {
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {
-        eprintln!("oblivio-app: {error}");
+        eprintln!("disphas-app: {error}");
         std::process::exit(1);
     }
 }

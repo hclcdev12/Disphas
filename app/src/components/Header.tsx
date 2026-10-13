@@ -25,7 +25,7 @@ export function Header({
   const helper = mode === "tauri" ? (connected ? "connected" : "disconnected") : mode;
   return (
     <header className="flex items-center gap-4 border-b border-edge px-6 py-4">
-      <img src={wordmark} alt="Oblivio" className="h-6" />
+      <img src={wordmark} alt="disphas" className="h-6" />
       {hello && <span className="font-mono text-xs text-ash">{t("header.rules", { version: hello.rules_version })}</span>}
       <div className="ml-auto flex items-center gap-2">
         <Badge tone="ready">

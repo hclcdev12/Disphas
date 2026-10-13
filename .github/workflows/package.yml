@@ -92,7 +92,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y ./deb/*.deb
-          dpkg-query -W -f='${Package} ${Version} ${Status}\n' oblivio
+          dpkg-query -W -f='${Package} ${Version} ${Status}\n' disphas
 
       - name: The oblivio group of an earlier version is removed
         env:
@@ -104,34 +104,34 @@ jobs:
 
       - name: Every library resolves, files are in place
         run: |
-          for program in /usr/bin/oblivio-app /usr/libexec/oblivio/oblivio-helper; do
+          for program in /usr/bin/disphas-app /usr/libexec/disphas/disphas-helper; do
             ldd "$program" | tee ldd.txt
             if grep -q "not found" ldd.txt; then echo "missing library for $program"; exit 1; fi
           done
-          test -f /usr/share/polkit-1/actions/org.oblivio.helper.policy
-          test -f /usr/share/doc/oblivio/THIRD-PARTY-NOTICES.txt
+          test -f /usr/share/polkit-1/actions/org.disphas.helper.policy
+          test -f /usr/share/doc/disphas/THIRD-PARTY-NOTICES.txt
 
       - name: State tree is root-owned with the expected modes
         run: |
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 700"
+          test "$(stat -c '%U:%G %a' /var/lib/disphas)" = "root:root 700"
           for sub in keys license jobs recovery reports; do
-            test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
+            test "$(stat -c '%U:%G %a' /var/lib/disphas/$sub)" = "root:root 700"
           done
 
       - name: The release helper refuses to run outside pkexec
         run: |
-          if /usr/libexec/oblivio/oblivio-helper </dev/null; then
+          if /usr/libexec/disphas/disphas-helper </dev/null; then
             echo "the helper must refuse to start without pkexec"; exit 1
           fi
 
       - name: remove keeps the data, purge deletes it
         run: |
-          mkdir -p /var/lib/oblivio/reports
-          touch /var/lib/oblivio/reports/example.cose
-          apt-get remove -y oblivio
-          test -f /var/lib/oblivio/reports/example.cose
-          apt-get purge -y oblivio
-          test ! -e /var/lib/oblivio
+          mkdir -p /var/lib/disphas/reports
+          touch /var/lib/disphas/reports/example.cose
+          apt-get remove -y disphas
+          test -f /var/lib/disphas/reports/example.cose
+          apt-get purge -y disphas
+          test ! -e /var/lib/disphas
 
   install-rpm:
     needs: build
@@ -165,28 +165,28 @@ jobs:
 
       - name: Every library resolves, files are in place
         run: |
-          for program in /usr/bin/oblivio-app /usr/libexec/oblivio/oblivio-helper; do
+          for program in /usr/bin/disphas-app /usr/libexec/disphas/disphas-helper; do
             ldd "$program" | tee ldd.txt
             if grep -q "not found" ldd.txt; then echo "missing library for $program"; exit 1; fi
           done
-          test -f /usr/share/polkit-1/actions/org.oblivio.helper.policy
+          test -f /usr/share/polkit-1/actions/org.disphas.helper.policy
 
       - name: State tree is root-owned with the expected modes
         run: |
-          test "$(stat -c '%U:%G %a' /var/lib/oblivio)" = "root:root 700"
+          test "$(stat -c '%U:%G %a' /var/lib/disphas)" = "root:root 700"
           for sub in keys license jobs recovery reports; do
-            test "$(stat -c '%U:%G %a' /var/lib/oblivio/$sub)" = "root:root 700"
+            test "$(stat -c '%U:%G %a' /var/lib/disphas/$sub)" = "root:root 700"
           done
 
       - name: The release helper refuses to run outside pkexec
         run: |
-          if /usr/libexec/oblivio/oblivio-helper </dev/null; then
+          if /usr/libexec/disphas/disphas-helper </dev/null; then
             echo "the helper must refuse to start without pkexec"; exit 1
           fi
 
       - name: Removal keeps the data
         run: |
-          mkdir -p /var/lib/oblivio/reports
-          touch /var/lib/oblivio/reports/example.cose
+          mkdir -p /var/lib/disphas/reports
+          touch /var/lib/disphas/reports/example.cose
           rpm -e "$(rpm -qp --queryformat '%{NAME}' ./rpm/*.rpm)"
-          test -f /var/lib/oblivio/reports/example.cose
+          test -f /var/lib/disphas/reports/example.cose

@@ -1,13 +1,13 @@
 //! Operator settings, per user account: the organization and the operator
 //! written into certificates, and the customer's logo printed on the PDFs
 //! (Atelier offer). Kept in the app configuration folder
-//! (`~/.config/org.oblivio.app`): `settings.json`, `logo.png` or `logo.svg`.
+//! (`~/.config/org.disphas.app`): `settings.json`, `logo.png` or `logo.svg`.
 //!
 //! Bounds match the helper's, which checks again before signing.
 
 use std::path::{Path, PathBuf};
 
-use oblivio_report::LogoFormat;
+use disphas_report::LogoFormat;
 use serde::{Deserialize, Serialize};
 
 /// Longest operator name or identifier, as accepted by the helper.
@@ -112,7 +112,7 @@ pub fn set_logo(dir: &Path, data: &[u8]) -> Result<Settings, String> {
     Ok(settings)
 }
 
-/// Removes the customer's logo: certificates show the Oblivio wordmark.
+/// Removes the customer's logo: certificates show the disphas wordmark.
 pub fn clear_logo(dir: &Path) -> Result<Settings, String> {
     for format in ["png", "svg"] {
         let _ = std::fs::remove_file(logo_file(dir, format));

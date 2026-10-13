@@ -1,4 +1,4 @@
-# Oblivio — Site web, espace client et API de licences
+# disphas — Site web, espace client et API de licences
 
 > **Validé par le propriétaire le 2026-10-11**, avec les décisions du §0. Décisions antérieures (2026-10-11) :
 > Astro, dossier `site/` du dépôt privé, production chez Infomaniak (préproduction possible sur le VPS Oracle
@@ -9,7 +9,7 @@
 
 - **Tout le site vit dans `site/` et ne dépend de rien d'autre du dépôt** : polices, logos, couleurs, images,
   textes y sont copiés. On le construit et on le déploie seul, sans l'application. Le service de signature
-  (`tools/oblivio-signer`) reste à part et s'installe à côté sur le serveur.
+  (`tools/disphas-signer`) reste à part et s'installe à côté sur le serveur.
 - **Charte = mêmes couleurs, même esprit** que l'application ; pas de fichier ni de composant partagé.
 - **Tarifs et nombre de postes non fixés** : le site ne les écrit pas en dur (configuration des offres, §5).
 - **Langue** : celle du navigateur (`Accept-Language`) ; à défaut, **anglais**.
@@ -76,7 +76,7 @@ politique de sécurité (signalement, `security@oblivio.eu`).
 |---|---|
 | Connexion | Adresse de courriel, lien valable 5 minutes (valeur par défaut de Better Auth) |
 | Tableau de bord | Abonnements, échéances, postes utilisés / autorisés |
-| Licences et postes | Clé de licence (§6), postes actifs (n° de licence, date d'activation, échéance), **Libérer**, **Ajouter un poste hors ligne** (coller `OBA1`), **Copier la licence renouvelée** (secours hors ligne) |
+| Licences et postes | Clé de licence (§6), postes actifs (n° de licence, date d'activation, échéance), **Libérer**, **Ajouter un poste hors ligne** (coller `DSA1`), **Copier la licence renouvelée** (secours hors ligne) |
 | Téléchargements | Paquets `.deb` / `.rpm`, empreintes SHA-256, notes de version, manuel |
 | Facturation | Lien vers le portail Stripe (factures, moyen de paiement, résiliation) |
 | Organisation | **Nom imprimé sur les certificats** (client de la licence) |
@@ -108,7 +108,7 @@ s'éteignent à leur échéance, rien n'est révoqué.
 | `organizations` | Nom imprimé sur les certificats, adresse de facturation, n° de TVA, client Stripe |
 | `subscriptions` | Offre, statut, fin de période, identifiants Stripe |
 | `license_keys` | **Empreinte** (SHA-256) de la clé de licence, jamais la clé : affichée une fois à sa création, **régénérable** (l'ancienne cesse aussitôt d'activer de nouveaux postes) |
-| `seats` | Identifiant `OBL-…`, clé publique du poste, libellé, activé le, échéance courante, libéré le |
+| `seats` | Identifiant `DSL-…`, clé publique du poste, libellé, activé le, échéance courante, libéré le |
 | `quotes` | Demandes de devis |
 | `events` | Journal des actions sensibles (activation, libération, régénération de clé), sans donnée de disque |
 
@@ -120,11 +120,11 @@ déclenche une alerte ([licences en ligne](licences_en_ligne.md) §6.5).
 ```
 Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ─────────► Node (Astro) ─► PostgreSQL
                                         └─ licence.oblivio.eu/v1 ───┘      │
-                                                                            └─ socket ─► oblivio-signer
+                                                                            └─ socket ─► disphas-signer
 ```
 
 - VPS Infomaniak, Debian, un seul serveur au départ ; préproduction identique sur le VPS Oracle.
-- Unités systemd : site, `oblivio-signer` ([unité durcie](../tools/oblivio-signer/oblivio-signer.service)),
+- Unités systemd : site, `disphas-signer` ([unité durcie](../tools/disphas-signer/disphas-signer.service)),
   PostgreSQL ; Caddy en frontal.
 - Paquets téléchargeables stockés hors de la racine web, servis par le site après contrôle de la session.
 - Sauvegardes quotidiennes chiffrées : base, registre des licences ; **pas** les clés boutique.
@@ -161,9 +161,9 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
    `/[lang]/demo/`, qui ouvre `/demo/app/` dans un nouvel onglet. C'est l'interface de l'application construite en
    mode démo (`app`, `npm run build:demo`) sur un **helper simulé** (`app/src/demo/api.ts`) : disques fictifs de
    l'enregistrement du helper de démo, effacements rejoués en temps accéléré, cas d'erreur (SSD gelé puis REFUS
-   N8 après une nouvelle tentative, disque verrouillé déverrouillé avec `oblivio` ou expiré B6, disque muet forcé
+   N8 après une nouvelle tentative, disque verrouillé déverrouillé avec `disphas` ou expiré B6, disque muet forcé
    NON CONFORME, NVMe en lecture seule SAY NO, disque système PROTÉGÉ), et **faux PDF** rendus par le vrai moteur
-   avec la clé de test publique (`oblivio-report`, exemple `demo_certificates` : 60 fichiers, un par disque, méthode
+   avec la clé de test publique (`disphas-report`, exemple `demo_certificates` : 60 fichiers, un par disque, méthode
    et langue). Assemblage : `tools/site-demo/build.sh`, qui **audite** le résultat avant de le copier dans
    `site/public/demo/app/` (`tools/site-demo/audit.sh` : aucune source map, aucun chemin local, aucun appel au vrai
    helper, aucune clé ni licence encodée, seulement des certificats `DEMO-*`). Le code exposé est celui de
@@ -218,6 +218,6 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
 2. ~~Langue par défaut~~ → **langue du navigateur, anglais à défaut** (2026-10-11).
 3. **Clé de licence** (avant l'étape 4) : empreinte seule et régénération (recommandé : une base volée ne livre
    aucune clé), ou clé consultable à tout moment (plus pratique, mais stockée chiffrée sur le serveur).
-4. **Textes** : je propose ceux de la vitrine à partir de l'[identité de marque](Oblivio%20—%20Identité%20&%20Narration%20de%20Marque.md),
+4. **Textes** : je propose ceux de la vitrine à partir de l'[identité de marque](disphas%20—%20Identité%20&%20Narration%20de%20Marque.md),
    à relire par le propriétaire (l'allemand en particulier) ; les pages légales restent des emplacements non
    publiés tant qu'un juriste ne les a pas validées.
