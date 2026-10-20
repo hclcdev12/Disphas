@@ -1,6 +1,6 @@
 # disphas — Reprise du projet (passation entre agents)
 
-État au **2026-10-13**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
+État au **2026-10-20**. À lire **en premier** par tout nouvel agent, juste après `CLAUDE.md`. Ce document
 dit où en est le projet, comment travailler avec le propriétaire et comment piloter le banc de test. Les
 specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les remplace pas.
 
@@ -40,8 +40,29 @@ variables `DISPHAS_*`, action polkit `org.disphas.helper` et préfixes de format
 Gardent l'ancien nom : documents d'origine, logos de `assets/logo/` (et sa copie du site), domaines `oblivio.eu` et
 `licence.oblivio.eu` (à trancher par le propriétaire), alias SSH `oblivio-bench`, dépôt GitHub `hclcdev12/Oblivio`,
 groupe `oblivio` supprimé par le paquet, en-têtes `OBR1` (clé racine) et `OBK1` (clé du poste). Reste à faire :
-logos disphas (SVG à demander au graphiste), recherche de marque, refaire le certificat d'émetteur (`DSI1:`) et
+~~logos disphas~~ (livrés le 2026-10-16, voir ci-dessous), recherche de marque, refaire le certificat d'émetteur (`DSI1:`) et
 réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc installe déjà la nouvelle règle polkit.
+
+**Offres et nouvelle identité (2026-10-20) — la suite du projet**
+
+- [Offres](offres.md) : niveaux d'offre et codes figés (`Essai`, `Passe`, `Pro`, `Atelier8`, `Atelier16`,
+  `Atelier32`, `Parc`), droits par offre décidés par le helper (nombre de disques en parallèle, logo client), plus
+  d'offre « à vie », ISO de démarrage avancée au lancement. Corrections des autres documents (§6) faites le
+  2026-10-20. **Prochaine tâche : lot 1** (table des droits dans `disphas-core`), puis les lots 2, 3, 6 dans
+  l'ordre du §8 ; chaque lot attend la validation du propriétaire.
+- Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`
+  (`README.md`, `DESIGN.md` = jetons de couleur, typographie, composants ; `IDENTITE.md` = nom, ton, certificat).
+  Copiés dans le dépôt : logos (`assets/logo/disphas/`) et police Klaudia (`assets/fonts/klaudia/`), pas encore
+  utilisés par le code. Le dossier `graphism_Disphas/` à la racine du dépôt est une version de travail plus ancienne
+  (2026-10-13), **non suivie par git**.
+- Points ouverts de l'identité, à soumettre au propriétaire :
+  - **wordmark du certificat** (état 0, encre, sans hermine) non livré ; nécessaire au lot 3 ;
+  - **application et site** : aucun lot ne prévoit encore de passer à la nouvelle charte (couleurs Schiste/Registre,
+    Klaudia, icônes de l'app) ; ils gardent la charte Oblivio ;
+  - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
+    les supports commerciaux avant le lot 7 : à trancher ;
+  - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;
+  - les SVG contiennent des métadonnées de provenance (C2PA) à retirer avant de les embarquer, sur accord.
 
 **À faire ensuite (banc)**
 

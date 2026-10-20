@@ -14,6 +14,7 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Moteur de décision](docs/moteur_decision.md) | Brouillon : états, critères Say NO, choix de méthode, validation |
 | [Certificat](docs/certificat.md) | Brouillon : format signé, statuts, chaîne de confiance, vérification |
 | [Licences en ligne](docs/licences_en_ligne.md) | Décidé, non implémenté : clé boutique, activation et renouvellement en ligne, contrôle des postes |
+| [Offres](docs/offres.md) | Décidé, non implémenté : niveaux d'offre, droits par offre (disques en parallèle, logo client), lots de travail |
 | [Site web](docs/site.md) | Validé, en cours : vitrine, espace client, Stripe, API de licences ; site autonome dans `site/` |
 | [Protocole UI ↔ helper](docs/protocole_ipc.md) | Frontière de sécurité : commandes, contrôles, événements, reprise |
 | [Manuel de l'opérateur](docs/manuel_operateur.md) | Installation, licence, effacement, lots, certificats, cas particuliers (installé dans `/usr/share/doc/disphas/`) |
@@ -22,8 +23,8 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Conformité](docs/conformite.md) | RGPD, Cyber Resilience Act, normes (NIST, IEEE, BSI, ANSSI, ISO), licences : état et actions |
 | [Cahier des charges](docs/cahier_des_charges_logiciel_d_effacement_s_curis.md) | Spécifications techniques et fonctionnelles v2.0 |
 | [Specs UI & frontend](docs/oblivio_sp_cifications_ui_et_architecture_frontend.md) | Stack frontend, composants, workflow écrans |
-| [Charte graphique](docs/oblivio_charte_graphique.md) | Palette, typographie, formes |
-| [Identité de marque](docs/disphas%20—%20Identité%20&%20Narration%20de%20Marque.md) | Manifeste, piliers, baselines |
+| [Charte graphique](docs/oblivio_charte_graphique.md) | Ancienne charte Oblivio (palette, typographie, formes), encore appliquée par l'application et le site. Nouvelle identité disphas livrée par le graphiste : logos dans `assets/logo/disphas/`, police dans `assets/fonts/klaudia/` |
+| [Identité de marque](docs/Oblivio%20—%20Identité%20&%20Narration%20de%20Marque.md) | Manifeste, piliers, baselines |
 
 En cas de contradiction, le **cadre du projet** prime. La stack technique et ses versions sont décrites
 dans le [cadre du projet, §2](docs/cadre_projet.md#stack-technique-état-au-2026-10-04).

@@ -87,14 +87,25 @@ Le nom de l'organisation est inscrit dans chaque licence et repris tel quel aux 
 ## 5. Offres et droits
 
 **Tarifs et nombre de postes : non fixés** (propriétaire, 2026-10-11). Les offres sont une **configuration** du
-site (nom, prix Stripe, postes, rythme), pas du code. Formes prévues :
+site (nom, prix Stripe, postes, rythme), pas du code. Niveaux d'offre, codes et droits : [offres](offres.md)
+(décidé le 2026-10-20). Formes prévues :
 
-| Forme | Stripe | Licences |
-|---|---|---|
-| Gratuite (diagnostic) | — | Aucune ; compte requis pour télécharger |
-| Abonnement (mensuel ou annuel) | Billing | Fin de période + 7 j, plafonnée à 90 j, renouvelée tant que l'abonnement court |
-| Achat unique (« à vie ») | Paiement unique | 90 j, renouvelées gratuitement sans fin |
-| Sur devis | Facture Stripe ou virement | Activation en ligne, ou licences v1 signées hors ligne |
+| Forme | Offres | Stripe | Licences |
+|---|---|---|---|
+| Gratuite (diagnostic) | — | — | Aucune ; compte requis pour télécharger |
+| Essai | `Essai` | — (sans carte bancaire ; un par client : adresse et organisation) | 30 j, non renouvelée |
+| Paiement unique | `Passe` | Paiement unique | 30 j, non renouvelée |
+| Abonnement (mensuel ou annuel) | `Pro`, `Atelier8`, `Atelier16`, `Atelier32` | Billing, un produit par niveau, en mensuel et en annuel | Fin de période + 7 j (plafonnée à 90 j en annuel), renouvelée tant que l'abonnement court |
+| Sur devis | `Parc` | Facture Stripe ou virement | Activation en ligne, ou licences v1 signées hors ligne |
+
+- ~~Achat unique (« à vie »)~~ : retiré le 2026-10-20 ([offres](offres.md) O4).
+- **Remises** (pionniers, associations, engagement) : **coupons Stripe**, sans effet sur la licence ni sur le code d'offre.
+- **Changement de niveau** en cours d'abonnement : au prorata (Stripe) ; le site renouvelle les sièges avec la
+  nouvelle offre (`Renew` étendu à l'offre, [licences en ligne](licences_en_ligne.md) §6.3).
+- **Prix fixes** ([offres](offres.md) O6, §7) : d'ici l'assujettissement à la TVA, mention « TVA non applicable,
+  art. 293 B du CGI » et prix sans mention TTC ; ensuite, mêmes montants affichés « TTC ». Règles exactes à valider
+  par le comptable du propriétaire.
+- La page Tarifs garde « Tarifs à venir » tant que le propriétaire n'a pas figé les prix.
 
 Événements Stripe traités : `checkout.session.completed`, `customer.subscription.updated` / `deleted`,
 `invoice.paid`, `invoice.payment_failed`. Un abonnement impayé ou résilié n'est plus renouvelé : ses licences
@@ -218,6 +229,6 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
 2. ~~Langue par défaut~~ → **langue du navigateur, anglais à défaut** (2026-10-11).
 3. **Clé de licence** (avant l'étape 4) : empreinte seule et régénération (recommandé : une base volée ne livre
    aucune clé), ou clé consultable à tout moment (plus pratique, mais stockée chiffrée sur le serveur).
-4. **Textes** : je propose ceux de la vitrine à partir de l'[identité de marque](disphas%20—%20Identité%20&%20Narration%20de%20Marque.md),
+4. **Textes** : je propose ceux de la vitrine à partir de l'[identité de marque](Oblivio%20—%20Identité%20&%20Narration%20de%20Marque.md),
    à relire par le propriétaire (l'allemand en particulier) ; les pages légales restent des emplacements non
    publiés tant qu'un juriste ne les a pas validées.

@@ -225,6 +225,9 @@ Le rapport PDF généré est le livrable juridique attestant de la conformité a
 
 ### 7.2 Grille Tarifaire Disruptive (Face aux Modèles au Disque)
 
+> **Supplantée le 2026-10-20** par [offres](offres.md) : ne pas se servir de cette grille (ni de ses prix,
+> ni de l'offre « à vie »).
+
 | Offre | Cible | Périmètre | Tarification | 
  | ----- | ----- | ----- | ----- | 
 | **Freemium / Diagnostic** | Particuliers, Techs | Inspection, S.M.A.R.T., Recommandation NIST Rev. 2 | **Gratuit** | 

@@ -89,7 +89,7 @@ France — à préciser avec l'ANSSI avant la mise sur le marché.
 | Référentiel | Statut vérifié | Position de disphas |
 |---|---|---|
 | **NIST SP 800-88 Rev. 2** | Finale, septembre 2025, remplace la Rev. 1 | Conforme sur le fond (Clear / Purge / destruction ; validation ; certificat). Le NIST dit *destroy*, nous *Destruct* (terme d'IEEE 2883 et d'ISO/IEC 27040). Son annexe C propose un modèle de certificat : **comparaison champ à champ à faire**. Les techniques par support sont renvoyées à IEEE 2883 |
-| **IEEE 2883-2022** « Standard for Sanitizing Storage » | En vigueur (publiée le 17/08/2022) | Référence technique annoncée. ⚠️ **Texte jamais lu** (payant) : l'implémentation s'appuie sur les spécifications NVMe et ACS et sur le NIST. **À acquérir** (§ 7) |
+| **IEEE 2883-2022** « Standard for Sanitizing Storage » | En vigueur (publiée le 17/08/2022) | Référence technique annoncée. ⚠️ **Texte jamais lu** (payant) : l'implémentation s'appuie sur les spécifications NVMe et ACS et sur le NIST. **À acquérir juste avant les ateliers pilotes**, puis analyse d'écarts (décidé le 2026-10-20, [offres](offres.md) O8, lot 7). D'ici là, **aucune mention « conforme IEEE 2883 »** sur le site ni dans les supports commerciaux |
 | **ANSSI PA-097** (reconditionnement, 30/06/2023) | Publié | **Aligné** : la réécriture ne suffit pas sur SSD ; Sanitize firmware et effacement cryptographique privilégiés |
 | **CNIL**, guide sécurité, fiche n° 15 | Mise à jour 2026 | disphas répond à la recommandation (effacement sécurisé avant fin de vie) ; certification visée : § 3.2 |
 | **BSI IT-Grundschutz CON.6** (Édition 2023) | Vérifié sur le PDF officiel | Voir § 3.1 |
@@ -114,6 +114,9 @@ un **flux de valeurs aléatoires (PRNG)** ; supports **chiffrés** → suppressi
 changer la catégorie certifiée) ?
 
 ### 3.2 Certification visée : CSPN (ANSSI)
+
+**Décidé le 2026-10-20** ([offres](offres.md) O7) : **aucune certification** (CSPN, Critères Communs…) avant que
+l'activité paie un SMIC. Ce qui suit reste une piste pour plus tard.
 
 La CSPN (décret 2002-535) a une catégorie **« 4 – effacement de données »** ; la CNIL y renvoie. La seule
 référence trouvée (Blancco Drive Eraser, ANSSI-CSPN-2021/04) est **non maintenue** au catalogue du
@@ -148,8 +151,8 @@ Mono : licences jointes (`assets/fonts`).
 | Avant la première vente | C1, R5 ; validation juridique de ce document (L1, L2 faits) |
 | Produit (prochaines versions) | R1, R2, R3, R4, C2 |
 | Avant le 11/12/2027 | C3, C4 |
-| Normes | Acquisition et analyse d'écarts IEEE 2883 et ISO/IEC 27040 (§ 7) ; comparaison avec l'annexe C du NIST ; décision « profil BSI » (§ 3.1) |
-| Option commerciale | CSPN catégorie 4 |
+| Normes | Acquisition et analyse d'écarts IEEE 2883 (juste avant les ateliers pilotes, [offres](offres.md) lot 7) et ISO/IEC 27040 (§ 7) ; comparaison avec l'annexe C du NIST ; décision « profil BSI » (§ 3.1) |
+| Option commerciale | CSPN catégorie 4, pas avant que l'activité paie un SMIC (§ 3.2) |
 
 ## 7. Normes payantes : procédure
 

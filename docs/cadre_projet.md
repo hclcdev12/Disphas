@@ -1,11 +1,14 @@
 # disphas — Cadre du projet (v0.1)
 
 > Document de référence. Il prime sur les autres specs en cas de contradiction.
-> Validé le 2026-10-03. Licences en ligne (§1, §2, §3, §6) : décidé le 2026-10-11.
+> Validé le 2026-10-03. Licences en ligne (§1, §2, §3, §6) : décidé le 2026-10-11. Offres (§1, ISO et
+> parallèle) : décidé le 2026-10-20 ([offres](offres.md)).
 >
 > **Nom du produit : disphas** (décidé le 2026-10-13). Ancien nom : Oblivio. Le nom s'écrit en minuscules ;
-> identité visuelle livrée par le graphiste dans `graphism_Disphas/`. Gardent l'ancien nom : les documents
-> d'origine (§1 de `CLAUDE.md`, point 5), les logos de `assets/logo/` et les domaines `oblivio.eu`.
+> identité visuelle livrée par le graphiste (dossier de marque `~/Documents/graphism_Disphas/`, hors dépôt ;
+> logos copiés dans `assets/logo/disphas/`, police Klaudia dans `assets/fonts/klaudia/`). Gardent l'ancien nom :
+> les documents d'origine (§1 de `CLAUDE.md`, point 7), les logos `assets/logo/oblivio-*` (encore utilisés par le
+> code, remplacés au lot 3 de [offres](offres.md)) et les domaines `oblivio.eu`.
 
 ## 1. Périmètre V1
 
@@ -17,13 +20,19 @@
   **activation et renouvellement en ligne**, contrôle du nombre de postes, vente en ligne (décidé le 2026-10-11,
   non implémenté) : [licences_en_ligne.md](licences_en_ligne.md).
 - **Trois langues** dès la V1 : anglais, français, allemand (application et certificat).
+- **Effacement de plusieurs disques en parallèle**, en lots : fait et testé sur le banc (2026-10-06) ; nombre
+  maximal de disques en parallèle selon l'offre ([offres](offres.md) §4, décidé le 2026-10-20, non implémenté).
+- **ISO de démarrage** (orientation **Debian**, USB et réseau) : **avant le lancement** (décidé le 2026-10-20,
+  [offres](offres.md) O2 et lot 5) ; document d'architecture d'abord, soumis au propriétaire.
+
+**À terme** (décidé le 2026-10-20, [offres](offres.md) O10 : hors lancement, ne rien faire qui l'empêche)
+- Windows.
+- Effacement des clés USB, depuis l'ISO (« l'USB par l'ISO », O10 ; le démarrage de l'ISO sur clé USB, lui,
+  fait partie du lot 5).
 
 **Reporté (V2+)**
-- Windows.
-- ISO Live (orientation **Debian** à la place d'Alpine, à déterminer).
-- SAS/SCSI, ponts USB, clés USB / cartes SD.
+- SAS/SCSI, ponts USB, cartes SD.
 - TCG Opal / PSID revert.
-- Effacement multi-disques en parallèle (prérequis de l'offre Atelier/ITAD).
 
 **Exclu** : macOS.
 

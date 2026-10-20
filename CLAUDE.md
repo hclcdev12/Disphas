@@ -20,9 +20,11 @@ Ordre de lecture et **ordre de priorité** en cas de contradiction :
 4. `docs/certificat.md` — attestation CBOR/COSE, statuts, chaîne de signature.
 5. `docs/licences_en_ligne.md` — clé boutique, licence v2, activation et renouvellement en ligne (validé le 2026-10-11,
    non implémenté).
-6. `docs/cahier_des_charges_logiciel_d_effacement_s_curis.md`, `docs/oblivio_sp_cifications_ui_et_architecture_frontend.md`,
+6. `docs/offres.md` — offres commerciales et droits par offre (disques en parallèle, logo client), lots de travail
+   (décidé le 2026-10-20, non implémenté). Remplace la table des durées par offre de `licences_en_ligne.md` §4.
+7. `docs/cahier_des_charges_logiciel_d_effacement_s_curis.md`, `docs/oblivio_sp_cifications_ui_et_architecture_frontend.md`,
    `docs/oblivio_charte_graphique.md`, `docs/Oblivio — Identité & Narration de Marque.md` — documents d'origine,
-   **supplantés** par 1 à 5 là où ils divergent.
+   **supplantés** par 1 à 6 là où ils divergent.
 
 Les docs sont en français. Le code, les identifiants et les commentaires sont en **anglais**.
 

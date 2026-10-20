@@ -5,6 +5,8 @@
 > de signature (`disphas-signer`) faits ; activation en ligne (application) et site à faire.
 > D'ici là, les licences s'émettent et s'activent comme le décrit le [certificat](certificat.md) §4.
 > Référence des licences, avec le [cadre](cadre_projet.md) §3 qui le résume.
+> Offres, droits par offre et durées : [offres](offres.md) (décidé le 2026-10-20), qui remplace l'ancienne table
+> des durées par offre du §4.
 
 ## 1. Besoin (exprimé par le propriétaire le 2026-10-11)
 
@@ -25,7 +27,7 @@ site, et renouveler exige que le poste apprenne le paiement. D'où une **connexi
 | D2 | **Connexion limitée à la licence** : activation et renouvellement, depuis l'application (compte utilisateur), jamais depuis le helper | Règle 8 « aucun appel réseau, nulle part » |
 | D3 | Licence **toujours liée au poste** (`wpk`), comme aujourd'hui | — (inchangé) |
 | D4 | **Un identifiant de licence = un siège** : stable d'un renouvellement à l'autre | Un identifiant par licence émise |
-| D5 | Licences émises par la clé boutique **toujours datées** (pas de perpétuelle) ; l'offre « à vie » est renouvelée gratuitement | — |
+| D5 | Licences émises par la clé boutique **toujours datées** (pas de perpétuelle) ; ~~l'offre « à vie » est renouvelée gratuitement~~ : plus d'offre « à vie » (2026-10-20, [offres](offres.md) O4) | — |
 | D6 | **Secours hors ligne** conservé : demande `DSA1` collée dans l'espace client, licence recopiée à la main | — (le parcours actuel reste valable) |
 | D7 | Licences v1 signées par la racine **toujours acceptées** (grands comptes, postes sans Internet, devis) | — |
 
@@ -112,12 +114,16 @@ Repli possible : le QR ne porte que `iid`, et les certificats d'émetteur sont l
 - Une licence renvoyée ne sert à rien sans la clé privée du poste, qui ne quitte jamais le poste : le renouvellement
   ne consomme pas de poste et n'expose rien.
 
-### Durée des licences (paramètres du serveur, valeurs validées le 2026-10-11)
+### Durée des licences (paramètres du serveur ; valeurs validées le 2026-10-11, règle revue le 2026-10-20)
 
-| Offre | Fin de licence |
+La durée dépend du **rythme de paiement**, pas de l'offre ([offres](offres.md) O3, §6) : « Atelier » est un niveau
+d'offre, et il n'y a plus d'offre « à vie » (O4).
+
+| Rythme de paiement | Fin de licence |
 |---|---|
-| Mensuelle (Atelier) | Fin de la période payée + **7 jours** de marge |
-| Annuelle / à vie (Pro) | Fin de la période payée + 7 jours, **plafonnée à 90 jours**, renouvelée tant que les droits courent |
+| Mensuel | Fin de la période payée + **7 jours** de marge |
+| Annuel | Fin de la période payée + 7 jours, **plafonnée à 90 jours**, renouvelée tant que l'abonnement court |
+| `Essai`, `Passe` | **30 jours**, sans renouvellement ([offres](offres.md) §5) |
 
 Le plafond fixe le délai maximal entre la libération d'un poste dans l'espace client et l'arrêt effectif de sa licence.
 
@@ -205,6 +211,11 @@ Désérialisation stricte (champs inconnus refusés), réponses bornées, comme 
   décoder `DSA1` lui-même.
 - `Renew` ne permet de changer **que la date de fin** : un site piraté ne peut pas déplacer une licence vers un
   autre poste ni changer d'offre.
+- **Décidé le 2026-10-20, non implémenté** ([offres](offres.md) §7, Q4) : `Renew` acceptera aussi une **nouvelle
+  offre** (changement de niveau d'abonnement), contrôlée par le service contre les offres du certificat d'émetteur
+  (§6.4, règle 1) ; même `id`, même poste, même client. Un site piraté pourra donc changer l'offre d'un siège, mais
+  seulement vers une offre que l'émetteur autorise. À faire au lot 6 d'[offres](offres.md), avec les tests de
+  `tools/disphas-signer`. L'API publique (§6.6) ne change pas : c'est le site qui choisit l'offre.
 - `not_before` est fixé par le service (heure courante − 60 s), jamais par le site.
 - Erreurs : `BadRequest`, `UnknownLicense`, `OutOfBounds` (offre, durée, date), `RateLimited`, `NoIssuer`.
 
@@ -272,7 +283,7 @@ La clé racine ne touche jamais le réseau.
 
 **À l'implémentation** (ils décrivent le produit livré, qui reste hors ligne d'ici là) :
 [manuel de l'opérateur](manuel_operateur.md) (activation en ligne, secours hors ligne, indicateur « HORS LIGNE »),
-accroche du `README.md` et [identité de marque](disphas%20—%20Identité%20&%20Narration%20de%20Marque.md) :
+accroche du `README.md` et [identité de marque](Oblivio%20—%20Identité%20&%20Narration%20de%20Marque.md) :
 « 100 % offline » → « 100 % hors ligne pour vos données ; seule la licence se connecte ».
 
 ## 10. Lot de travail (après validation, dans cet ordre)
@@ -292,7 +303,8 @@ accroche du `README.md` et [identité de marque](disphas%20—%20Identité%20&%2
    clé publique (64 chiffres hexadécimaux) vient sur la machine hors ligne ; elle ne peut pas être la racine.
    `revoke --id ISS-…` vérifie l'identifiant dans `issuers.csv` ; `issue` refuse un identifiant `ISS-`.
    `disphas-license` : `issuer_text`, `decode_issuer` (signature par la racine). Cérémonie type :
-   `certify --id ISS-2027-01 --offers Atelier,Pro --days 400 --max-days 90` (1 an + chevauchement).
+   `certify --id ISS-2027-01 --offers Essai,Passe,Pro,Atelier8,Atelier16,Atelier32,Parc --days 400 --max-days 90`
+   (1 an + chevauchement ; codes d'offre figés le 2026-10-20, [offres](offres.md) §2).
 5. ~~Service de signature (`disphas-signer`, §6.2 à §6.5)~~ → **fait le 2026-10-11** (`tools/disphas-signer`) :
    commandes `keygen`, `install`, `status`, `serve` ; requêtes `Activate`, `Renew`, `Status` ; règles du §6.4
    (débit 30/min et 2 000/jour, ce dernier recompté depuis le registre au redémarrage) ; chaque licence est revérifiée
