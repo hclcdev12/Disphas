@@ -53,8 +53,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`
   (`README.md`, `DESIGN.md` = jetons de couleur, typographie, composants ; `IDENTITE.md` = nom, ton, certificat).
   Copiés dans le dépôt : logos (`assets/logo/disphas/`) et police Klaudia (`assets/fonts/klaudia/`), pas encore
-  utilisés par le code. Le dossier `graphism_Disphas/` à la racine du dépôt est une version de travail plus ancienne
-  (2026-10-13), **non suivie par git**.
+  utilisés par le code. L'ancienne copie de travail `graphism_Disphas/` à la racine du dépôt a été supprimée le
+  2026-10-20 (jamais suivie par git) : seul le dossier de `~/Documents` fait foi.
 - Points ouverts de l'identité, à soumettre au propriétaire :
   - **wordmark du certificat** (état 0, encre, sans hermine) non livré ; nécessaire au lot 3 ;
   - **application et site** : aucun lot ne prévoit encore de passer à la nouvelle charte (couleurs Schiste/Registre,
