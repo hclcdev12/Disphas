@@ -50,6 +50,9 @@ disphas ne se connecte jamais à Internet. L'activation se fait par échange de 
 
 Sans licence valide, disphas inspecte les disques mais n'efface rien.
 
+La fenêtre de licence indique aussi ce que permet votre offre : le nombre de **disques effacés en
+parallèle** et le **logo client sur les certificats**.
+
 ---
 
 ## 2. Lancer disphas
@@ -125,7 +128,10 @@ La liste complète des codes est en annexe.
    - pour une réécriture par l'ordinateur seulement : option **Terminer par une passe de zéros** (§ 4.3).
 3. **Effacer définitivement.**
 
-Plusieurs disques peuvent être effacés **en même temps** : lancez-les l'un après l'autre.
+Plusieurs disques peuvent être effacés **en même temps** : lancez-les l'un après l'autre. Leur nombre
+dépend de votre offre (par exemple 2 pour *Pro*, 8 pour *Atelier8*) ; il est rappelé au-dessus de la liste
+des disques (« 1 effacement en cours sur 2 autorisés par l'offre »). Au-delà, disphas refuse le lancement
+sans rien effacer : attendez la fin d'un effacement, puis relancez le même disque.
 
 ### 4.2 Suivre
 

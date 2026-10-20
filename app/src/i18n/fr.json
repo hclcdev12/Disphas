@@ -22,7 +22,11 @@
     "empty": "Aucun disque détecté.",
     "refresh": "Actualiser",
     "inspecting": "Inspection…",
-    "unknownSize": "taille inconnue"
+    "unknownSize": "taille inconnue",
+    "parallel_one": "{{count}} effacement en cours sur {{max}} autorisés par l'offre",
+    "parallel_other": "{{count}} effacements en cours sur {{max}} autorisés par l'offre",
+    "parallelUnlimited_one": "{{count}} effacement en cours (pas de limite)",
+    "parallelUnlimited_other": "{{count}} effacements en cours (pas de limite)"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -129,13 +133,19 @@
     "INTERNAL": "Erreur interne du helper",
     "UNAVAILABLE": "Le helper n'est pas disponible",
     "LICENSE_INVALID": "La licence a été refusée",
-    "DEVICE_IN_USE": "Ce disque est utilisé par un autre programme (monté, ouvert ou relié à un périphérique loop). Rien n'a été effacé : fermez ce programme puis réessayez."
+    "DEVICE_IN_USE": "Ce disque est utilisé par un autre programme (monté, ouvert ou relié à un périphérique loop). Rien n'a été effacé : fermez ce programme puis réessayez.",
+    "PARALLEL_LIMIT": "Votre offre ne permet pas plus d'effacements simultanés. Rien n'a été lancé : attendez la fin d'un effacement en cours, puis relancez."
   },
   "license": {
     "title": "Licence",
     "state": "État",
     "id": "Licence",
     "offer": "Offre",
+    "parallel": "Disques en parallèle",
+    "parallelUnlimited": "Sans limite",
+    "customerLogo": "Logo client sur les certificats",
+    "yes": "Oui",
+    "no": "Non",
     "until": "Valable jusqu'au",
     "activate": "1. Créer la demande d'activation",
     "requestHint": "Envoyez ce texte à disphas. Il ne contient que la clé publique de ce poste.",

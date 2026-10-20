@@ -39,7 +39,8 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
 ```
 
 - **Application → helper** : le helper ne fait **aucune** confiance à l'application (cadre §2) ; il
-  revérifie tout (identité du disque relue par lui, 9 contrôles de `Sanitize`, licence, bornes).
+  revérifie tout (identité du disque relue par lui, contrôles de `Sanitize` — 10 depuis le 2026-10-20 —,
+  licence, droits de l'offre, bornes).
 - **Fichiers reçus → application** : toute entrée est bornée en taille et vérifiée avant affichage ; un
   certificat qui ne se vérifie pas n'est jamais affiché comme fait.
 - **Disques → helper** : les données de firmware sont décodées de façon défensive (fuzzées).

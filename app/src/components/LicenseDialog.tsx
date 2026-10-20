@@ -89,6 +89,14 @@ export function LicenseDialog({
             <dd>{status.offer}</dd>
           </>
         )}
+        {status.entitlements && (
+          <>
+            <dt className="text-ash">{t("license.parallel")}</dt>
+            <dd>{status.entitlements.max_parallel ?? t("license.parallelUnlimited")}</dd>
+            <dt className="text-ash">{t("license.customerLogo")}</dt>
+            <dd>{status.entitlements.customer_logo ? t("license.yes") : t("license.no")}</dd>
+          </>
+        )}
         {until && (
           <>
             <dt className="text-ash">{t("license.until")}</dt>

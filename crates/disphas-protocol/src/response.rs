@@ -48,6 +48,10 @@ pub enum ErrorCode {
     /// Another program uses the drive (mounted, held open, loop device):
     /// nothing was done; close it and try again (§9, added 2026-10-07).
     DeviceInUse,
+    /// As many erasures as the offer allows are already running: nothing was
+    /// started and the verdict is still valid; try again when one ends
+    /// (`docs/offres.md` §4.4, added 2026-10-20).
+    ParallelLimit,
     /// Unexpected helper failure.
     Internal,
 }
@@ -308,6 +312,22 @@ pub struct LicenseStatusResult {
     pub license_id: Option<String>,
     /// End of validity, UTC epoch seconds.
     pub valid_until: Option<u64>,
+    /// What the offer allows, decided by the helper; only while the license
+    /// is valid (`docs/offres.md` §4.6, added 2026-10-20).
+    pub entitlements: Option<Entitlements>,
+}
+
+/// What the offer of a valid license allows (`docs/offres.md` §4.1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS), ts(export))]
+#[serde(deny_unknown_fields)]
+pub struct Entitlements {
+    /// Maximum number of erasures running at the same time; `None`: no
+    /// limit other than one job per drive.
+    pub max_parallel: Option<u32>,
+    /// Whether the customer's logo may replace the disphas wordmark on
+    /// certificates.
+    pub customer_logo: bool,
 }
 
 /// Result of `CreateActivationRequest`.

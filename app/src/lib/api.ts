@@ -166,9 +166,12 @@ async function settingsCall(command: string, args: Record<string, unknown>): Pro
   }
 }
 
+/** Must equal `PROTOCOL_VERSION` of `disphas-protocol`: the helper refuses any other. */
+const PROTOCOL_VERSION = 2;
+
 const tauriApi: DisphasApi = {
   mode: "tauri",
-  hello: () => call<HelloResult>({ cmd: "Hello", args: { protocol_version: 1, app_version: "0.1.0" } }),
+  hello: () => call<HelloResult>({ cmd: "Hello", args: { protocol_version: PROTOCOL_VERSION, app_version: "0.1.0" } }),
   listDevices: () => call<ListDevicesResult>({ cmd: "ListDevices" }),
   inspect: (device) => call<InspectResult>({ cmd: "Inspect", args: { device } }),
   sanitize: (args) => call<SanitizeResult>({ cmd: "Sanitize", args }),

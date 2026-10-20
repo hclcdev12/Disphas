@@ -24,8 +24,8 @@ use disphas_protocol::command::{
 };
 use disphas_protocol::event::{Event, JobProgressData};
 use disphas_protocol::response::{
-    ActivationRequestResult, ErrorCode, FinalStatus, InspectResult, JobPhase, JobResult,
-    SanitizeResult,
+    ActivationRequestResult, Entitlements, ErrorCode, FinalStatus, InspectResult, JobPhase,
+    JobResult, LicenseStatusResult, SanitizeResult,
 };
 use disphas_protocol::{PROTOCOL_VERSION, Request, ServerMessage};
 
@@ -139,6 +139,9 @@ impl ErasureTarget for TestTarget {
         _: CoreMethod,
         progress: &mut dyn FnMut(u8),
     ) -> Result<bool, String> {
+        if let Some(gate) = &self.gate {
+            gate.wait();
+        }
         if self.firmware != Firmware::Lying {
             erasure::host_overwrite(&mut self.image, &[0x11; 32], &mut |_| {})
                 .map_err(|e| e.to_string())?;
@@ -277,6 +280,11 @@ struct Bench {
 impl Bench {
     /// A licensed session over `devices`.
     fn new(devices: Vec<Device>, firmware: Firmware) -> Self {
+        Self::with_offer(devices, firmware, "Dev")
+    }
+
+    /// A session licensed for `offer` over `devices`.
+    fn with_offer(devices: Vec<Device>, firmware: Firmware, offer: &str) -> Self {
         let dir = tempfile::tempdir().expect("temporary directory");
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
             .expect("chmod");
@@ -285,7 +293,8 @@ impl Bench {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |elapsed| elapsed.as_secs());
-        let license = disphas_license::dev_root::issue(&request.request, now, 30).expect("issued");
+        let license = disphas_license::dev_root::issue_for_offer(&request.request, now, 30, offer)
+            .expect("issued");
         let _: serde_json::Value =
             bench.ok(Command::InstallLicense(InstallLicenseArgs { license }));
         bench
@@ -309,6 +318,7 @@ impl Bench {
             backend,
             SessionConfig {
                 rules: RuleSet::baseline(),
+                entitlements: disphas_core::EntitlementTable::baseline(),
                 binary_sha256: [0xb1; 32],
                 reports_dir: dir.path().join("reports"),
                 licensing: Box::new(licensing),
@@ -1184,4 +1194,117 @@ fn operator_and_organization_are_bounded_and_trimmed() {
         let error = bench.send(Command::Sanitize(args)).expect_err("refused");
         assert_eq!(error.code, ErrorCode::BadRequest);
     }
+}
+
+/// `docs/offres.md` §4.4: `Pro` erases two drives at once; the third waits.
+#[test]
+fn pro_refuses_a_third_erasure_at_once_then_accepts_it() {
+    let mut bench = Bench::with_offer(
+        vec![
+            drive("SN-Q001", nvme()),
+            drive("SN-Q002", nvme()),
+            drive("SN-Q003", nvme()),
+        ],
+        Firmware::Honest,
+        "Pro",
+    );
+    let status: LicenseStatusResult = bench.ok(Command::LicenseStatus);
+    assert_eq!(
+        status.entitlements,
+        Some(Entitlements {
+            max_parallel: Some(2),
+            customer_logo: false,
+        })
+    );
+    let gate = std::sync::Arc::new(Gate::default());
+    bench.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+
+    for serial in ["SN-Q001", "SN-Q002"] {
+        let inspection = bench.inspect(serial);
+        let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&inspection, None, ack())));
+    }
+    let third = bench.inspect("SN-Q003");
+    let error = bench
+        .send(Command::Sanitize(sanitize(&third, None, ack())))
+        .expect_err("limit reached");
+    assert_eq!(error.code, ErrorCode::ParallelLimit);
+    assert_eq!(
+        error.detail.as_deref(),
+        Some("2 erasures running, the offer allows 2")
+    );
+
+    // Once the running erasures end, the same verdict is still usable:
+    // the refusal consumed nothing.
+    gate.release();
+    bench.session.wait_for_jobs();
+    let started: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&third, None, ack())));
+    bench.session.wait_for_jobs();
+    let result: JobResult = bench.ok(Command::GetJobResult(JobArgs {
+        job_id: started.job_id,
+    }));
+    assert_eq!(result.status, FinalStatus::Compliant);
+}
+
+/// `Parc` has no limit: more drives at once than the largest Atelier offer.
+#[test]
+fn parc_erases_more_than_thirty_two_drives_at_once() {
+    let serials: Vec<String> = (1..=33).map(|n| format!("SN-U{n:03}")).collect();
+    let mut bench = Bench::with_offer(
+        serials.iter().map(|serial| drive(serial, nvme())).collect(),
+        Firmware::Honest,
+        "Parc",
+    );
+    let gate = std::sync::Arc::new(Gate::default());
+    bench.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+    for serial in &serials {
+        let inspection = bench.inspect(serial);
+        let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&inspection, None, ack())));
+    }
+    let running: disphas_protocol::response::ListJobsResult = bench.ok(Command::ListJobs);
+    assert_eq!(
+        running
+            .jobs
+            .iter()
+            .filter(|job| job.status.is_none())
+            .count(),
+        33
+    );
+    gate.release();
+    bench.session.wait_for_jobs();
+}
+
+/// A job resumed after a crash takes one of the places of the offer.
+#[test]
+fn a_resumed_erasure_counts_against_the_limit() {
+    let devices = vec![
+        drive("SN-V001", nvme()),
+        drive("SN-V002", nvme()),
+        drive("SN-V003", nvme()),
+    ];
+    let mut bench = Bench::with_offer(devices, Firmware::Crash, "Pro");
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+    let crashed = bench.inspect("SN-V001");
+    let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&crashed, None, ack())));
+    bench.session.wait_for_jobs();
+
+    // After the restart, the drive carries on: the resumed job is running.
+    let mut bench = bench.restart(Firmware::Honest);
+    let gate = std::sync::Arc::new(Gate::default());
+    bench.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    let _: serde_json::Value = bench.ok(Command::ListJobs);
+
+    let second = bench.inspect("SN-V002");
+    let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&second, None, ack())));
+    let third = bench.inspect("SN-V003");
+    let error = bench
+        .send(Command::Sanitize(sanitize(&third, None, ack())))
+        .expect_err("resumed job and second erasure fill the offer");
+    assert_eq!(error.code, ErrorCode::ParallelLimit);
+
+    gate.release();
+    bench.session.wait_for_jobs();
+    let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&third, None, ack())));
+    bench.session.wait_for_jobs();
 }

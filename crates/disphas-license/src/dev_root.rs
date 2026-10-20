@@ -24,13 +24,24 @@ pub fn verifying_key() -> VerifyingKey {
 }
 
 /// Issues a development license (`DSL1:…`) for an activation request,
-/// valid from `now` for `days` days.
+/// valid from `now` for `days` days, with the `Dev` offer.
 pub fn issue(request: &str, now: u64, days: u64) -> Result<String, LicenseError> {
+    issue_for_offer(request, now, days, "Dev")
+}
+
+/// Same as [`issue`], with another offer: tests of the entitlements of each
+/// offer (`docs/offres.md` §4).
+pub fn issue_for_offer(
+    request: &str,
+    now: u64,
+    days: u64,
+    offer: &str,
+) -> Result<String, LicenseError> {
     let request = read_activation_request(request)?;
     let license = License {
         id: format!("DEV-{now}"),
         customer: "disphas development".to_owned(),
-        offer: "Dev".to_owned(),
+        offer: offer.to_owned(),
         not_before: now.saturating_sub(60),
         expires: Some(now.saturating_add(days.saturating_mul(86_400))),
         workstation_key: request.workstation_key,

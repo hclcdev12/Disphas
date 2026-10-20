@@ -220,6 +220,10 @@ export default function App() {
     return id && status ? { id, status } : null;
   };
 
+  /** Erasures running now, resumed ones included (the helper counts the same, offres.md §4.4). */
+  const runningCount = Object.values(jobs).filter((job) => job.status === null && job.phase !== "Interrupted").length;
+  const maxParallel = license?.entitlements ? license.entitlements.max_parallel : undefined;
+
   const connected = hello?.ok ?? false;
   return (
     <div className="flex min-h-full flex-col">
@@ -274,6 +278,13 @@ export default function App() {
             {t("drives.refresh")}
           </Button>
         </div>
+        {maxParallel !== undefined && (
+          <p className="mb-4 text-sm text-ash">
+            {maxParallel === null
+              ? t("drives.parallelUnlimited", { count: runningCount })
+              : t("drives.parallel", { count: runningCount, max: maxParallel })}
+          </p>
+        )}
         {hello && !hello.ok && <p className="text-sayno">{t(`errors.${hello.error.code}`)}</p>}
         <BatchBar
           batch={batch}

@@ -8,7 +8,7 @@ specs restent dans les documents listés par `CLAUDE.md` §1 ; ce fichier ne les
 
 Le produit V1 est **complet et testé sur du vrai matériel** pour SATA (SSD et HDD) :
 
-- Helper root, moteur de décision, protections P1–P5, 9 contrôles de `Sanitize`, signature Ed25519, PDF/A,
+- Helper root, moteur de décision, protections P1–P5, 10 contrôles de `Sanitize`, signature Ed25519, PDF/A,
   `disphas-verify`, licences et révocation, lots et effacement parallèle, paquets `.deb`/`.rpm` (6 distributions
   testées en CI), application Tauri (Disques, Effacements, Historique, Vérifier, réglages).
 - **Revue de sécurité terminée** (S1–S11, L1–L12) : voir [sécurité](securite.md) §5.
@@ -48,9 +48,15 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
 - [Offres](offres.md) : niveaux d'offre et codes figés (`Essai`, `Passe`, `Pro`, `Atelier8`, `Atelier16`,
   `Atelier32`, `Parc`), droits par offre décidés par le helper (nombre de disques en parallèle, logo client), plus
   d'offre « à vie », ISO de démarrage avancée au lancement. Corrections des autres documents (§6) faites le
-  2026-10-20. **Lot 1 fait le 2026-10-20** (table des droits, `disphas-core::entitlements`). **Prochaine tâche :
-  lot 2** (limite de parallélisme dans le helper et protocole), puis les lots 3 et 6 dans l'ordre du §8 ; chaque
-  lot attend la validation du propriétaire.
+  2026-10-20. **Lot 1 fait le 2026-10-20** (table des droits, `disphas-core::entitlements`). **Lot 2 codé le
+  2026-10-20** (limite de parallélisme, protocole v2, [offres](offres.md) §4.8) ; reste son essai sur le banc
+  avec une licence `Pro`. Puis les lots 3 et 6 dans l'ordre du §8 ; chaque lot attend la validation du propriétaire.
+- **Point ouvert (lot 2)** : la limite vaut par session du helper. Deux fenêtres de l'application (ou un helper
+  lancé à la main par pkexec) donnent chacune toute la limite de l'offre. Piste : compter aussi les tâches des
+  autres helpers grâce aux verrous `flock` de `jobs/` ; ou empêcher deux instances de l'application. À trancher
+  par le propriétaire.
+- La démo du site (`site/public/demo/app/`) est une copie compilée de l'application d'avant le lot 2 :
+  à régénérer avec `tools/site-demo/build.sh` (et son audit) quand le propriétaire le décidera.
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`
   (`README.md`, `DESIGN.md` = jetons de couleur, typographie, composants ; `IDENTITE.md` = nom, ton, certificat).
   Copiés dans le dépôt : logos (`assets/logo/disphas/`) et police Klaudia (`assets/fonts/klaudia/`), pas encore

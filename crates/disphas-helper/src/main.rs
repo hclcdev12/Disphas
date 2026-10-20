@@ -44,6 +44,7 @@ fn main() -> ExitCode {
     }
     let config = SessionConfig {
         rules: RuleSet::baseline(),
+        entitlements: disphas_core::EntitlementTable::baseline(),
         binary_sha256: own_sha256(),
         reports_dir: licensing::state_dir().join("reports"),
         jobs_dir: Some(licensing::state_dir().join("jobs")),

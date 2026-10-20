@@ -22,7 +22,13 @@ import labels from "../dev/code-labels.json";
 import history from "../dev/history-sample.json";
 import verification from "../dev/verification-sample.json";
 
-const LICENSE: LicenseStatusResult = { state: "Valid", offer: "Demo", license_id: "DEMO-0001", valid_until: null };
+const LICENSE: LicenseStatusResult = {
+  state: "Valid",
+  offer: "Demo",
+  license_id: "DEMO-0001",
+  valid_until: null,
+  entitlements: { max_parallel: 8, customer_logo: true },
+};
 
 /** Capacities matching the model names (the recording used small image files). */
 const CAPACITY: Record<string, number | null> = {

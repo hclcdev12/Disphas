@@ -9,8 +9,20 @@ use disphas_core::profile::{DeviceIdentity, Inspection};
 use disphas_core::verdict::{Disposition, Ready, Verdict};
 use disphas_protocol::codes as wire;
 use disphas_protocol::command as wire_command;
-use disphas_protocol::response::DriveKind;
+use disphas_protocol::response::{DriveKind, Entitlements};
 use disphas_protocol::verdict as wire_verdict;
+
+/// Wire form of the entitlements of an offer.
+pub fn entitlements(entitlements: disphas_core::Entitlements) -> Entitlements {
+    use disphas_core::MaxParallel;
+    Entitlements {
+        max_parallel: match entitlements.max_parallel {
+            MaxParallel::Limited(max) => Some(max),
+            MaxParallel::Unlimited => None,
+        },
+        customer_logo: entitlements.customer_logo,
+    }
+}
 
 /// Wire form of a protection code.
 pub fn protect_code(code: engine::ProtectCode) -> wire::ProtectCode {

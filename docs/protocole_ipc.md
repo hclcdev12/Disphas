@@ -86,7 +86,7 @@ Avant toute action, le helper retrouve le disque **par son identité**. Si l'ide
 
 | Commande | Arguments | Résultat |
 |---|---|---|
-| `Hello` | version du protocole, version de l'app | version du helper, `rules_version`, SHA-256 du binaire, état de licence. Versions incompatibles → `PROTOCOL_MISMATCH` |
+| `Hello` | version du protocole, version de l'app | version du helper, `rules_version`, SHA-256 du binaire, état de licence. Versions incompatibles → `PROTOCOL_MISMATCH`. Version **2** depuis le 2026-10-20 (droits par offre, `PARALLEL_LIMIT`) : l'app et le helper d'un même paquet parlent la même version |
 | `ListDevices` | — | Disques avec identité, taille, type et état rapide (PROTÉGÉ, etc.) |
 | `Inspect` | `device` | Profil complet + **verdict** + `verdict_id` (valable 10 min) + méthodes autorisées |
 | `Unlock` | `device`, mot de passe ATA | Déverrouillage d'un disque *Locked* (état BLOQUÉ B2). Le mot de passe n'est jamais journalisé et est effacé de la mémoire après usage |
@@ -95,7 +95,7 @@ Avant toute action, le helper retrouve le disque **par son identité**. Si l'ide
 | `ListJobs` | — | Tâches en cours et terminées non encore récupérées |
 | `DeleteReports` | `ids` (≤ 5000 identifiants de rapport) | Supprime des rapports stockés (durée de conservation du client, RGPD art. 5(1)(e)) ; renvoie le nombre supprimé. Chaque suppression est consignée (identifiant et date, sans donnée personnelle) dans `reports-deletions.log`, réservé à root. Ajouté le 2026-10-04 |
 | `GetJobResult` | `job_id` | Statut final, attestation COSE (base64), journal JSON |
-| `LicenseStatus` | — | Offre, validité, identifiant |
+| `LicenseStatus` | — | Offre, validité, identifiant ; tant que la licence est valide, **droits** de l'offre décidés par le helper : `entitlements: { max_parallel, customer_logo }`, `max_parallel` `null` = sans limite ([offres](offres.md) §4.6, 2026-10-20). Même contenu dans `Hello` et en réponse à `InstallLicense` |
 | `CreateActivationRequest` | — | Demande d'activation (contient la clé publique du poste) |
 | `InstallLicense` | contenu du `.lic` | Nouvel état de licence, ou `LICENSE_INVALID` |
 | `Shutdown` | — | Arrêt propre (refusé si une tâche est en cours) |
@@ -135,6 +135,11 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
    Le disque est reconnu par son numéro de série ; pour un NVMe c'est celui du **contrôleur**, commun à tous
    ses espaces de noms, si bien qu'un effacement de tous les espaces de noms ne croise jamais une autre tâche
    sur le même contrôleur.
+10. Pas plus d'effacements en cours **en même temps** que l'offre de la licence n'en permet → sinon
+    `PARALLEL_LIMIT` ([offres](offres.md) §4.4, ajouté le 2026-10-20). Les tâches reprises après un plantage
+    comptent ; une tâche terminée (succès, échec, REFUS) libère sa place. Rien n'est lancé et le verdict
+    **reste valable** : l'opérateur relance quand une place se libère. Aucun paramètre de la commande ne
+    modifie ce contrôle. La limite vaut **par session du helper** (voir [reprise](reprise.md), point ouvert).
 
 `NS_ALL` : prise d'acte qu'un Sanitize NVMe, ou un Format NVM sur un contrôleur qui l'applique à tous (`FNA` bit 1), efface **tous** les namespaces du contrôleur.
 
@@ -156,7 +161,8 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 `LICENSE_REQUIRED`, `LICENSE_INVALID` (licence refusée à l'installation, ajouté le 2026-10-04), `BUSY`, `NOT_CANCELLABLE`, `UNLOCK_FAILED`, `JOB_INTERRUPTED` (`GetJobResult` d'une tâche interrompue, ajouté le 2026-10-04), `DEVICE_IN_USE` (`Sanitize` : à
 l'ouverture du disque, un autre programme l'utilise — monté, ouvert en exclusif, tenu ouvert par un processus ou un
 namespace voisin, [sécurité](securite.md) S9 ; rien n'a été fait, l'opérateur ferme ce programme et relance ; ajouté le
-2026-10-07 après le banc, où ce refus arrivait en `INTERNAL`), `INTERNAL`. Un disque devenu protégé entre le verdict et
+2026-10-07 après le banc, où ce refus arrivait en `INTERNAL`), `PARALLEL_LIMIT` (`Sanitize`, contrôle 10 :
+l'offre ne permet pas d'effacement de plus en même temps ; rien n'a été lancé, ajouté le 2026-10-20), `INTERNAL`. Un disque devenu protégé entre le verdict et
 l'ouverture (protections revérifiées à l'ouverture) est refusé en `PROTECTED`, plus en `INTERNAL` (2026-10-07).
 
 ## 10. Persistance et reprise
@@ -272,7 +278,7 @@ UI                                   helper
 - Toute commande avant un `Hello` réussi → `BAD_REQUEST`.
 - Ligne illisible **sans `id` exploitable** (JSON invalide, UTF-8 invalide) : la connexion est fermée,
   faute de pouvoir répondre à une requête précise. Avec un `id` : réponse d'erreur, la session continue.
-- `Sanitize` : les 9 contrôles du §7 sont implémentés dans l'ordre. Précisions :
+- `Sanitize` : les contrôles du §7 sont implémentés dans l'ordre (9 au départ, 10 depuis le 2026-10-20). Précisions :
   - contrôle 2 : l'identité de la requête doit égaler celle du verdict, **et** le disque est relu par identité ;
   - contrôle 4 : comparaison **exacte** (casse comprise) des 4 derniers **caractères** du S/N ;
   - contrôle 5 : `detail` liste les codes manquants (`"D4,R7"`) pour que l'app les signale ;

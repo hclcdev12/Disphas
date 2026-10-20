@@ -96,6 +96,8 @@ fn result(state: LicenseState, installed: Option<&InstalledLicense>) -> LicenseS
         offer: installed.map(|installed| installed.license.offer.clone()),
         license_id: installed.map(|installed| installed.license.id.clone()),
         valid_until: installed.and_then(|installed| installed.license.expires),
+        // Filled in by the session, which holds the entitlement table.
+        entitlements: None,
     }
 }
 

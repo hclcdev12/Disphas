@@ -6,12 +6,12 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use disphas_core::RuleSet;
 use disphas_core::verdict::Verdict;
+use disphas_core::{EntitlementTable, RuleSet};
 use disphas_protocol::command::{Command, DeviceIdentity, HelloArgs, SanitizeArgs, VerdictId};
 use disphas_protocol::response::{
     ActivationRequestResult, DeviceSummary, Empty, ErrorBody, ErrorCode, HelloResult,
-    InspectResult, LicenseState, ListDevicesResult, ListJobsResult,
+    InspectResult, LicenseState, LicenseStatusResult, ListDevicesResult, ListJobsResult,
 };
 use disphas_protocol::verdict as wire_verdict;
 use disphas_protocol::{PROTOCOL_VERSION, Request, Response};
@@ -45,6 +45,8 @@ pub const VERDICT_TTL: Duration = Duration::from_secs(600);
 pub struct SessionConfig {
     /// Rule set of the decision engine.
     pub rules: RuleSet,
+    /// What each offer allows (`docs/offres.md` §4).
+    pub entitlements: EntitlementTable,
     /// SHA-256 of the helper binary.
     pub binary_sha256: [u8; 32],
     /// Where signed reports are stored (`reports/` of the state directory).
@@ -136,6 +138,27 @@ impl<B: DeviceBackend> Session<B> {
         }
     }
 
+    /// Erasures running now, resumed ones included. A poisoned table counts
+    /// as full, so that no erasure starts.
+    fn running_jobs(&self) -> usize {
+        self.jobs.lock().map_or(usize::MAX, |jobs| {
+            jobs.values().filter(|job| job.running()).count()
+        })
+    }
+
+    /// License status, with the entitlements of its offer while it is valid.
+    fn license_status(&self) -> LicenseStatusResult {
+        let mut status = self.config.licensing.status();
+        status.entitlements = (status.state == LicenseState::Valid).then(|| {
+            convert::entitlements(
+                self.config
+                    .entitlements
+                    .for_offer(status.offer.as_deref().unwrap_or_default()),
+            )
+        });
+        status
+    }
+
     fn running_job(&self) -> bool {
         self.jobs
             .lock()
@@ -217,7 +240,7 @@ impl<B: DeviceBackend> Session<B> {
                     Err(Failure::new(ErrorCode::BadRequest, "unknown job"))
                 }
             }
-            Command::LicenseStatus => to_value(&self.config.licensing.status()),
+            Command::LicenseStatus => to_value(&self.license_status()),
             Command::Unlock(args) => {
                 if self.drive_busy(&args.device.identity.serial) {
                     return Err(Failure::new(
@@ -251,13 +274,11 @@ impl<B: DeviceBackend> Session<B> {
                 if self.running_job() {
                     return Err(Failure::new(ErrorCode::Busy, "a job is running"));
                 }
-                to_value(
-                    &self
-                        .config
-                        .licensing
-                        .install(&args.license)
-                        .map_err(Failure::from)?,
-                )
+                self.config
+                    .licensing
+                    .install(&args.license)
+                    .map_err(Failure::from)?;
+                to_value(&self.license_status())
             }
             Command::Shutdown => {
                 if self.running_job() {
@@ -290,7 +311,7 @@ impl<B: DeviceBackend> Session<B> {
                 .iter()
                 .map(|byte| format!("{byte:02x}"))
                 .collect(),
-            license: self.config.licensing.status(),
+            license: self.license_status(),
         })
     }
 
@@ -449,7 +470,8 @@ impl<B: DeviceBackend> Session<B> {
         };
 
         // 8. License.
-        if self.config.licensing.status().state != LicenseState::Valid {
+        let license = self.license_status();
+        if license.state != LicenseState::Valid {
             return Err(Failure::new(
                 ErrorCode::LicenseRequired,
                 "no valid license installed",
@@ -461,6 +483,25 @@ impl<B: DeviceBackend> Session<B> {
             return Err(Failure::new(
                 ErrorCode::Busy,
                 "a job is running on this drive",
+            ));
+        }
+
+        // 10. No more erasures at once than the offer allows (`docs/offres.md`
+        // §4.4). Nothing is started and the verdict stays valid.
+        let allowed = self
+            .config
+            .entitlements
+            .for_offer(license.offer.as_deref().unwrap_or_default())
+            .max_parallel;
+        let running = self.running_jobs();
+        if !allowed.allows_another(running) {
+            let max = match allowed {
+                disphas_core::MaxParallel::Limited(max) => max.to_string(),
+                disphas_core::MaxParallel::Unlimited => "unlimited".to_owned(),
+            };
+            return Err(Failure::new(
+                ErrorCode::ParallelLimit,
+                format!("{running} erasures running, the offer allows {max}"),
             ));
         }
 
@@ -1043,6 +1084,7 @@ mod tests {
             offer: None,
             license_id: None,
             valid_until: None,
+            entitlements: None,
         }
     }
 
@@ -1056,6 +1098,7 @@ mod tests {
         fn new(devices: Vec<Device>, license_state: LicenseState) -> Self {
             let config = SessionConfig {
                 rules: RuleSet::baseline(),
+                entitlements: disphas_core::EntitlementTable::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("disphas-unused-reports"),
                 jobs_dir: None,
@@ -1545,6 +1588,7 @@ mod licensing_commands {
             NoDevices,
             SessionConfig {
                 rules: RuleSet::baseline(),
+                entitlements: disphas_core::EntitlementTable::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("disphas-unused-reports"),
                 jobs_dir: None,

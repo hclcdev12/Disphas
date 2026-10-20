@@ -7,9 +7,10 @@
       "license_id": null,
       "offer": null,
       "state": "Missing",
-      "valid_until": null
+      "valid_until": null,
+      "entitlements": null
     },
-    "protocol_version": 1,
+    "protocol_version": 2,
     "rules_version": "1.0.0"
   },
   "devices": [

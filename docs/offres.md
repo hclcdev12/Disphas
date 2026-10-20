@@ -56,7 +56,7 @@ du travail ; les **prix** restent à confirmer par les entretiens clients et viv
 | Licence liée au poste, datée, renouvelable ; licence v2 signée par la clé boutique | ✅ | `crates/disphas-license/`, `tools/disphas-signer/` |
 | Licence de 30 jours | ✅ `disphas-issuer issue … --days 30` | `tools/disphas-issuer/src/main.rs` |
 | Offre écrite dans la licence (`off`) et imprimée sur le certificat | ✅ Texte libre, **purement informatif** | `public/disphas-attestation/src/model.rs:378`, `crates/disphas-report/src/lib.rs:415` |
-| Effacement en parallèle | ✅ **Sans aucune limite** : seule la règle « une tâche par disque » s'applique | `crates/disphas-helper/src/session.rs:461` (contrôle 9) |
+| Effacement en parallèle | ✅ Limité par l'offre depuis le lot 2 (2026-10-20) : contrôle 10 de `Sanitize`, après « une tâche par disque » (contrôle 9) | `crates/disphas-helper/src/session.rs` |
 | Logo du client sur le certificat | ✅ **Ouvert à tous**, réglé côté application | `app/src-tauri/src/settings.rs`, `crates/disphas-report/src/lib.rs:96` |
 | Droits par offre | ✅ Table versionnée (lot 1, 2026-10-20) ; ❌ **pas encore appliquée** par le helper ni l'application (lots 2 et 3) | `crates/disphas-core/src/entitlements.rs` |
 | Activation et renouvellement en ligne | ❌ Spécifiés, non codés (étape 6) | [licences en ligne](licences_en_ligne.md) §10 |
@@ -150,6 +150,18 @@ fois, pas de logo) ; ce cas ne se produit pas avec la table livrée (vérifié p
 - **Uniquement sur fichiers image ou loop devices**, et sur le banc pour les disques déclarés sacrifiables
   (`CLAUDE.md` §2).
 
+### 4.8 Lot 2 : ce qui est fait (2026-10-20)
+
+- Helper : contrôle 10 de `Sanitize` ([protocole](protocole_ipc.md) §7), code `PARALLEL_LIMIT`, droits dans
+  `LicenseStatusResult` (`Hello`, `LicenseStatus`, `InstallLicense`), protocole en **version 2**.
+- Application : droits dans la fenêtre Licence, compteur au-dessus de la liste des disques, message de
+  `PARALLEL_LIMIT` en trois langues (allemand à relire).
+- Tests (images disque) : `Pro` refuse le 3e effacement simultané puis accepte le même verdict après la fin
+  des deux autres ; `Parc` lance 33 effacements à la fois ; une tâche reprise après plantage occupe une place.
+- **Limite par session du helper** : deux fenêtres de l'application ouvrent deux helpers, chacun avec sa propre
+  limite. Point soumis au propriétaire ([reprise](reprise.md)).
+- Reste : essai sur le banc (licence `Pro` signée par le propriétaire avec la clé racine).
+
 ## 5. Offres `Essai` et `Passe`
 
 - Licences v2 de **30 jours**, émises par le service de signature comme les autres ; **non renouvelées**.
@@ -195,7 +207,7 @@ Chaque lot : fmt, clippy et tests verts, docs mises à jour dans le même commit
 | # | Lot | Fait quand | Dépend de |
 |---|---|---|---|
 | 1 | ~~**Droits par offre** (§4.1 à §4.3) : table, codes d'offre figés, tests unitaires~~ → **fait le 2026-10-20** (§4.3) | Table testée | — |
-| 2 | **Limite de parallélisme** (§4.4) et protocole (§4.6) | Tests de session verts ; essai sur le banc avec 3 disques sacrifiables sous licence `Pro` : le 3e est refusé, puis accepté après la fin d'un effacement | 1 |
+| 2 | **Limite de parallélisme** (§4.4) et protocole (§4.6) — **code fait le 2026-10-20** (§4.8) ; **reste l'essai sur le banc** | Tests de session verts ; essai sur le banc avec 3 disques sacrifiables sous licence `Pro` : le 3e est refusé, puis accepté après la fin d'un effacement | 1 |
 | 3 | **Logo réservé** (§4.5) et **wordmark disphas** sur le certificat (remplacer les SVG Oblivio par le wordmark disphas, état 0, encre, d'après le dossier de marque
 `~/Documents/graphism_Disphas/` ; ce fichier n'a pas été livré, voir `assets/logo/disphas/README.md`) | PDF vérifiés dans les deux cas ; limite assumée ajoutée à [sécurité](securite.md) §4 | 1 |
 | 4 | **NVMe sur vrai disque** (carte PCIe → M.2 passive ; disque déclaré sacrifiable par le propriétaire) : Sanitize, Format, `nsa`, reprise après coupure | Tableau des résultats ajouté à [banc de test](banc_de_test.md) | Matériel acheté par le propriétaire |

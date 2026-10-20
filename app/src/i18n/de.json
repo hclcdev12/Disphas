@@ -22,7 +22,11 @@
     "empty": "Kein Laufwerk erkannt.",
     "refresh": "Aktualisieren",
     "inspecting": "Prüfung…",
-    "unknownSize": "Größe unbekannt"
+    "unknownSize": "Größe unbekannt",
+    "parallel_one": "{{count}} Löschvorgang läuft, {{max}} vom Angebot erlaubt",
+    "parallel_other": "{{count}} Löschvorgänge laufen, {{max}} vom Angebot erlaubt",
+    "parallelUnlimited_one": "{{count}} Löschvorgang läuft (keine Begrenzung)",
+    "parallelUnlimited_other": "{{count}} Löschvorgänge laufen (keine Begrenzung)"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -129,13 +133,19 @@
     "INTERNAL": "Interner Helper-Fehler",
     "UNAVAILABLE": "Der Helper ist nicht verfügbar",
     "LICENSE_INVALID": "Die Lizenz wurde abgelehnt",
-    "DEVICE_IN_USE": "Dieses Laufwerk wird von einem anderen Programm verwendet (eingehängt, geöffnet oder über ein Loop-Gerät). Es wurde nichts gelöscht: Schließen Sie das Programm und versuchen Sie es erneut."
+    "DEVICE_IN_USE": "Dieses Laufwerk wird von einem anderen Programm verwendet (eingehängt, geöffnet oder über ein Loop-Gerät). Es wurde nichts gelöscht: Schließen Sie das Programm und versuchen Sie es erneut.",
+    "PARALLEL_LIMIT": "Ihr Angebot erlaubt keine weiteren gleichzeitigen Löschvorgänge. Es wurde nichts gestartet: Warten Sie, bis ein laufender Löschvorgang beendet ist, und versuchen Sie es dann erneut."
   },
   "license": {
     "title": "Lizenz",
     "state": "Status",
     "id": "Lizenz",
     "offer": "Angebot",
+    "parallel": "Laufwerke parallel",
+    "parallelUnlimited": "Keine Begrenzung",
+    "customerLogo": "Kundenlogo auf Zertifikaten",
+    "yes": "Ja",
+    "no": "Nein",
     "until": "Gültig bis",
     "activate": "1. Aktivierungsanfrage erstellen",
     "requestHint": "Senden Sie diesen Text an disphas. Er enthält nur den öffentlichen Schlüssel dieses Arbeitsplatzes.",

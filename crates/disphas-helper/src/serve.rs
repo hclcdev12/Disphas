@@ -175,6 +175,7 @@ mod tests {
             NoDevices,
             SessionConfig {
                 rules: RuleSet::baseline(),
+                entitlements: disphas_core::EntitlementTable::baseline(),
                 binary_sha256: [0; 32],
                 reports_dir: std::env::temp_dir().join("disphas-unused-reports"),
                 jobs_dir: None,
@@ -200,7 +201,7 @@ mod tests {
             .collect()
     }
 
-    const HELLO: &str = r#"{"type":"request","id":1,"cmd":"Hello","args":{"protocol_version":1,"app_version":"test"}}"#;
+    const HELLO: &str = r#"{"type":"request","id":1,"cmd":"Hello","args":{"protocol_version":2,"app_version":"test"}}"#;
 
     #[test]
     fn answers_each_request_in_order_and_stops_at_end_of_input() {

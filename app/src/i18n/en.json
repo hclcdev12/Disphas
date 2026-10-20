@@ -22,7 +22,11 @@
     "empty": "No drive detected.",
     "refresh": "Refresh",
     "inspecting": "Inspecting…",
-    "unknownSize": "unknown size"
+    "unknownSize": "unknown size",
+    "parallel_one": "{{count}} erasure running of {{max}} allowed by the offer",
+    "parallel_other": "{{count}} erasures running of {{max}} allowed by the offer",
+    "parallelUnlimited_one": "{{count}} erasure running (no limit)",
+    "parallelUnlimited_other": "{{count}} erasures running (no limit)"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -129,13 +133,19 @@
     "INTERNAL": "Internal helper error",
     "UNAVAILABLE": "The helper is not available",
     "LICENSE_INVALID": "The license was rejected",
-    "DEVICE_IN_USE": "This drive is used by another program (mounted, open, or behind a loop device). Nothing was erased: close that program, then try again."
+    "DEVICE_IN_USE": "This drive is used by another program (mounted, open, or behind a loop device). Nothing was erased: close that program, then try again.",
+    "PARALLEL_LIMIT": "Your offer allows no more erasures at the same time. Nothing was started: wait for a running erasure to end, then try again."
   },
   "license": {
     "title": "License",
     "state": "Status",
     "id": "License",
     "offer": "Offer",
+    "parallel": "Drives in parallel",
+    "parallelUnlimited": "No limit",
+    "customerLogo": "Customer logo on certificates",
+    "yes": "Yes",
+    "no": "No",
     "until": "Valid until",
     "activate": "1. Create the activation request",
     "requestHint": "Send this text to disphas. It contains only the public key of this workstation.",
