@@ -58,7 +58,7 @@ du travail ; les **prix** restent à confirmer par les entretiens clients et viv
 | Offre écrite dans la licence (`off`) et imprimée sur le certificat | ✅ Texte libre, **purement informatif** | `public/disphas-attestation/src/model.rs:378`, `crates/disphas-report/src/lib.rs:415` |
 | Effacement en parallèle | ✅ **Sans aucune limite** : seule la règle « une tâche par disque » s'applique | `crates/disphas-helper/src/session.rs:461` (contrôle 9) |
 | Logo du client sur le certificat | ✅ **Ouvert à tous**, réglé côté application | `app/src-tauri/src/settings.rs`, `crates/disphas-report/src/lib.rs:96` |
-| Droits par offre | ❌ Absents | — |
+| Droits par offre | ✅ Table versionnée (lot 1, 2026-10-20) ; ❌ **pas encore appliquée** par le helper ni l'application (lots 2 et 3) | `crates/disphas-core/src/entitlements.rs` |
 | Activation et renouvellement en ligne | ❌ Spécifiés, non codés (étape 6) | [licences en ligne](licences_en_ligne.md) §10 |
 | Stripe, sièges, clés de licence | ❌ Spécifiés, non codés (étape 4 du site) | [site](site.md) §9 |
 | Domaine du serveur de licences | ⚠️ `licence.oblivio.eu`, ancien nom | [licences en ligne](licences_en_ligne.md) §8 |
@@ -99,6 +99,13 @@ B pourra venir plus tard sans casser A (un champ absent = table A) ; ce serait u
    (les licences v1 restent acceptées, D7). Décidé le 2026-10-20 (§9, Q2).
    `Dev` (racine de développement, builds de debug uniquement) : illimité.
 4. Comparaison de l'offre **exacte** (casse comprise), sans interprétation du texte.
+
+**Implémenté le 2026-10-20 (lot 1)** : module `entitlements` de `disphas-core` — `Offer` (codes figés),
+`EntitlementTable::baseline()` (version 1.0.0), `for_offer(code)`, `MaxParallel::allows_another(en_cours)`.
+`Dev` n'est reconnu que dans les builds de debug, comme la racine de développement elle-même : dans un build de
+release, une licence `Dev` est une offre inconnue (droits de `Pro`). Ajout par rapport à la règle 3, par sécurité :
+si la table elle-même ne contenait pas `Pro`, les droits les plus restrictifs s'appliqueraient (1 effacement à la
+fois, pas de logo) ; ce cas ne se produit pas avec la table livrée (vérifié par les tests).
 
 ### 4.4 Limite de parallélisme (helper)
 
@@ -187,7 +194,7 @@ Chaque lot : fmt, clippy et tests verts, docs mises à jour dans le même commit
 
 | # | Lot | Fait quand | Dépend de |
 |---|---|---|---|
-| 1 | **Droits par offre** (§4.1 à §4.3) : table, codes d'offre figés, tests unitaires | Table testée | — |
+| 1 | ~~**Droits par offre** (§4.1 à §4.3) : table, codes d'offre figés, tests unitaires~~ → **fait le 2026-10-20** (§4.3) | Table testée | — |
 | 2 | **Limite de parallélisme** (§4.4) et protocole (§4.6) | Tests de session verts ; essai sur le banc avec 3 disques sacrifiables sous licence `Pro` : le 3e est refusé, puis accepté après la fin d'un effacement | 1 |
 | 3 | **Logo réservé** (§4.5) et **wordmark disphas** sur le certificat (remplacer les SVG Oblivio par le wordmark disphas, état 0, encre, d'après le dossier de marque
 `~/Documents/graphism_Disphas/` ; ce fichier n'a pas été livré, voir `assets/logo/disphas/README.md`) | PDF vérifiés dans les deux cas ; limite assumée ajoutée à [sécurité](securite.md) §4 | 1 |

@@ -48,8 +48,9 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
 - [Offres](offres.md) : niveaux d'offre et codes figés (`Essai`, `Passe`, `Pro`, `Atelier8`, `Atelier16`,
   `Atelier32`, `Parc`), droits par offre décidés par le helper (nombre de disques en parallèle, logo client), plus
   d'offre « à vie », ISO de démarrage avancée au lancement. Corrections des autres documents (§6) faites le
-  2026-10-20. **Prochaine tâche : lot 1** (table des droits dans `disphas-core`), puis les lots 2, 3, 6 dans
-  l'ordre du §8 ; chaque lot attend la validation du propriétaire.
+  2026-10-20. **Lot 1 fait le 2026-10-20** (table des droits, `disphas-core::entitlements`). **Prochaine tâche :
+  lot 2** (limite de parallélisme dans le helper et protocole), puis les lots 3 et 6 dans l'ordre du §8 ; chaque
+  lot attend la validation du propriétaire.
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`
   (`README.md`, `DESIGN.md` = jetons de couleur, typographie, composants ; `IDENTITE.md` = nom, ton, certificat).
   Copiés dans le dépôt : logos (`assets/logo/disphas/`) et police Klaudia (`assets/fonts/klaudia/`), pas encore
