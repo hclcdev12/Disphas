@@ -5,6 +5,13 @@
 //! attempt, and deleted once the attestation is stored. `<id>.lock` is held
 //! (`flock`) by the process running the job: a second helper never resumes or
 //! discards a job that is still alive.
+//!
+//! The same locks let a helper count the erasures of the other helpers on the
+//! workstation, so that the parallel limit of the offer holds for the
+//! workstation, not per helper (`docs/offres.md` §4.4). `start.guard` makes
+//! starting a job one step across helpers: it is held while a `Sanitize`
+//! counts and until the new job's lock exists, and while left jobs are taken
+//! over, so no helper ever tests a lock another one is about to take.
 
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
@@ -133,6 +140,70 @@ fn lock(dir: &Path, id: &str) -> std::io::Result<Option<JobHandle>> {
     }
 }
 
+/// Exclusive right to start jobs in a jobs directory, across helpers.
+#[derive(Debug)]
+pub struct StartGuard {
+    /// Released when dropped.
+    _lock: File,
+}
+
+/// Waits for the start guard of `dir` and takes it.
+pub fn start_guard(dir: &Path) -> Result<StartGuard, String> {
+    let fail = |error: std::io::Error| format!("jobs: start guard: {error}");
+    create_dir(dir).map_err(fail)?;
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .open(dir.join("start.guard"))
+        .map_err(fail)?;
+    file.lock().map_err(fail)?;
+    Ok(StartGuard { _lock: file })
+}
+
+/// Jobs of `dir` running in other processes: their lock is held, and `own`
+/// (this helper's jobs, which it locks too) does not know them. Call it with
+/// the [`StartGuard`] held. A lock that cannot be tested counts as running,
+/// so that an error never lets one more erasure start.
+pub fn running_elsewhere(dir: &Path, own: impl Fn(&str) -> bool) -> usize {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return 0;
+    };
+    let mut running = 0;
+    for path in entries.filter_map(Result::ok).map(|entry| entry.path()) {
+        if path.extension().is_none_or(|ext| ext != "lock") {
+            continue;
+        }
+        let Some(id) = path.file_stem().and_then(|stem| stem.to_str()) else {
+            continue;
+        };
+        if own(id) {
+            continue;
+        }
+        let held = match OpenOptions::new().write(true).open(&path) {
+            // Gone meanwhile: that job just ended.
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(error) => {
+                eprintln!("disphas-helper: job {id}: lock not readable: {error}");
+                true
+            }
+            // Free: left by a helper that is gone, not running. Released
+            // at once when `file` is dropped.
+            Ok(file) => match file.try_lock() {
+                Ok(()) => false,
+                Err(fs::TryLockError::WouldBlock) => true,
+                Err(fs::TryLockError::Error(error)) => {
+                    eprintln!("disphas-helper: job {id}: lock not testable: {error}");
+                    true
+                }
+            },
+        };
+        running += usize::from(held);
+    }
+    running
+}
+
 /// Writes `content` to `path` atomically and durably, mode 0600.
 pub fn write_atomic(path: &Path, content: &[u8]) -> std::io::Result<()> {
     let temporary = path.with_extension("tmp");
@@ -248,6 +319,41 @@ mod tests {
         // Free again, but unreadable: reported and kept, never deleted.
         assert!(left(dir.path()).is_empty());
         assert!(dir.path().join("0001.json").exists());
+    }
+
+    #[test]
+    fn jobs_of_other_helpers_are_counted() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        // Held by "another helper" (another open file description).
+        let other = lock(dir.path(), "aaaa").expect("lock").expect("free");
+        // Held by this helper: known by its id, not counted here.
+        let own = lock(dir.path(), "bbbb").expect("lock").expect("free");
+        // Left by a helper that is gone: free, not running.
+        drop(lock(dir.path(), "cccc").expect("lock").expect("free"));
+        // Not a job lock.
+        std::fs::write(dir.path().join("aaaa.json"), b"{}").expect("file");
+        let guard = start_guard(dir.path()).expect("guard");
+
+        assert_eq!(running_elsewhere(dir.path(), |id| id == "bbbb"), 1);
+        // Testing a free lock does not keep it.
+        assert!(lock(dir.path(), "cccc").expect("lock").is_some());
+        drop(other);
+        assert_eq!(running_elsewhere(dir.path(), |id| id == "bbbb"), 0);
+        drop((own, guard));
+        assert_eq!(running_elsewhere(&dir.path().join("missing"), |_| false), 0);
+    }
+
+    #[test]
+    fn the_start_guard_is_exclusive() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        let guard = start_guard(dir.path()).expect("guard");
+        let file = OpenOptions::new()
+            .write(true)
+            .open(dir.path().join("start.guard"))
+            .expect("open");
+        assert!(matches!(file.try_lock(), Err(fs::TryLockError::WouldBlock)));
+        drop(guard);
+        assert!(file.try_lock().is_ok());
     }
 
     #[test]

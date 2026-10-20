@@ -158,8 +158,17 @@ fois, pas de logo) ; ce cas ne se produit pas avec la table livrée (vérifié p
   `PARALLEL_LIMIT` en trois langues (allemand à relire).
 - Tests (images disque) : `Pro` refuse le 3e effacement simultané puis accepte le même verdict après la fin
   des deux autres ; `Parc` lance 33 effacements à la fois ; une tâche reprise après plantage occupe une place.
-- **Limite par session du helper** : deux fenêtres de l'application ouvrent deux helpers, chacun avec sa propre
-  limite. Point soumis au propriétaire ([reprise](reprise.md)).
+- ~~Limite par session du helper~~ → **lot 2 bis, 2026-10-20** (les deux protections combinées, à la demande
+  du propriétaire) : la limite vaut pour **tout le poste**.
+  - Helper : il compte aussi les effacements des autres helpers (verrous `flock` de `jobs/`), sous le verrou
+    commun `jobs/start.guard`, tenu jusqu'à ce que la nouvelle tâche soit visible des autres
+    ([protocole](protocole_ipc.md) §7 et §10). Test : deux helpers sur le même dossier d'état, `Pro`, un
+    effacement chacun ; le 3e est refusé.
+  - Application : une seule instance (plugin `tauri-plugin-single-instance` 2.4.5, compatible avec Tauri 2.11 ;
+    les versions 2.5 exigent Tauri 2.12). Un second lancement ramène la fenêtre ouverte au premier plan.
+    Ajoute 35 composants (pile D-Bus `zbus`), MIT ou Apache-2.0, côté application seulement.
+  - Ne protège pas d'un administrateur qui modifie le helper ou les fichiers de `/var/lib/disphas` : root
+    peut tout, la limite est commerciale, pas une frontière de sécurité.
 - Reste : essai sur le banc (licence `Pro` signée par le propriétaire avec la clé racine).
 
 ## 5. Offres `Essai` et `Passe`

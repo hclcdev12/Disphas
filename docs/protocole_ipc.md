@@ -139,7 +139,9 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
     `PARALLEL_LIMIT` ([offres](offres.md) §4.4, ajouté le 2026-10-20). Les tâches reprises après un plantage
     comptent ; une tâche terminée (succès, échec, REFUS) libère sa place. Rien n'est lancé et le verdict
     **reste valable** : l'opérateur relance quand une place se libère. Aucun paramètre de la commande ne
-    modifie ce contrôle. La limite vaut **par session du helper** (voir [reprise](reprise.md), point ouvert).
+    modifie ce contrôle. La limite vaut pour **tout le poste** (lot 2 bis, 2026-10-20) : le helper compte aussi
+    les tâches des autres helpers (verrous de `jobs/`, §10), sous le verrou `jobs/start.guard` tenu jusqu'à ce
+    que la nouvelle tâche soit visible des autres ; l'application refuse en outre une seconde instance.
 
 `NS_ALL` : prise d'acte qu'un Sanitize NVMe, ou un Format NVM sur un contrôleur qui l'applique à tous (`FNA` bit 1), efface **tous** les namespaces du contrôleur.
 
@@ -203,7 +205,11 @@ l'ouverture (protections revérifiées à l'ouverture) est refusé en `PROTECTED
   l'attestation stockée.
 - `jobs/<id>.lock` est verrouillé (`flock`) par le processus qui exécute la tâche : un second helper lancé
   en parallèle ne reprend ni n'écarte une tâche vivante. Les accès disque de la reprise (`O_EXCL`) le
-  confirment.
+  confirment. Ces verrous servent aussi à compter les effacements des autres helpers (contrôle 10, §7).
+- `jobs/start.guard` (2026-10-20) : verrou commun à tous les helpers du poste, pris (en attente si besoin)
+  pendant le contrôle 10 et jusqu'à ce que le verrou de la nouvelle tâche existe (30 s au plus), et pendant la
+  reprise des tâches laissées. Deux helpers ne prennent donc jamais la dernière place en même temps, et aucun
+  ne teste le verrou d'une tâche qu'un autre est en train de reprendre. Le fichier reste en place.
 - La reprise a lieu à la première commande qui suit un `Hello`, pour que l'app connaisse déjà le helper
   quand arrivent les événements.
 - **Reprise** seulement si : méthode **Sanitize** (NVMe ou ATA), phase atteinte `Executing` ou au-delà, même

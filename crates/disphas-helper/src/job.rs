@@ -108,6 +108,9 @@ pub struct JobSpec {
     pub reports_dir: PathBuf,
     /// Where job state is kept for crash recovery; `None` keeps nothing.
     pub jobs_dir: Option<PathBuf>,
+    /// Told once the job's files exist (or the job ended before): other
+    /// helpers can count it from then on (`crate::jobfile::running_elsewhere`).
+    pub started: Option<SyncSender<()>>,
 }
 
 /// State of a job, as listed by `ListJobs` and `GetJobResult`.
@@ -352,6 +355,11 @@ impl Runner {
                 (seed, lbas, Vec::new(), false)
             }
         };
+        // The job is now visible to other helpers. An earlier return drops
+        // the sender, which tells the same.
+        if let Some(started) = spec.started.take() {
+            let _ = started.send(());
+        }
         self.log(
             LogLevel::Info,
             "samples_selected",
@@ -690,6 +698,7 @@ pub fn resumed_spec(
         binary_sha256,
         reports_dir,
         jobs_dir,
+        started: None,
     })
 }
 

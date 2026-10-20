@@ -271,7 +271,8 @@ fn nvme() -> Inspection {
 }
 
 struct Bench {
-    dir: tempfile::TempDir,
+    /// Shared by the helpers of one workstation ([`Bench::second_helper`]).
+    dir: std::sync::Arc<tempfile::TempDir>,
     session: Session<ImageBackend>,
     events: mpsc::Receiver<ServerMessage>,
     next: u64,
@@ -288,7 +289,7 @@ impl Bench {
         let dir = tempfile::tempdir().expect("temporary directory");
         std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))
             .expect("chmod");
-        let mut bench = Self::open(dir, devices, firmware);
+        let mut bench = Self::open(std::sync::Arc::new(dir), devices, firmware);
         let request: ActivationRequestResult = bench.ok(Command::CreateActivationRequest);
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -301,7 +302,11 @@ impl Bench {
     }
 
     /// A new session over the state directory `dir`, as after a restart.
-    fn open(dir: tempfile::TempDir, devices: Vec<Device>, firmware: Firmware) -> Self {
+    fn open(
+        dir: std::sync::Arc<tempfile::TempDir>,
+        devices: Vec<Device>,
+        firmware: Firmware,
+    ) -> Self {
         let licensing = StoreLicensing::new(
             LicenseStore::new(dir.path().join("state")),
             disphas_license::trusted_roots(),
@@ -346,13 +351,20 @@ impl Bench {
         Self::open(self.dir, devices, firmware)
     }
 
-    /// Files left in `jobs/`.
+    /// Another helper on the same workstation (a second window of the
+    /// application): same state directory, license and jobs directory.
+    fn second_helper(&self, devices: Vec<Device>) -> Self {
+        Self::open(std::sync::Arc::clone(&self.dir), devices, Firmware::Honest)
+    }
+
+    /// Files of jobs left in `jobs/` (the start guard stays for good).
     fn job_files(&self) -> Vec<String> {
         let mut names: Vec<String> = std::fs::read_dir(self.dir.path().join("jobs"))
             .map(|entries| {
                 entries
                     .filter_map(|e| e.ok())
                     .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .filter(|name| name != "start.guard")
                     .collect()
             })
             .unwrap_or_default();
@@ -1307,4 +1319,36 @@ fn a_resumed_erasure_counts_against_the_limit() {
     bench.session.wait_for_jobs();
     let _: SanitizeResult = bench.ok(Command::Sanitize(sanitize(&third, None, ack())));
     bench.session.wait_for_jobs();
+}
+
+/// The limit holds for the workstation: a second helper (second window of the
+/// application) sees the erasures of the first (`docs/offres.md` §4.4).
+#[test]
+fn the_limit_counts_the_erasures_of_other_helpers() {
+    let mut first = Bench::with_offer(vec![drive("SN-W001", nvme())], Firmware::Honest, "Pro");
+    let mut second = first.second_helper(vec![drive("SN-W002", nvme()), drive("SN-W003", nvme())]);
+    let gate = std::sync::Arc::new(Gate::default());
+    first.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    second.session.backend_mut().gate = Some(std::sync::Arc::clone(&gate));
+    let ack = || vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)];
+
+    let one = first.inspect("SN-W001");
+    let _: SanitizeResult = first.ok(Command::Sanitize(sanitize(&one, None, ack())));
+    let two = second.inspect("SN-W002");
+    let _: SanitizeResult = second.ok(Command::Sanitize(sanitize(&two, None, ack())));
+    let three = second.inspect("SN-W003");
+    let error = second
+        .send(Command::Sanitize(sanitize(&three, None, ack())))
+        .expect_err("one erasure in each helper fills the offer");
+    assert_eq!(error.code, ErrorCode::ParallelLimit);
+    assert_eq!(
+        error.detail.as_deref(),
+        Some("2 erasures running, the offer allows 2")
+    );
+
+    gate.release();
+    first.session.wait_for_jobs();
+    second.session.wait_for_jobs();
+    let _: SanitizeResult = second.ok(Command::Sanitize(sanitize(&three, None, ack())));
+    second.session.wait_for_jobs();
 }

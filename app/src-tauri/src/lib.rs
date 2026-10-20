@@ -287,6 +287,15 @@ fn code_labels(lang: String) -> HashMap<&'static str, &'static str> {
 /// Starts the application.
 pub fn run() {
     let result = tauri::Builder::default()
+        // First plugin, as its documentation requires. A second launch brings
+        // the open window forward instead of starting a second helper: one
+        // window, one helper, one parallel limit (docs/offres.md §4.4).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app| {
             let handle = app.handle().clone();
             let helper = Helper::spawn(move |event| {

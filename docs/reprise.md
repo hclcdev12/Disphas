@@ -51,10 +51,11 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   2026-10-20. **Lot 1 fait le 2026-10-20** (table des droits, `disphas-core::entitlements`). **Lot 2 codé le
   2026-10-20** (limite de parallélisme, protocole v2, [offres](offres.md) §4.8) ; reste son essai sur le banc
   avec une licence `Pro`. Puis les lots 3 et 6 dans l'ordre du §8 ; chaque lot attend la validation du propriétaire.
-- **Point ouvert (lot 2)** : la limite vaut par session du helper. Deux fenêtres de l'application (ou un helper
-  lancé à la main par pkexec) donnent chacune toute la limite de l'offre. Piste : compter aussi les tâches des
-  autres helpers grâce aux verrous `flock` de `jobs/` ; ou empêcher deux instances de l'application. À trancher
-  par le propriétaire.
+- ~~Point ouvert (lot 2) : limite par session du helper~~ → **lot 2 bis codé le 2026-10-20** : limite pour tout
+  le poste (comptage des autres helpers et application à instance unique, [offres](offres.md) §4.8).
+- Paquet de test installé sur le banc le 2026-10-20 : `0.1.0+local.dbe49cf` (lot 2), construit en local dans
+  un conteneur `ubuntu:22.04` (podman) avec les étapes du workflow *Package*, la CI étant bloquée par la
+  facturation GitHub. La règle polkit du banc vise encore `org.oblivio.helper` : relancer le `setup.sh` à jour.
 - La démo du site (`site/public/demo/app/`) est une copie compilée de l'application d'avant le lot 2 :
   à régénérer avec `tools/site-demo/build.sh` (et son audit) quand le propriétaire le décidera.
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`

@@ -138,12 +138,19 @@ impl<B: DeviceBackend> Session<B> {
         }
     }
 
-    /// Erasures running now, resumed ones included. A poisoned table counts
-    /// as full, so that no erasure starts.
+    /// Erasures running now on the workstation: this helper's, resumed ones
+    /// included, plus those of other helpers sharing the jobs directory. Call
+    /// it with the start guard held. A poisoned table counts as full, so that
+    /// no erasure starts.
     fn running_jobs(&self) -> usize {
-        self.jobs.lock().map_or(usize::MAX, |jobs| {
-            jobs.values().filter(|job| job.running()).count()
-        })
+        let Ok(jobs) = self.jobs.lock() else {
+            return usize::MAX;
+        };
+        let own = jobs.values().filter(|job| job.running()).count();
+        let elsewhere = self.config.jobs_dir.as_deref().map_or(0, |dir| {
+            jobfile::running_elsewhere(dir, |id| jobs.contains_key(&JobId(id.to_owned())))
+        });
+        own.saturating_add(elsewhere)
     }
 
     /// License status, with the entitlements of its offer while it is valid.
@@ -487,7 +494,16 @@ impl<B: DeviceBackend> Session<B> {
         }
 
         // 10. No more erasures at once than the offer allows (`docs/offres.md`
-        // §4.4). Nothing is started and the verdict stays valid.
+        // §4.4), on the whole workstation. Nothing is started and the verdict
+        // stays valid. The guard is held until the new job can be counted by
+        // other helpers, so two of them never both take the last place.
+        let _start_guard = match &self.config.jobs_dir {
+            Some(dir) => Some(
+                jobfile::start_guard(dir)
+                    .map_err(|error| Failure::new(ErrorCode::Internal, error))?,
+            ),
+            None => None,
+        };
         let allowed = self
             .config
             .entitlements
@@ -576,6 +592,7 @@ impl<B: DeviceBackend> Session<B> {
         let serial = issued.identity.serial.clone();
         self.verdicts
             .retain(|_, other| other.identity.serial != serial);
+        let (started_sender, started) = std::sync::mpsc::sync_channel(1);
         let spec = JobSpec {
             id,
             device: disphas_protocol::command::DeviceRef {
@@ -595,6 +612,7 @@ impl<B: DeviceBackend> Session<B> {
             binary_sha256: self.config.binary_sha256,
             reports_dir: self.config.reports_dir.clone(),
             jobs_dir: self.config.jobs_dir.clone(),
+            started: Some(started_sender),
         };
         self.threads.push(job::spawn(
             spec,
@@ -602,6 +620,9 @@ impl<B: DeviceBackend> Session<B> {
             self.events.clone(),
             None,
         ));
+        // Bounded: preparing a job takes milliseconds. Past this, the guard is
+        // released anyway rather than stop every other helper.
+        let _ = started.recv_timeout(Duration::from_secs(30));
         to_value(&SanitizeResult {
             job_id: JobId(disphas_attestation::display::uuid(&id)),
         })
@@ -615,6 +636,11 @@ impl<B: DeviceBackend> Session<B> {
             return;
         };
         let rules_version = self.config.rules.version.to_string();
+        // Taking over left jobs tests their locks: never while another helper
+        // counts or starts jobs.
+        let _start_guard = jobfile::start_guard(&dir)
+            .inspect_err(|error| eprintln!("disphas-helper: {error}"))
+            .ok();
         for left in jobfile::left(&dir) {
             let id = left.file.id.clone();
             let device = left.file.device.clone();
