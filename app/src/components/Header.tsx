@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import wordmark from "../../../assets/logo/oblivio-wordmark-dark.svg";
+import wordmark from "../../../assets/logo/disphas-wordmark-os.svg";
 import type { HelloResult } from "../bindings/HelloResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import { LANGUAGES, type Language } from "../i18n";

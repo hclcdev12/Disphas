@@ -4,6 +4,8 @@
 Writes into assets/logo/:
 - disphas-wordmark-certificate.svg: "Disphas" in Klaudia Bold, state 0
   ("donnée": every letter full), ink, no ermine (IDENTITE.md §3.2, §6.4).
+- disphas-wordmark-os.svg: the same wordmark in bone, for the dark
+  interface of the application (24 px high: state 0, IDENTITE.md §3.3 rule 4).
 - disphas-stamp.svg: the seal next to the QR code, in ink (no accent
   colour on the certificate, IDENTITE.md §5.2), with the small logo (the
   D of Klaudia Bold, IDENTITE.md §3.4) in the centre.
@@ -28,6 +30,7 @@ OUT = HERE.parent
 FONT = HERE.parent.parent / "fonts" / "klaudia" / "Klaudia-Bold.ttf"
 
 INK = "#111110"  # IDENTITE.md §5.2: certificate text only
+BONE = "#ECEAE3"  # IDENTITE.md §5.1: logo on a dark background
 
 font = TTFont(FONT)
 glyph_set = font.getGlyphSet()
@@ -72,7 +75,7 @@ def shape(text):
     return out
 
 
-def wordmark():
+def wordmark(color):
     """'Disphas', state 0: all letters full, no texture, no cursor."""
     paths, x_min, x_max, y_min, y_max = [], math.inf, -math.inf, math.inf, -math.inf
     for name, x in shape("Disphas"):
@@ -82,7 +85,7 @@ def wordmark():
         y_min, y_max = min(y_min, g_y_min), max(y_max, g_y_max)
     # The box hugs the ink: the certificate sets the height, not the margins.
     view_box = f"{x_min} {-y_max} {x_max - x_min} {y_max - y_min}"
-    return svg(view_box, f'<g fill="{INK}">{"".join(paths)}</g>', "Disphas")
+    return svg(view_box, f'<g fill="{color}">{"".join(paths)}</g>', "Disphas")
 
 
 def arc_text(text, size, baseline, centre_angle, outward):
@@ -152,7 +155,8 @@ def stamp():
 
 
 FILES = {
-    "disphas-wordmark-certificate.svg": wordmark(),
+    "disphas-wordmark-certificate.svg": wordmark(INK),
+    "disphas-wordmark-os.svg": wordmark(BONE),
     "disphas-stamp.svg": stamp(),
 }
 

@@ -16,7 +16,7 @@ certificat n'en utilise plus depuis le lot 3 de `docs/offres.md`.
 | `disphas-grand-format-{sombre,clair,encre}.svg` | Écran de démarrage, couverture | Jamais sous 256 px |
 
 - `sombre` : sur fond schiste `#1B1F21` ; `clair` : sur fond os `#ECEAE3` ou papier ; `encre` : impression une couleur (`#111110`).
-- **Certificat** : le wordmark seul, à l'état 0 (« donnée »), en encre, sans hermine (`IDENTITE.md` §6.4),
+- **Certificat et en-tête de l’application** : le wordmark seul, à l'état 0 (« donnée »), en encre, sans hermine (`IDENTITE.md` §6.4),
   n'a pas été livré. Il est **composé** en Klaudia Bold par `../src/generate_certificate.py`, avec le tampon
   du certificat (`../disphas-wordmark-certificate.svg`, `../disphas-stamp.svg`, lot 3, 2026-10-22), à
   faire valider par le propriétaire ; un fichier du graphiste le remplacera s'il en livre un.

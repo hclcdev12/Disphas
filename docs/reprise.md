@@ -71,7 +71,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   - **certificat** : polices (Inter → Klaudia, à tester) et couleurs (papier, encre, bandeaux de `IDENTITE.md`
     §5.2) pas encore passées à la nouvelle charte ;
   - **application et site** : aucun lot ne prévoit encore de passer à la nouvelle charte (couleurs Schiste/Registre,
-    Klaudia, icônes de l'app) ; ils gardent la charte Oblivio ;
+    Klaudia, icônes de l'app) ; ils gardent la charte Oblivio, sauf l'en-tête de l'application (wordmark disphas
+    depuis le lot 3) ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;
