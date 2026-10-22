@@ -21,13 +21,19 @@ function toBase64(bytes: Uint8Array): string {
  * Operator settings, for this user account: the organization and operator
  * signed into every certificate, and the customer's logo printed on the
  * PDFs. An identifier is enough for the operator (GDPR minimisation).
+ *
+ * The logo setting is hidden when the offer does not include it
+ * (docs/offres.md §4.5): a stored logo is kept, only ignored, and the app
+ * backend checks the license again before each PDF.
  */
 export function SettingsDialog({
   settings,
+  logoAllowed,
   onClose,
   onChanged,
 }: {
   settings: Settings;
+  logoAllowed: boolean;
   onClose: () => void;
   onChanged: (settings: Settings) => void;
 }) {
@@ -114,8 +120,14 @@ export function SettingsDialog({
 
       <div className="mt-5 text-sm">
         <p className="font-bold">{t("settings.logo")}</p>
-        <p className="text-xs text-ash">{t("settings.logoHint")}</p>
-        <div className="mt-2 flex items-center gap-2">
+        {!logoAllowed && (
+          <p className="text-xs text-ash">
+            {t("settings.logoNotIncluded")}
+            {settings.logo && <> {t("settings.logoKept")}</>}
+          </p>
+        )}
+        {logoAllowed && <p className="text-xs text-ash">{t("settings.logoHint")}</p>}
+        {logoAllowed && <div className="mt-2 flex items-center gap-2">
           <span className="text-ash">{settings.logo ? t("settings.logoSet", { format: settings.logo.toUpperCase() }) : t("settings.logoNone")}</span>
           <Button className="ml-auto flex items-center gap-2" onClick={() => file.current?.click()}>
             <ImageUp size={14} />
@@ -137,7 +149,7 @@ export function SettingsDialog({
               event.target.value = "";
             }}
           />
-        </div>
+        </div>}
       </div>
 
       {error && <p className="mt-4 text-sm text-sayno">{error}</p>}

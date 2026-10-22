@@ -369,6 +369,8 @@
     "logoChoose": "Choose…",
     "logoRemove": "Remove",
     "logoTooLarge": "Logo: 1 MB at most.",
+    "logoNotIncluded": "Your offer does not include a custom logo (Essai, Passe, Atelier and Parc offers): certificates carry the disphas logo.",
+    "logoKept": "The logo already stored is kept and comes back with an offer that includes it.",
     "saved": "Settings saved.",
     "save": "Save",
     "close": "Close"

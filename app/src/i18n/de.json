@@ -369,6 +369,8 @@
     "logoChoose": "Auswählen…",
     "logoRemove": "Entfernen",
     "logoTooLarge": "Logo: höchstens 1 MB.",
+    "logoNotIncluded": "Ihr Angebot enthält kein eigenes Logo (Angebote Essai, Passe, Atelier und Parc): Die Zertifikate tragen das disphas-Logo.",
+    "logoKept": "Das bereits gespeicherte Logo bleibt erhalten und wird mit einem Angebot, das es enthält, wieder verwendet.",
     "saved": "Einstellungen gespeichert.",
     "save": "Speichern",
     "close": "Schließen"

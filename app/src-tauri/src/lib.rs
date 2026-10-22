@@ -56,7 +56,7 @@ async fn render_certificate(
         serde_json::from_value(value).map_err(|error| failure(error.to_string()))?;
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
     // Typst layout is CPU-bound: keep it off the async runtime.
-    let logo = custom_logo(&app);
+    let logo = custom_logo(&app, helper).await;
     let path =
         tauri::async_runtime::spawn_blocking(move || certificate::save(&result, lang, &logo))
             .await
@@ -141,9 +141,10 @@ async fn render_report(
     state: State<'_, HelperState>,
     app: tauri::AppHandle,
 ) -> Result<String, ErrorBody> {
-    let (signed, journal) = fetch_report(helper_of(&state)?, &id).await?;
+    let helper = helper_of(&state)?;
+    let (signed, journal) = fetch_report(helper, &id).await?;
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
-    let logo = custom_logo(&app);
+    let logo = custom_logo(&app, helper).await;
     let path = tauri::async_runtime::spawn_blocking(move || {
         let trust = trust::Trust::shipped()?;
         certificate::save_signed(&id, &signed, &journal, lang, &trust, &logo)
@@ -191,7 +192,7 @@ async fn render_batch(
         files.push(fetch_report(helper, id).await?);
     }
     let lang = Lang::from_tag(&lang).unwrap_or(Lang::En);
-    let logo = custom_logo(&app);
+    let logo = custom_logo(&app, helper).await;
     let path = tauri::async_runtime::spawn_blocking(move || {
         let trust = trust::Trust::shipped()?;
         certificate::save_batch(&batch_id, &files, lang, &trust, &logo)
@@ -209,9 +210,34 @@ fn config_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
         .map_err(|error| error.to_string())
 }
 
-/// The customer's logo from the settings, if any.
-fn custom_logo(app: &tauri::AppHandle) -> certificate::CustomLogo {
+/// The customer's logo from the settings, only while the license allows it
+/// (`docs/offres.md` §4.5). Any doubt prints the disphas wordmark instead;
+/// a stored logo is kept, only ignored.
+async fn custom_logo(app: &tauri::AppHandle, helper: &Helper) -> certificate::CustomLogo {
+    if !logo_allowed(helper).await {
+        return None;
+    }
     config_dir(app).ok().and_then(|dir| settings::logo(&dir))
+}
+
+/// Whether the helper says the license allows the customer's logo.
+async fn logo_allowed(helper: &Helper) -> bool {
+    let Ok(response) = helper.request(Command::LicenseStatus).await else {
+        return false;
+    };
+    response
+        .outcome
+        .ok()
+        .and_then(|value| serde_json::from_value(value).ok())
+        .is_some_and(|status| allows_logo(&status))
+}
+
+/// The helper only sends entitlements while the license is valid.
+fn allows_logo(status: &disphas_protocol::response::LicenseStatusResult) -> bool {
+    status
+        .entitlements
+        .as_ref()
+        .is_some_and(|entitlements| entitlements.customer_logo)
 }
 
 /// The operator settings.
@@ -325,5 +351,36 @@ pub fn run() {
     if let Err(error) = result {
         eprintln!("disphas-app: {error}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use disphas_protocol::response::{Entitlements, LicenseState, LicenseStatusResult};
+
+    use super::allows_logo;
+
+    fn status(entitlements: Option<Entitlements>) -> LicenseStatusResult {
+        LicenseStatusResult {
+            state: LicenseState::Valid,
+            offer: Some("Atelier8".to_owned()),
+            license_id: Some("LIC-0001".to_owned()),
+            valid_until: None,
+            entitlements,
+        }
+    }
+
+    #[test]
+    fn the_logo_needs_the_right_of_the_offer() {
+        let with = |customer_logo| {
+            Some(Entitlements {
+                max_parallel: Some(2),
+                customer_logo,
+            })
+        };
+        assert!(allows_logo(&status(with(true))));
+        assert!(!allows_logo(&status(with(false))));
+        // No entitlements: no valid license, the disphas wordmark is printed.
+        assert!(!allows_logo(&status(None)));
     }
 }

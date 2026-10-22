@@ -61,6 +61,12 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
   série et applique toutes ses protections ; il ne peut pas effacer un disque protégé ni signer un faux
   résultat, mais il peut effacer un disque **non protégé** branché. Réduction : `kernel.yama.ptrace_scope ≥ 1`
   (valeur constatée sur Pop!_OS 24.04 ; à vérifier sur chaque distribution cible), session dédiée à l'opérateur.
+- **Logo du client contrôlé par l'application seulement** ([offres](offres.md) §4.5, Q3) : le PDF est rendu par
+  l'application, qui n'est pas une frontière de confiance. Quelqu'un qui la modifie peut imprimer son logo
+  sans l'offre qui l'inclut. Assumé : le logo est cosmétique, il ne figure pas dans l'attestation signée et ne
+  change rien à la preuve.
+- **Limite de parallélisme** ([offres](offres.md) §4.8) : limite commerciale, pas une barrière de sécurité ;
+  un administrateur qui modifie le helper ou les fichiers de `/var/lib/disphas` la contourne.
 
 ## 5. Revue de sécurité du 2026-10-04
 

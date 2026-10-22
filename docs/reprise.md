@@ -50,7 +50,9 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   d'offre « à vie », ISO de démarrage avancée au lancement. Corrections des autres documents (§6) faites le
   2026-10-20. **Lot 1 fait le 2026-10-20** (table des droits, `disphas-core::entitlements`). **Lot 2 codé le
   2026-10-20** (limite de parallélisme, protocole v2, [offres](offres.md) §4.8) ; reste son essai sur le banc
-  avec une licence `Pro`. Puis les lots 3 et 6 dans l'ordre du §8 ; chaque lot attend la validation du propriétaire.
+  avec une licence `Pro`. **Lot 3 codé le 2026-10-22** (logo client réservé par offre, wordmark et tampon disphas
+  sur le certificat, [offres](offres.md) §4.5). Puis le lot 6 dans l'ordre du §8 ; chaque lot attend la validation
+  du propriétaire.
 - ~~Point ouvert (lot 2) : limite par session du helper~~ → **lot 2 bis codé le 2026-10-20** : limite pour tout
   le poste (comptage des autres helpers et application à instance unique, [offres](offres.md) §4.8).
 - Paquet de test installé sur le banc le 2026-10-20 : `0.1.0+local.dbe49cf` (lot 2), construit en local dans
@@ -64,7 +66,10 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   utilisés par le code. L'ancienne copie de travail `graphism_Disphas/` à la racine du dépôt a été supprimée le
   2026-10-20 (jamais suivie par git) : seul le dossier de `~/Documents` fait foi.
 - Points ouverts de l'identité, à soumettre au propriétaire :
-  - **wordmark du certificat** (état 0, encre, sans hermine) non livré ; nécessaire au lot 3 ;
+  - **wordmark du certificat** (état 0, encre, sans hermine) non livré : composé en Klaudia Bold au lot 3
+    (`assets/logo/src/generate_certificate.py`), avec le tampon refait en encre ; à valider ;
+  - **certificat** : polices (Inter → Klaudia, à tester) et couleurs (papier, encre, bandeaux de `IDENTITE.md`
+    §5.2) pas encore passées à la nouvelle charte ;
   - **application et site** : aucun lot ne prévoit encore de passer à la nouvelle charte (couleurs Schiste/Registre,
     Klaudia, icônes de l'app) ; ils gardent la charte Oblivio ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans

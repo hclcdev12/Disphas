@@ -57,12 +57,12 @@ du travail ; les **prix** restent à confirmer par les entretiens clients et viv
 | Licence de 30 jours | ✅ `disphas-issuer issue … --days 30` | `tools/disphas-issuer/src/main.rs` |
 | Offre écrite dans la licence (`off`) et imprimée sur le certificat | ✅ Texte libre, **purement informatif** | `public/disphas-attestation/src/model.rs:378`, `crates/disphas-report/src/lib.rs:415` |
 | Effacement en parallèle | ✅ Limité par l'offre depuis le lot 2 (2026-10-20) : contrôle 10 de `Sanitize`, après « une tâche par disque » (contrôle 9) | `crates/disphas-helper/src/session.rs` |
-| Logo du client sur le certificat | ✅ **Ouvert à tous**, réglé côté application | `app/src-tauri/src/settings.rs`, `crates/disphas-report/src/lib.rs:96` |
-| Droits par offre | ✅ Table versionnée (lot 1, 2026-10-20) ; ❌ **pas encore appliquée** par le helper ni l'application (lots 2 et 3) | `crates/disphas-core/src/entitlements.rs` |
+| Logo du client sur le certificat | ✅ Réservé aux offres qui l'incluent depuis le lot 3 (2026-10-22), contrôlé par l'application | `app/src-tauri/src/lib.rs` (`custom_logo`), `app/src/components/SettingsDialog.tsx` |
+| Droits par offre | ✅ Table versionnée (lot 1, 2026-10-20), appliquée par le helper (lot 2) et par l'application pour le logo (lot 3) | `crates/disphas-core/src/entitlements.rs` |
 | Activation et renouvellement en ligne | ❌ Spécifiés, non codés (étape 6) | [licences en ligne](licences_en_ligne.md) §10 |
 | Stripe, sièges, clés de licence | ❌ Spécifiés, non codés (étape 4 du site) | [site](site.md) §9 |
 | Domaine du serveur de licences | ⚠️ `licence.oblivio.eu`, ancien nom | [licences en ligne](licences_en_ligne.md) §8 |
-| Logo Disphas du certificat | ⚠️ Encore l'ancien wordmark Oblivio | `crates/disphas-report/src/lib.rs:36-38` (`oblivio-wordmark-light.svg`, `oblivio-stamp.svg`) |
+| Logo Disphas du certificat | ✅ Wordmark disphas à l'état 0 et tampon en encre depuis le lot 3 (2026-10-22), **à valider par le propriétaire** | `assets/logo/src/generate_certificate.py`, `crates/disphas-report/src/lib.rs` |
 | ISO de démarrage | ❌ Absente | [cadre](cadre_projet.md) §1 |
 
 ## 4. Spécification : droits par offre
@@ -131,6 +131,20 @@ fois, pas de logo) ; ce cas ne se produit pas avec la table livrée (vérifié p
   - Écarté : signer l'empreinte du logo dans l'attestation et la contrôler à la vérification (coût élevé,
     format public modifié, pour un enjeu cosmétique).
 - Un logo déjà enregistré n'est **pas supprimé** quand le droit disparaît : il est simplement ignoré.
+- **Fait le 2026-10-22 (lot 3)** :
+  - Application, côté Rust : avant chaque PDF (certificat, historique, lot), elle demande `LicenseStatus` au
+    helper et n'utilise le logo enregistré que si `entitlements.customer_logo` est vrai. Au moindre doute
+    (helper absent, réponse illisible, licence non valide), le PDF porte le wordmark disphas.
+  - Interface : sans le droit, le réglage du logo est masqué et remplacé par une phrase qui cite les offres
+    qui l'incluent, et précise qu'un logo déjà enregistré est conservé.
+  - Wordmark du certificat : « Disphas » en Klaudia Bold, état 0 (toutes les lettres pleines), encre `#111110`,
+    sans hermine (`IDENTITE.md` §3.2 et §6.4). Le graphiste ne l'ayant pas livré, il est **composé** à partir
+    de la police par `assets/logo/src/generate_certificate.py` (espacement et crénage d'origine de la police),
+    **à valider par le propriétaire**.
+  - Tampon à côté du QR code : même dessin qu'avant, en encre (pas de couleur d'accent sur le certificat,
+    `IDENTITE.md` §5.2), « DISPHAS » au lieu d'« OBLIVIO » et le petit logo (le D de Klaudia Bold) au centre.
+  - Hors lot 3, inchangés : polices du certificat (Inter, passage à Klaudia à tester, `IDENTITE.md` §4.5) et
+    couleurs du certificat (papier, encre et bandeaux de `IDENTITE.md` §5.2 et §5.3).
 
 ### 4.6 Protocole UI ↔ helper
 
@@ -217,8 +231,8 @@ Chaque lot : fmt, clippy et tests verts, docs mises à jour dans le même commit
 |---|---|---|---|
 | 1 | ~~**Droits par offre** (§4.1 à §4.3) : table, codes d'offre figés, tests unitaires~~ → **fait le 2026-10-20** (§4.3) | Table testée | — |
 | 2 | **Limite de parallélisme** (§4.4) et protocole (§4.6) — **code fait le 2026-10-20** (§4.8) ; **reste l'essai sur le banc** | Tests de session verts ; essai sur le banc avec 3 disques sacrifiables sous licence `Pro` : le 3e est refusé, puis accepté après la fin d'un effacement | 1 |
-| 3 | **Logo réservé** (§4.5) et **wordmark disphas** sur le certificat (remplacer les SVG Oblivio par le wordmark disphas, état 0, encre, d'après le dossier de marque
-`~/Documents/graphism_Disphas/` ; ce fichier n'a pas été livré, voir `assets/logo/disphas/README.md`) | PDF vérifiés dans les deux cas ; limite assumée ajoutée à [sécurité](securite.md) §4 | 1 |
+| 3 | ~~**Logo réservé** (§4.5) et **wordmark disphas** sur le certificat (remplacer les SVG Oblivio par le wordmark disphas, état 0, encre, d'après le dossier de marque
+`~/Documents/graphism_Disphas/` ; ce fichier n'a pas été livré, voir `assets/logo/disphas/README.md`)~~ → **fait le 2026-10-22** (§4.5), wordmark composé à valider | PDF vérifiés dans les deux cas ; limite assumée ajoutée à [sécurité](securite.md) §4 | 1 |
 | 4 | **NVMe sur vrai disque** (carte PCIe → M.2 passive ; disque déclaré sacrifiable par le propriétaire) : Sanitize, Format, `nsa`, reprise après coupure | Tableau des résultats ajouté à [banc de test](banc_de_test.md) | Matériel acheté par le propriétaire |
 | 5 | **ISO de démarrage** (Debian, USB et réseau) : document d'architecture d'abord, soumis au propriétaire | Document validé, puis ISO testée sur le banc | Décision du propriétaire sur la licence liée au support ou à l'opérateur ([cadre](cadre_projet.md) §6) |
 | 6 | **Activation et renouvellement en ligne** (étape 6), **site : Stripe et sièges** (étape 4), `Renew` étendu à l'offre (§7), domaine renommé, offres `Essai`/`Passe` | Achat de bout en bout sur une instance de test Stripe, changement d'offre compris | 1 |

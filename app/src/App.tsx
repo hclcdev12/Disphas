@@ -348,7 +348,7 @@ export default function App() {
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}
       {settingsOpen && (
-        <SettingsDialog settings={settings} onClose={() => setSettingsOpen(false)} onChanged={setSettings} />
+        <SettingsDialog settings={settings} logoAllowed={license?.entitlements?.customer_logo ?? false} onClose={() => setSettingsOpen(false)} onChanged={setSettings} />
       )}
       {unlocking && (
         <UnlockDialog

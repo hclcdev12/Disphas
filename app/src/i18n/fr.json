@@ -369,6 +369,8 @@
     "logoChoose": "Choisir…",
     "logoRemove": "Retirer",
     "logoTooLarge": "Logo : 1 Mo au plus.",
+    "logoNotIncluded": "Votre offre n’inclut pas le logo personnalisé (offres Essai, Passe, Atelier et Parc) : les certificats portent le logo disphas.",
+    "logoKept": "Le logo déjà enregistré est conservé et reviendra avec une offre qui l’inclut.",
     "saved": "Réglages enregistrés.",
     "save": "Enregistrer",
     "close": "Fermer"
