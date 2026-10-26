@@ -24,8 +24,8 @@ device: DeviceRef,
 method: Method | null, 
 /**
  * Serial number read on the drive in strict mode (scanned in full, or
- * its last four characters typed); `None` when the app relies on its
- * cancellation delay instead (`docs/cadre_projet.md` §5.4, protocol 3).
+ * its last four characters typed); `None` when the operator confirmed
+ * the app's warning with one click (`docs/cadre_projet.md` §5.4, protocol 3).
  */
 confirmation: string | null, 
 /**

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, FileText, History, LoaderCircle, TriangleAlert, XCircle } from "lucide-react";
 import type { JobPhase } from "../bindings/JobPhase";
 import { api } from "../lib/api";
-import type { PdfState } from "../lib/launch";
+import type { PdfState } from "../lib/pdf";
 import type { JobView } from "../lib/jobs";
 import { Badge, Button, Mono } from "./ui";
 

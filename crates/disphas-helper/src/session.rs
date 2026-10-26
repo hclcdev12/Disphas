@@ -428,7 +428,7 @@ impl<B: DeviceBackend> Session<B> {
         // 4. A drive without a serial number is never erased (an empty
         // confirmation would match). In strict mode the app sends the serial
         // number read on the drive: the whole of it, or its last four
-        // characters; without it, the app's cancellation delay stands in.
+        // characters; without it, the operator confirmed the app's warning.
         let serial = &issued.identity.serial;
         if serial.trim().is_empty()
             || args.confirmation.as_deref().is_some_and(|confirmation| {

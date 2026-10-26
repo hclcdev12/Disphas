@@ -26,7 +26,7 @@ import type { HelperError, Outcome } from "../lib/api";
 import { newBatchId } from "../lib/batch";
 import { capacity } from "../lib/format";
 import type { JobView } from "../lib/jobs";
-import type { PdfState } from "../lib/launch";
+import type { PdfState } from "../lib/pdf";
 import { Station } from "./Header";
 import { JobProgress } from "./JobsScreen";
 import { Badge, Button, Mono } from "./ui";
@@ -125,8 +125,6 @@ export function DrivesScreen(props: {
   onRefresh: () => void;
   onReinspect: (serial: string) => void;
   onErase: (request: EraseRequest) => void;
-  /** Milliseconds left before each waiting erasure starts, by serial number. */
-  pending: Record<string, number>;
   /** Certificate of a finished job, rendered automatically. */
   pdfOf: (jobId: string) => PdfState | undefined;
   onUnlock: (inspection: InspectResult) => void;
@@ -196,9 +194,10 @@ export function DrivesScreen(props: {
     if (!inspection?.ok) return inspection ? props.onReinspect(serial) : open(serial, true);
     const value = inspection.value;
     const verdict = value.verdict;
+    // The launched drive is shown: its progress, then its certificate.
+    if (verdict.state === "READY" || (verdict.state === "SAY_NO" && verdict.forcible)) setPicked(serial);
     switch (verdict.state) {
       case "READY": {
-        if (props.pending[serial] !== undefined) return;
         const choice = chosen(value);
         if (choice)
           props.onErase({ inspection: value, choice, forced: false, zeroPass: zeroPass[value.verdict_id] ?? false });
@@ -241,8 +240,6 @@ export function DrivesScreen(props: {
   /** Second line of a row: the method, or the reason with its codes. */
   const rowLine = (drive: DeviceSummary): string => {
     const serial = serialOf(drive);
-    const waiting = props.pending[serial];
-    if (waiting !== undefined) return t("drives.row.startsIn", { count: Math.max(0, Math.ceil(waiting / 1000)) });
     const running = props.runningOn(serial);
     if (running) {
       const percent = running.job.progress?.percent;
@@ -383,7 +380,7 @@ export function DrivesScreen(props: {
                     type="button"
                     aria-label={actionText}
                     title={actionText}
-                    disabled={group === "ready" && (!props.connected || props.pending[serial] !== undefined)}
+                    disabled={group === "ready" && !props.connected}
                     onClick={() => act(drive)}
                     className={`inline-flex size-11 shrink-0 items-center justify-center rounded-md disabled:opacity-40 ${actionTone[group]}`}
                   >
@@ -448,7 +445,6 @@ export function DrivesScreen(props: {
             onUnlock={props.onUnlock}
             onReinspect={props.onReinspect}
             onOpenJob={props.onOpenJob}
-            waiting={props.pending[serialOf(selected)]}
             pdfOf={props.pdfOf}
             onOpenPdf={props.onOpenPdf}
             zeroPass={(id) => zeroPass[id] ?? false}
@@ -476,7 +472,6 @@ function Detail({
   onUnlock,
   onReinspect,
   onOpenJob,
-  waiting,
   pdfOf,
   onOpenPdf,
   zeroPass,
@@ -497,7 +492,6 @@ function Detail({
   onUnlock: (inspection: InspectResult) => void;
   onReinspect: (serial: string) => void;
   onOpenJob: (id: string) => void;
-  waiting: number | undefined;
   pdfOf: (jobId: string) => PdfState | undefined;
   onOpenPdf: (path: string) => void;
   zeroPass: (verdictId: string) => boolean;
@@ -580,7 +574,6 @@ function Detail({
           connected={connected}
           index={choiceIndex(inspection.value.verdict_id)}
           onChoose={(index) => onChoose(inspection.value.verdict_id, index)}
-          waiting={waiting}
           zeroPass={zeroPass(inspection.value.verdict_id)}
           onZeroPass={(value) => onZeroPass(inspection.value.verdict_id, value)}
           name={name}
@@ -604,7 +597,6 @@ function Verdict({
   onErase,
   onUnlock,
   onReinspect,
-  waiting,
   zeroPass,
   onZeroPass,
 }: {
@@ -612,7 +604,6 @@ function Verdict({
   connected: boolean;
   index: number;
   onChoose: (index: number) => void;
-  waiting: number | undefined;
   zeroPass: boolean;
   onZeroPass: (value: boolean) => void;
   name: (code: string) => string;
@@ -688,14 +679,12 @@ function Verdict({
           <Actions>
             <button
               type="button"
-              disabled={!connected || waiting !== undefined}
+              disabled={!connected}
               onClick={() => onErase({ inspection, choice, forced: false, zeroPass })}
               className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
             >
               <Play size={16} fill="currentColor" aria-hidden="true" />
-              {waiting === undefined
-                ? t("drives.erase")
-                : t("drives.row.startsIn", { count: Math.max(0, Math.ceil(waiting / 1000)) })}
+              {t("drives.erase")}
             </button>
             <span className="text-[15px] text-ash">
               {name(choice.method)} ·{" "}

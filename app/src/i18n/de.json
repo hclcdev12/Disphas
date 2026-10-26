@@ -60,9 +60,7 @@
       "whyProtected": "Warum {{model}} geschützt ist",
       "viewJob": "Löschung von {{model}} anzeigen",
       "inspecting": "{{model}} wird geprüft",
-      "running": "Löschung läuft",
-      "startsIn_one": "Startet in {{count}} s",
-      "startsIn_other": "Startet in {{count}} s"
+      "running": "Löschung läuft"
     },
     "back": "Laufwerke",
     "backLabel": "Zurück zur Laufwerksliste",
@@ -153,7 +151,9 @@
     "notSet": "nicht angegeben",
     "scan": "Seriennummer des Laufwerks",
     "scanPlaceholder": "Etikett scannen oder die letzten 4 Zeichen eingeben",
-    "scanMismatch": "Stimmt nicht mit der Seriennummer dieses Laufwerks überein."
+    "scanMismatch": "Stimmt nicht mit der Seriennummer dieses Laufwerks überein.",
+    "titleDrive": "{{model}} löschen?",
+    "irreversible": "Alle Daten auf diesem Laufwerk werden vernichtet. Dieser Vorgang ist unumkehrbar."
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
@@ -425,7 +425,7 @@
     "close": "Schließen",
     "language": "Sprache",
     "strict": "Strenger Modus: Seriennummer vor jeder Löschung",
-    "strictHint": "Standardmäßig startet eine Löschung nach 10 Sekunden, in denen sie abgebrochen werden kann (Esc). Im strengen Modus wartet sie auf die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen."
+    "strictHint": "Standardmäßig verlangt jede Löschung eine Bestätigung mit einem Klick. Im strengen Modus zusätzlich die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen."
   },
   "station": {
     "offline": "offline",
@@ -444,11 +444,5 @@
       "Invalid": "Lizenz ungültig"
     },
     "rules": "Regeln {{version}}"
-  },
-  "launch": {
-    "starting_one": "Löschung von {{model}} in {{count}} s",
-    "starting_other": "Löschung von {{model}} in {{count}} s",
-    "cancel": "Abbrechen",
-    "refused": "{{model}}: Löschung vom Helfer abgelehnt"
   }
 }

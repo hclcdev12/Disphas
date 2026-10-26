@@ -60,9 +60,7 @@
       "whyProtected": "See why {{model}} is protected",
       "viewJob": "View the erasure of {{model}}",
       "inspecting": "Inspecting {{model}}",
-      "running": "Erasure in progress",
-      "startsIn_one": "Starts in {{count}} s",
-      "startsIn_other": "Starts in {{count}} s"
+      "running": "Erasure in progress"
     },
     "back": "Drives",
     "backLabel": "Back to the drive list",
@@ -153,7 +151,9 @@
     "notSet": "not set",
     "scan": "Serial number of the drive",
     "scanPlaceholder": "Scan the label, or type the last 4 characters",
-    "scanMismatch": "Does not match the serial number of this drive."
+    "scanMismatch": "Does not match the serial number of this drive.",
+    "titleDrive": "Erase {{model}}?",
+    "irreversible": "All data on this drive will be destroyed. This cannot be undone."
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"
@@ -425,7 +425,7 @@
     "close": "Close",
     "language": "Language",
     "strict": "Strict mode: serial number before each erasure",
-    "strictHint": "By default, an erasure starts after 10 seconds during which it can be cancelled (Escape). In strict mode, it waits for the serial number read on the drive: barcode scanner, or the last 4 characters typed."
+    "strictHint": "By default, each erasure asks for a one-click confirmation. In strict mode, it also asks for the serial number read on the drive: barcode scanner, or the last 4 characters typed."
   },
   "station": {
     "offline": "offline",
@@ -444,11 +444,5 @@
       "Invalid": "license invalid"
     },
     "rules": "rules {{version}}"
-  },
-  "launch": {
-    "starting_one": "Erasing {{model}} in {{count}} s",
-    "starting_other": "Erasing {{model}} in {{count}} s",
-    "cancel": "Cancel",
-    "refused": "{{model}}: erasure refused by the helper"
   }
 }

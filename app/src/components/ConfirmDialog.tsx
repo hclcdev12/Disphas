@@ -13,12 +13,11 @@ const REUSE: Disposition = { kind: "Reuse" };
 const MIN_JUSTIFICATION = 20;
 
 /**
- * The erasures that still need a dialog (docs/cadre_projet.md §5.4): forcing
- * a refused drive (a written justification, signed into a NON CONFORME
- * certificate), and every erasure in strict mode, where the serial number is
- * read on the drive, scanned in full or its last four characters typed. An
- * ordinary erasure starts after a cancellation delay instead. The helper
- * checks everything again.
+ * Warning before every erasure (docs/cadre_projet.md §5.4): the drive, the
+ * method and its warnings, confirmed with one click. Strict mode adds the
+ * serial number read on the drive (scanned in full, or its last four
+ * characters typed); forcing a refused drive adds a written justification,
+ * signed into a NON CONFORME certificate. The helper checks everything again.
  */
 export function ConfirmDialog({
   request,
@@ -81,9 +80,15 @@ export function ConfirmDialog({
       onCancel={onCancel}
       className="m-auto w-[36rem] max-w-[92vw] rounded-lg border border-ctrl bg-card p-6 text-soft backdrop:bg-black/70"
     >
-      <h2 className="text-xl font-bold">{forced ? t("confirm.forceTitle") : t("confirm.title")}</h2>
+      <h2 className="text-xl font-bold">
+        {forced ? t("confirm.forceTitle") : t("confirm.titleDrive", { model: inspection.device.identity.model })}
+      </h2>
       <p className="mt-1 text-ash">
         {inspection.device.identity.model} · s/n <span className="font-mono">{serial}</span>
+      </p>
+      <p className="mt-4 flex items-start gap-2.5 rounded-md border border-sayno px-3 py-2.5">
+        <TriangleAlert size={18} className="mt-0.5 shrink-0 text-sayno" aria-hidden="true" />
+        {t("confirm.irreversible")}
       </p>
 
       <p className="mt-4">
@@ -155,7 +160,7 @@ export function ConfirmDialog({
 
       <div className="mt-6 flex justify-end gap-2">
         <Button onClick={onCancel}>{t("actions.cancel")}</Button>
-        <Button variant={forced ? "danger" : "primary"} disabled={!ready} onClick={() => void submit()}>
+        <Button variant="danger" disabled={!ready} onClick={() => void submit()}>
           {forced ? t("confirm.submitForce") : t("confirm.submit")}
         </Button>
       </div>

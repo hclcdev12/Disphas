@@ -60,9 +60,7 @@
       "whyProtected": "Voir pourquoi {{model}} est protégé",
       "viewJob": "Voir l’effacement de {{model}}",
       "inspecting": "Inspection de {{model}} en cours",
-      "running": "Effacement en cours",
-      "startsIn_one": "Démarre dans {{count}} s",
-      "startsIn_other": "Démarre dans {{count}} s"
+      "running": "Effacement en cours"
     },
     "back": "Disques",
     "backLabel": "Retour à la liste des disques",
@@ -153,7 +151,9 @@
     "notSet": "non renseigné",
     "scan": "N° de série du disque",
     "scanPlaceholder": "Scannez l’étiquette, ou tapez les 4 derniers caractères",
-    "scanMismatch": "Ne correspond pas au n° de série de ce disque."
+    "scanMismatch": "Ne correspond pas au n° de série de ce disque.",
+    "titleDrive": "Effacer {{model}} ?",
+    "irreversible": "Toutes les données de ce disque seront détruites. Cette opération est irréversible."
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
@@ -425,7 +425,7 @@
     "close": "Fermer",
     "language": "Langue",
     "strict": "Mode strict : n° de série avant chaque effacement",
-    "strictHint": "Par défaut, un effacement démarre après 10 secondes pendant lesquelles il peut être annulé (Échap). En mode strict, il attend le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés."
+    "strictHint": "Par défaut, chaque effacement demande une confirmation d’un clic. En mode strict, il demande aussi le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés."
   },
   "station": {
     "offline": "hors ligne",
@@ -444,11 +444,5 @@
       "Invalid": "licence invalide"
     },
     "rules": "règles {{version}}"
-  },
-  "launch": {
-    "starting_one": "Effacement de {{model}} dans {{count}} s",
-    "starting_other": "Effacement de {{model}} dans {{count}} s",
-    "cancel": "Annuler",
-    "refused": "{{model}} : effacement refusé par l’assistant"
   }
 }

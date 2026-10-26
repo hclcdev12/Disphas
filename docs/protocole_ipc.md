@@ -125,8 +125,8 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 2. Identité relue sur le disque = identité du verdict → sinon `DEVICE_CHANGED`.
 3. Protections réévaluées (montages, swap, volumes…) → sinon `PROTECTED`.
 4. Un disque sans S/N (vide ou blanc) n'est jamais effacé, et une `confirmation` présente (mode strict) vaut le
-   S/N entier ou ses 4 derniers caractères → sinon `CONFIRMATION_MISMATCH`. `confirmation` absente : l'app a
-   appliqué son délai d'annulation ([cadre](cadre_projet.md) §5.4, protocole 3, 2026-10-26).
+   S/N entier ou ses 4 derniers caractères → sinon `CONFIRMATION_MISMATCH`. `confirmation` absente : l'opérateur a
+   validé la mise en garde de l'app d'un clic ([cadre](cadre_projet.md) §5.4, protocole 3, 2026-10-26).
 5. `acknowledged` couvre **tous** les avertissements du verdict → sinon `ACK_MISSING`.
 6. `method` ∈ méthodes autorisées par le verdict → sinon `VERDICT_MISMATCH`.
 7. `force` présent seulement si verdict SAY NO, justification ≥ 20 caractères → sinon `FORCE_NOT_ALLOWED`.

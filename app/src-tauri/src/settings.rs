@@ -29,8 +29,8 @@ pub struct Settings {
     pub operator: Option<String>,
     /// Format of the stored logo: `png` or `svg`.
     pub logo: Option<String>,
-    /// Strict mode: each erasure waits for the serial number read on the
-    /// drive (scanned or typed) instead of the cancellation delay
+    /// Strict mode: the confirmation of each erasure also asks for the
+    /// serial number read on the drive, scanned or typed
     /// (`docs/cadre_projet.md` §5.4).
     #[serde(default)]
     pub strict_confirmation: bool,

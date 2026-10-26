@@ -21,8 +21,7 @@ import { VerifyScreen } from "./components/VerifyScreen";
 import { api, type HelperError, type Outcome, type Settings } from "./lib/api";
 import type { Language } from "./i18n";
 import { requiredAcknowledgements } from "./lib/acknowledgements";
-import { CANCEL_DELAY_MS, type LaunchError, type Pending, type PdfState } from "./lib/launch";
-import { LaunchBar } from "./components/LaunchBar";
+import type { PdfState } from "./lib/pdf";
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -35,9 +34,6 @@ export default function App() {
   }, [inspections]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [request, setRequest] = useState<EraseRequest | null>(null);
-  // Erasures waiting for their cancellation delay, and failed launches to show.
-  const [pending, setPending] = useState<Pending[]>([]);
-  const [launchErrors, setLaunchErrors] = useState<LaunchError[]>([]);
   // Certificate of each finished job, rendered as soon as it ends (or why not).
   const [pdfs, setPdfs] = useState<Record<string, PdfState>>({});
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
@@ -256,73 +252,11 @@ export default function App() {
   };
 
   /**
-   * An erasure asked for from the Disques tab. By default it starts after a
-   * cancellation delay, nothing to type; forcing a refused drive, or the
-   * strict mode, goes through the confirmation dialog (cadre_projet.md §5.4).
+   * An erasure asked for from the Disques tab always goes through the
+   * confirmation dialog: one click for an ordinary erasure, the serial
+   * number in strict mode, a justification to force (cadre_projet.md §5.4).
    */
-  const launch = (erase: EraseRequest) => {
-    if (erase.forced || settings.strict_confirmation) {
-      setRequest(erase);
-      return;
-    }
-    const serial = erase.inspection.device.identity.serial;
-    setLaunchErrors((current) => current.filter((error) => error.serial !== serial));
-    // Called from a click, never while rendering.
-    const at = Date.now(); // oxlint-disable-line react/purity
-    setNow(at);
-    setPending((current) => [
-      ...current.filter((other) => other.serial !== serial),
-      { serial, erase, deadline: at + CANCEL_DELAY_MS },
-    ]);
-  };
-  const pendingRef = useRef(pending);
-  useEffect(() => {
-    pendingRef.current = pending;
-  }, [pending]);
-  const cancelPending = (serial: string) => {
-    // The ref first: a tick right now must not send a cancelled erasure.
-    pendingRef.current = pendingRef.current.filter((other) => other.serial !== serial);
-    setPending((current) => current.filter((other) => other.serial !== serial));
-  };
-
-  // Every quarter second: the countdown is redrawn, and erasures whose delay is over are sent.
-  const [now, setNow] = useState(() => Date.now());
-  const startRef = useRef(start);
-  useEffect(() => {
-    startRef.current = start;
-  });
-  useEffect(() => {
-    if (pending.length === 0) return;
-    const timer = window.setInterval(() => {
-      const tick = Date.now();
-      setNow(tick);
-      const due = pendingRef.current.filter((entry) => entry.deadline <= tick);
-      if (due.length === 0) return;
-      pendingRef.current = pendingRef.current.filter((entry) => entry.deadline > tick);
-      setPending((current) => current.filter((entry) => entry.deadline > tick));
-      for (const entry of due) {
-        void startRef.current(entry.erase, { confirmation: null, justification: null }).then((error) => {
-          if (error) {
-            const { model, serial } = entry.erase.inspection.device.identity;
-            setLaunchErrors((current) => [...current, { serial, model, error }]);
-          }
-        });
-      }
-    }, 250);
-    return () => window.clearInterval(timer);
-  }, [pending.length]);
-
-  // Escape cancels the most recent launch still waiting.
-  useEffect(() => {
-    if (pending.length === 0) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
-      const last = pending[pending.length - 1];
-      if (last) cancelPending(last.serial);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pending]);
+  const launch = (erase: EraseRequest) => setRequest(erase);
 
   /** The erasure in progress on a drive, if any. */
   const runningOn = (serial: string) => {
@@ -387,7 +321,6 @@ export default function App() {
           onRefresh={() => void refresh()}
           onReinspect={(serial) => void reinspect(serial)}
           onErase={launch}
-          pending={Object.fromEntries(pending.map((entry) => [entry.serial, entry.deadline - now]))}
           pdfOf={(id) => pdfs[id]}
           onUnlock={setUnlocking}
           onOpenJob={(id) => {
@@ -418,14 +351,6 @@ export default function App() {
           )}
         </main>
       )}
-      <LaunchBar
-        pending={pending}
-        now={now}
-        errors={launchErrors}
-        labels={labels}
-        onCancel={cancelPending}
-        onDismiss={(serial) => setLaunchErrors((current) => current.filter((error) => error.serial !== serial))}
-      />
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}

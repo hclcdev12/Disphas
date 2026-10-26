@@ -79,8 +79,9 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     `DESIGN.md` (dossier de marque) : vert pour « prêt / recommandée », ambre pour « à débloquer ». Restent :
     autres onglets, thème clair Registre, icônes de l'application, site ;
   - **revue UX du 2026-10-26** (validée par le propriétaire) : étape 1 codée le 2026-10-26, protocole 3 —
-    effacement lancé sans saisie après un délai d'annulation de 10 s (mode strict en option : n° de série scanné
-    ou 4 derniers caractères), avertissements validés d'un clic, plus de saut vers l'onglet Effacements,
+    effacement confirmé d'un clic dans une fenêtre de mise en garde, sans saisie (mode strict en option : n° de
+    série scanné ou 4 derniers caractères ; un délai d'annulation de 10 s a été essayé puis écarté), avertissements
+    affichés dans la fenêtre, plus de saut vers l'onglet Effacements,
     certificat PDF enregistré automatiquement à la fin de chaque effacement, liste des disques suivie toute seule
     (l'app lit `/sys/block` et ne demande un inventaire au helper que quand un disque apparaît ou disparaît).
     Étape 2 : sélection multiple et « Effacer N disques », notification de fin. Étape 3 : Historique, Vérifier,
