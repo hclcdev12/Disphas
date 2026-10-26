@@ -125,6 +125,8 @@ export function DrivesScreen(props: {
   onRefresh: () => void;
   onReinspect: (serial: string) => void;
   onErase: (request: EraseRequest) => void;
+  /** Several ready drives at once, each with its chosen method. */
+  onEraseMany: (requests: EraseRequest[]) => void;
   /** Certificate of a finished job, rendered automatically. */
   pdfOf: (jobId: string) => PdfState | undefined;
   onUnlock: (inspection: InspectResult) => void;
@@ -138,6 +140,8 @@ export function DrivesScreen(props: {
   // Method chosen per verdict: a new inspection starts again from the recommended one.
   const [methods, setMethods] = useState<Record<string, number>>({});
   const [zeroPass, setZeroPass] = useState<Record<string, boolean>>({});
+  // Drives ticked for "Erase N drives"; only ready drives not being erased count.
+  const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"list" | "detail">("list");
   const [editingBatch, setEditingBatch] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -151,6 +155,33 @@ export function DrivesScreen(props: {
   })).filter((entry) => entry.drives.length > 0);
   const ordered = grouped.flatMap((entry) => entry.drives);
   const selected = ordered.find((drive) => serialOf(drive) === picked) ?? ordered[0] ?? null;
+  const tickable = (drive: DeviceSummary) =>
+    groupOf(inspections[serialOf(drive)]) === "ready" && props.runningOn(serialOf(drive)) === null;
+  const tickableSerials = drives.filter(tickable).map(serialOf);
+  const tickedSerials = tickableSerials.filter((serial) => ticked.has(serial));
+  const toggle = (serial: string) =>
+    setTicked((current) => {
+      const next = new Set(current);
+      if (next.has(serial)) next.delete(serial);
+      else next.add(serial);
+      return next;
+    });
+  const eraseTicked = () => {
+    const requests: EraseRequest[] = [];
+    for (const serial of tickedSerials) {
+      const inspection = inspections[serial];
+      if (!inspection?.ok) continue;
+      const choice = chosen(inspection.value);
+      if (choice)
+        requests.push({
+          inspection: inspection.value,
+          choice,
+          forced: false,
+          zeroPass: zeroPass[inspection.value.verdict_id] ?? false,
+        });
+    }
+    props.onEraseMany(requests);
+  };
 
   useEffect(() => {
     if (focusTick === 0) return;
@@ -314,6 +345,23 @@ export function DrivesScreen(props: {
             </IconButton>
           </div>
         </div>
+        {tickedSerials.length > 0 && (
+          <div className="flex items-center gap-2 rounded-md border border-ctrl px-3 py-2">
+            <span className="flex-1 text-sm">{t("drives.ticked", { count: tickedSerials.length })}</span>
+            <button
+              type="button"
+              disabled={!props.connected}
+              onClick={eraseTicked}
+              className="inline-flex min-h-11 items-center gap-2 rounded border-2 border-current px-4 font-bold text-ready disabled:opacity-40"
+            >
+              <Play size={14} fill="currentColor" aria-hidden="true" />
+              {t("drives.eraseTicked", { count: tickedSerials.length })}
+            </button>
+            <IconButton label={t("drives.untick")} onClick={() => setTicked(new Set())}>
+              <X size={16} aria-hidden="true" />
+            </IconButton>
+          </div>
+        )}
         <p className="drives-station px-2 font-mono text-[13px] text-ash">
           <Station
             hello={props.hello?.ok ? props.hello.value : null}
@@ -387,6 +435,17 @@ export function DrivesScreen(props: {
             >
               <span className="size-2 rounded-full bg-current" aria-hidden="true" />
               {t(`drives.group.${group}`, { count: members.length })}
+              {group === "ready" && tickableSerials.length > 1 && (
+                <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm font-normal text-ash">
+                  {t("drives.tickAll")}
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-soft"
+                    checked={tickedSerials.length === tickableSerials.length}
+                    onChange={(event) => setTicked(event.target.checked ? new Set(tickableSerials) : new Set())}
+                  />
+                </label>
+              )}
             </h2>
             {members.map((drive) => {
               const serial = serialOf(drive);
@@ -399,6 +458,18 @@ export function DrivesScreen(props: {
                     isSelected ? "border-ctrl bg-card" : "border-transparent"
                   }`}
                 >
+                  {/* Same column on every row, ticked or not, so the rows stay aligned. */}
+                  <label className="-my-1 flex w-8 shrink-0 cursor-pointer items-center justify-center self-stretch">
+                    {tickable(drive) && (
+                      <input
+                        type="checkbox"
+                        className="size-4 cursor-pointer accent-soft"
+                        aria-label={t("drives.tickOne", { model: drive.device.identity.model })}
+                        checked={ticked.has(serial)}
+                        onChange={() => toggle(serial)}
+                      />
+                    )}
+                  </label>
                   <button
                     type="button"
                     aria-label={actionText}

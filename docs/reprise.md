@@ -84,8 +84,12 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     affichés dans la fenêtre, plus de saut vers l'onglet Effacements,
     certificat PDF enregistré automatiquement à la fin de chaque effacement, liste des disques suivie toute seule
     (l'app lit `/sys/block` et ne demande un inventaire au helper que quand un disque apparaît ou disparaît).
-    Étape 2 : sélection multiple et « Effacer N disques », notification de fin. Étape 3 : Historique, Vérifier,
-    assistant de premier lancement ;
+    Étape 2 codée le 2026-10-26 : cases à cocher sur les disques prêts (et « Tout »), « Effacer N disques »
+    avec une seule fenêtre (méthode et avertissements de chaque disque, alerte si l'offre n'a pas assez de places,
+    proposition d'ouvrir un lot avec son libellé ; en mode strict, chaque disque est scanné à son tour), résumé
+    « N effacements terminés · N CONFORMES » dans l'application. Pas de notification système : elle demanderait
+    un greffon Tauri de plus (`tauri-plugin-notification`), à décider par le propriétaire. Étape 3 : Historique,
+    Vérifier, assistant de premier lancement ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

@@ -12,6 +12,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
 import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
 import { DrivesScreen, type BatchNotice, type EraseRequest } from "./components/DrivesScreen";
+import { FinishedBar } from "./components/FinishedBar";
 import { Header, type View } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
 import { JobsScreen, type JobInfo } from "./components/JobsScreen";
@@ -33,9 +34,12 @@ export default function App() {
     inspectionsRef.current = inspections;
   }, [inspections]);
   const [labels, setLabels] = useState<Record<string, string>>({});
-  const [request, setRequest] = useState<EraseRequest | null>(null);
+  // Erasures waiting for the confirmation dialog: one drive, or a selection.
+  const [requests, setRequests] = useState<EraseRequest[] | null>(null);
   // Certificate of each finished job, rendered as soon as it ends (or why not).
   const [pdfs, setPdfs] = useState<Record<string, PdfState>>({});
+  // Erasures finished since the operator last dismissed the summary.
+  const [finishedCount, setFinishedCount] = useState<{ conforme: number; other: number }>({ conforme: 0, other: 0 });
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>({
@@ -136,6 +140,11 @@ export default function App() {
         if (info) void reinspectRef.current(info.serial);
         // The certificate is saved at once, in the language shown now.
         void renderPdfRef.current(id);
+        const conforme = event.data.status === "CONFORME";
+        setFinishedCount((current) => ({
+          conforme: current.conforme + (conforme ? 1 : 0),
+          other: current.other + (conforme ? 0 : 1),
+        }));
       }
     });
     return () => void unsubscribe.then((stop) => stop());
@@ -219,6 +228,7 @@ export default function App() {
   const start = async (
     erase: EraseRequest,
     input: { confirmation: string | null; justification: string | null },
+    into: BatchArgs | null,
   ): Promise<HelperError | null> => {
     const verdict = erase.inspection.verdict;
     const disposition = verdict.state === "READY" ? verdict.disposition : { kind: "Reuse" as const };
@@ -232,7 +242,7 @@ export default function App() {
       force: input.justification === null ? null : { justification: input.justification },
       operator: settings.operator,
       organization: settings.organization,
-      batch,
+      batch: into,
       zero_pass: erase.choice.method === "HostOverwrite" && (erase.zeroPass ?? false),
     });
     if (!result.ok) return result.error;
@@ -243,7 +253,7 @@ export default function App() {
         model,
         serial,
         resumed: false,
-        batch: batch?.id ?? null,
+        batch: into?.id ?? null,
         hostWrite: erase.choice.method === "HostOverwrite",
       },
     }));
@@ -256,7 +266,42 @@ export default function App() {
    * confirmation dialog: one click for an ordinary erasure, the serial
    * number in strict mode, a justification to force (cadre_projet.md §5.4).
    */
-  const launch = (erase: EraseRequest) => setRequest(erase);
+  const launch = (erase: EraseRequest) => setRequests([erase]);
+  /** Several ready drives at once: one dialog for all of them. */
+  const launchMany = (erases: EraseRequest[]) => {
+    if (erases.length > 0) setRequests(erases);
+  };
+
+  /**
+   * Sends the confirmed erasures one after the other, opening the batch the
+   * operator asked for first. Returns the refusals, by serial number.
+   */
+  const confirmAll = async (
+    erases: EraseRequest[],
+    input: {
+      confirmations: Record<string, string | null>;
+      justification: string | null;
+      newBatch: BatchArgs | null;
+    },
+  ): Promise<Record<string, HelperError>> => {
+    let into = batch;
+    if (input.newBatch) {
+      changeBatch(input.newBatch);
+      setBatchNotice(null);
+      into = input.newBatch;
+    }
+    const refused: Record<string, HelperError> = {};
+    for (const erase of erases) {
+      const serial = erase.inspection.device.identity.serial;
+      const error = await start(
+        erase,
+        { confirmation: input.confirmations[serial] ?? null, justification: input.justification },
+        into,
+      );
+      if (error) refused[serial] = error;
+    }
+    return refused;
+  };
 
   /** The erasure in progress on a drive, if any. */
   const runningOn = (serial: string) => {
@@ -321,6 +366,7 @@ export default function App() {
           onRefresh={() => void refresh()}
           onReinspect={(serial) => void reinspect(serial)}
           onErase={launch}
+          onEraseMany={launchMany}
           pdfOf={(id) => pdfs[id]}
           onUnlock={setUnlocking}
           onOpenJob={(id) => {
@@ -351,6 +397,18 @@ export default function App() {
           )}
         </main>
       )}
+      {finishedCount.conforme + finishedCount.other > 0 && (
+        <FinishedBar
+          conforme={finishedCount.conforme}
+          other={finishedCount.other}
+          running={runningCount}
+          onShow={() => {
+            setView("jobs");
+            setOpenJob(null);
+          }}
+          onDismiss={() => setFinishedCount({ conforme: 0, other: 0 })}
+        />
+      )}
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}
@@ -367,18 +425,20 @@ export default function App() {
           }}
         />
       )}
-      {request && (
+      {requests && (
         <ConfirmDialog
-          key={request.inspection.verdict_id + request.choice.method}
-          request={request}
+          key={requests.map((erase) => erase.inspection.verdict_id + erase.choice.method).join()}
+          requests={requests}
           labels={labels}
           signer={{ operator: settings.operator, organization: settings.organization }}
           strict={settings.strict_confirmation}
-          onCancel={() => setRequest(null)}
+          batch={batch}
+          freeSlots={maxParallel == null ? null : Math.max(0, maxParallel - runningCount)}
+          onCancel={() => setRequests(null)}
           onConfirm={async (input) => {
-            const error = await start(request, input);
-            if (!error) setRequest(null);
-            return error;
+            const refused = await confirmAll(requests, input);
+            if (Object.keys(refused).length === 0) setRequests(null);
+            return refused;
           }}
         />
       )}

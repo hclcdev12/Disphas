@@ -68,7 +68,14 @@
     "withReserves": "certificate with reservations",
     "withoutReserves": "certificate without reservations",
     "reinspect": "Inspect again",
-    "licenseUntil": "{{offer}} · until {{until}}"
+    "licenseUntil": "{{offer}} · until {{until}}",
+    "ticked_one": "{{count}} drive selected",
+    "ticked_other": "{{count}} drives selected",
+    "eraseTicked_one": "Erase {{count}} drive",
+    "eraseTicked_other": "Erase {{count}} drives",
+    "untick": "Clear the selection",
+    "tickAll": "All",
+    "tickOne": "Select {{model}}"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -134,7 +141,8 @@
     "force": "Force erasure",
     "cancel": "Cancel",
     "unlock": "Unlock…",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "close": "Close"
   },
   "confirm": {
     "title": "Confirm the erasure",
@@ -153,7 +161,18 @@
     "scanPlaceholder": "Scan the label, or type the last 4 characters",
     "scanMismatch": "Does not match the serial number of this drive.",
     "titleDrive": "Erase {{model}}?",
-    "irreversible": "All data on this drive will be destroyed. This cannot be undone."
+    "titleMany_one": "Erase {{count}} drive?",
+    "titleMany_other": "Erase {{count}} drives?",
+    "irreversible_one": "All data on this drive will be destroyed. This cannot be undone.",
+    "irreversible_other": "All data on these {{count}} drives will be destroyed. This cannot be undone.",
+    "submitMany_one": "Permanently erase {{count}} drive",
+    "submitMany_other": "Permanently erase {{count}} drives",
+    "overLimit_one": "Your offer allows only {{count}} more erasure at once: the extra drives will be refused.",
+    "overLimit_other": "Your offer allows only {{count}} more erasures at once: the extra drives will be refused.",
+    "groupInBatch": "File these drives in a batch",
+    "groupInBatchHint": "A batch certificate is produced when the batch is closed, besides the certificate of each drive.",
+    "inBatch": "These erasures join the open batch: {{batch}}.",
+    "scanEach": "Scan each drive (or type the last 4 characters, then Enter)"
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"
@@ -444,5 +463,16 @@
       "Invalid": "license invalid"
     },
     "rules": "rules {{version}}"
+  },
+  "finished": {
+    "title_one": "{{count}} erasure finished",
+    "title_other": "{{count}} erasures finished",
+    "conforme_one": "{{count}} CONFORME",
+    "conforme_other": "{{count}} CONFORME",
+    "other_one": "{{count}} non-compliant or failed",
+    "other_other": "{{count}} non-compliant or failed",
+    "running_one": "{{count}} still running",
+    "running_other": "{{count}} still running",
+    "show": "View"
   }
 }

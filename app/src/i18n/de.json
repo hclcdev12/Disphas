@@ -68,7 +68,14 @@
     "withReserves": "Zertifikat mit Vorbehalten",
     "withoutReserves": "Zertifikat ohne Vorbehalt",
     "reinspect": "Erneut prüfen",
-    "licenseUntil": "{{offer}} · bis {{until}}"
+    "licenseUntil": "{{offer}} · bis {{until}}",
+    "ticked_one": "{{count}} Laufwerk ausgewählt",
+    "ticked_other": "{{count}} Laufwerke ausgewählt",
+    "eraseTicked_one": "{{count}} Laufwerk löschen",
+    "eraseTicked_other": "{{count}} Laufwerke löschen",
+    "untick": "Auswahl aufheben",
+    "tickAll": "Alle",
+    "tickOne": "{{model}} auswählen"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -134,7 +141,8 @@
     "force": "Löschung erzwingen",
     "cancel": "Abbrechen",
     "unlock": "Entsperren…",
-    "dismiss": "Ausblenden"
+    "dismiss": "Ausblenden",
+    "close": "Schließen"
   },
   "confirm": {
     "title": "Löschung bestätigen",
@@ -153,7 +161,18 @@
     "scanPlaceholder": "Etikett scannen oder die letzten 4 Zeichen eingeben",
     "scanMismatch": "Stimmt nicht mit der Seriennummer dieses Laufwerks überein.",
     "titleDrive": "{{model}} löschen?",
-    "irreversible": "Alle Daten auf diesem Laufwerk werden vernichtet. Dieser Vorgang ist unumkehrbar."
+    "titleMany_one": "{{count}} Laufwerk löschen?",
+    "titleMany_other": "{{count}} Laufwerke löschen?",
+    "irreversible_one": "Alle Daten auf diesem Laufwerk werden vernichtet. Dieser Vorgang ist unumkehrbar.",
+    "irreversible_other": "Alle Daten auf diesen {{count}} Laufwerken werden vernichtet. Dieser Vorgang ist unumkehrbar.",
+    "submitMany_one": "{{count}} Laufwerk endgültig löschen",
+    "submitMany_other": "{{count}} Laufwerke endgültig löschen",
+    "overLimit_one": "Ihr Angebot erlaubt nur noch {{count}} gleichzeitige Löschung: Die übrigen Laufwerke werden abgelehnt.",
+    "overLimit_other": "Ihr Angebot erlaubt nur noch {{count}} gleichzeitige Löschungen: Die übrigen Laufwerke werden abgelehnt.",
+    "groupInBatch": "Diese Laufwerke in einem Los zusammenfassen",
+    "groupInBatchHint": "Beim Abschluss des Loses entsteht ein Los-Zertifikat, zusätzlich zum Zertifikat jedes Laufwerks.",
+    "inBatch": "Diese Löschungen kommen in das offene Los: {{batch}}.",
+    "scanEach": "Jedes Laufwerk scannen (oder die letzten 4 Zeichen eingeben, dann Enter)"
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
@@ -444,5 +463,16 @@
       "Invalid": "Lizenz ungültig"
     },
     "rules": "Regeln {{version}}"
+  },
+  "finished": {
+    "title_one": "{{count}} Löschung beendet",
+    "title_other": "{{count}} Löschungen beendet",
+    "conforme_one": "{{count}} CONFORME",
+    "conforme_other": "{{count}} CONFORME",
+    "other_one": "{{count}} nicht konform oder fehlgeschlagen",
+    "other_other": "{{count}} nicht konform oder fehlgeschlagen",
+    "running_one": "{{count}} läuft noch",
+    "running_other": "{{count}} laufen noch",
+    "show": "Anzeigen"
   }
 }

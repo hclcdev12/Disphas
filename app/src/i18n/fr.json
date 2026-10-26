@@ -68,7 +68,14 @@
     "withReserves": "certificat avec réserves",
     "withoutReserves": "certificat sans réserve",
     "reinspect": "Inspecter à nouveau",
-    "licenseUntil": "{{offer}} · jusqu’au {{until}}"
+    "licenseUntil": "{{offer}} · jusqu’au {{until}}",
+    "ticked_one": "{{count}} disque sélectionné",
+    "ticked_other": "{{count}} disques sélectionnés",
+    "eraseTicked_one": "Effacer {{count}} disque",
+    "eraseTicked_other": "Effacer {{count}} disques",
+    "untick": "Tout désélectionner",
+    "tickAll": "Tout",
+    "tickOne": "Sélectionner {{model}}"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -134,7 +141,8 @@
     "force": "Forcer l'effacement",
     "cancel": "Annuler",
     "unlock": "Déverrouiller…",
-    "dismiss": "Masquer"
+    "dismiss": "Masquer",
+    "close": "Fermer"
   },
   "confirm": {
     "title": "Confirmer l'effacement",
@@ -147,13 +155,24 @@
     "zeroPass": "Terminer par une passe de zéros",
     "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique.",
     "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…).",
-    "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (modifiable dans Réglages)",
+    "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (modifiable dans Paramètres)",
     "notSet": "non renseigné",
     "scan": "N° de série du disque",
     "scanPlaceholder": "Scannez l’étiquette, ou tapez les 4 derniers caractères",
     "scanMismatch": "Ne correspond pas au n° de série de ce disque.",
     "titleDrive": "Effacer {{model}} ?",
-    "irreversible": "Toutes les données de ce disque seront détruites. Cette opération est irréversible."
+    "titleMany_one": "Effacer {{count}} disque ?",
+    "titleMany_other": "Effacer {{count}} disques ?",
+    "irreversible_one": "Toutes les données de ce disque seront détruites. Cette opération est irréversible.",
+    "irreversible_other": "Toutes les données de ces {{count}} disques seront détruites. Cette opération est irréversible.",
+    "submitMany_one": "Effacer définitivement {{count}} disque",
+    "submitMany_other": "Effacer définitivement {{count}} disques",
+    "overLimit_one": "Votre offre ne permet plus que {{count}} effacement simultané : les disques en trop seront refusés.",
+    "overLimit_other": "Votre offre ne permet plus que {{count}} effacements simultanés : les disques en trop seront refusés.",
+    "groupInBatch": "Regrouper ces disques dans un lot",
+    "groupInBatchHint": "Un certificat de lot sera produit à la clôture du lot, en plus du certificat de chaque disque.",
+    "inBatch": "Ces effacements rejoindront le lot ouvert : {{batch}}.",
+    "scanEach": "Scannez chaque disque (ou tapez les 4 derniers caractères, puis Entrée)"
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
@@ -403,7 +422,7 @@
     "alreadyOpen": "Un lot est déjà ouvert"
   },
   "settings": {
-    "title": "Réglages",
+    "title": "Paramètres",
     "intro": "Ces informations sont signées dans chaque certificat, telles quelles. Elles valent pour ce compte utilisateur.",
     "organization": "Organisation",
     "organizationPlaceholder": "Atelier XYZ",
@@ -420,7 +439,7 @@
     "logoTooLarge": "Logo : 1 Mo au plus.",
     "logoNotIncluded": "Votre offre n’inclut pas le logo personnalisé (offres Essai, Passe, Atelier et Parc) : les certificats portent le logo disphas.",
     "logoKept": "Le logo déjà enregistré est conservé et reviendra avec une offre qui l’inclut.",
-    "saved": "Réglages enregistrés.",
+    "saved": "Paramètres enregistrés.",
     "save": "Enregistrer",
     "close": "Fermer",
     "language": "Langue",
@@ -444,5 +463,16 @@
       "Invalid": "licence invalide"
     },
     "rules": "règles {{version}}"
+  },
+  "finished": {
+    "title_one": "{{count}} effacement terminé",
+    "title_other": "{{count}} effacements terminés",
+    "conforme_one": "{{count}} CONFORME",
+    "conforme_other": "{{count}} CONFORMES",
+    "other_one": "{{count}} non conforme ou en échec",
+    "other_other": "{{count}} non conformes ou en échec",
+    "running_one": "{{count}} encore en cours",
+    "running_other": "{{count}} encore en cours",
+    "show": "Voir"
   }
 }
