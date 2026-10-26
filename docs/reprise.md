@@ -70,9 +70,14 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     (`assets/logo/src/generate_certificate.py`), avec le tampon refait en encre ; à valider ;
   - **certificat** : polices (Inter → Klaudia, à tester) et couleurs (papier, encre, bandeaux de `IDENTITE.md`
     §5.2) pas encore passées à la nouvelle charte ;
-  - **application et site** : aucun lot ne prévoit encore de passer à la nouvelle charte (couleurs Schiste/Registre,
-    Klaudia, icônes de l'app) ; ils gardent la charte Oblivio, sauf l'en-tête de l'application (wordmark disphas
-    depuis le lot 3) ;
+  - **application** : refonte de l'onglet Disques codée le 2026-10-26 d'après la maquette du propriétaire
+    (`docs/maquettes/disphas-ecran-disques.md` et `.html`, déplacés depuis `rework_ui/`) : liste et détail, thème Schiste, Atkinson Hyperlegible
+    Next pour l'interface, Klaudia pour le seul mot « Disphas », JetBrains Mono pour les données. Palette et
+    polices appliquées à toute l'application, mise en page des autres onglets inchangée. Écarts décidés avec le
+    propriétaire : l'emplacement « Crédits » de la maquette affiche la **licence** (offre et date de fin) et ouvre
+    la fenêtre Licence, sans compteur d'effacements (O5) ; la langue passe dans les Paramètres. À reporter dans
+    `DESIGN.md` (dossier de marque) : vert pour « prêt / recommandée », ambre pour « à débloquer ». Restent :
+    autres onglets, thème clair Registre, icônes de l'application, site ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

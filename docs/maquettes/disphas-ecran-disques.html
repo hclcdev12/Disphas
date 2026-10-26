@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disphas · Écran Disques (maquette de référence)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Klaudia : marque uniquement. Adapter le chemin au dépôt (polices/klaudia/). */
+@font-face { font-family: 'Klaudia'; src: url('polices/klaudia/Klaudia-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+
+/* ---------- Tokens (thème Schiste, sombre) ---------- */
+:root {
+  --bg: #1B1F21;          /* fond de page */
+  --surface: #2C3337;     /* cadres, ligne sélectionnée */
+  --fg: #ECEAE3;          /* texte principal (os) */
+  --fg-2: #C9CABD;        /* texte secondaire, 10:1 sur --bg */
+  --line: #4A5256;        /* séparateurs */
+  --ctrl: #959C9A;        /* contours de contrôles, 5.9:1 */
+
+  --ready: #6CC791;       /* vert clair : texte, contour, icône (prêt / recommandée) */
+  --ready-fill: #2F7D4F;  /* vert plein : pastille Prêt (texte blanc) */
+  --blocked: #E8B04A;     /* ambre : à débloquer (contour, icône, pastille pleine) */
+  --refus: #F0857C;       /* rouge clair : texte, contour, icône */
+  --refus-fill: #B3261E;  /* rouge plein : pastille Refus (texte blanc) */
+  --protected: #959C9A;   /* gris : protégé */
+
+  --font-ui: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-brand: 'Klaudia', Georgia, serif;
+
+  --radius-s: 4px; --radius-m: 6px; --radius-l: 8px;
+  --hit: 44px;            /* cible tactile minimale */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font-family: var(--font-ui); font-size: 17px; line-height: 1.55; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--fg-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+svg { display: block; }
+
+/* ---------- En-tête ---------- */
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+.topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 0 32px; border-bottom: 1px solid var(--line); }
+.topbar__left { display: flex; align-items: center; gap: 32px; min-width: 0; }
+.brand { font-family: var(--font-brand); font-weight: 700; font-size: 26px; line-height: 1; padding: 16px 0; }
+.tabs { display: flex; gap: 4px; align-self: stretch; overflow-x: auto; scrollbar-width: none; }
+.tabs a { text-decoration: none; display: flex; align-items: center; min-height: 56px; padding: 0 14px; color: var(--fg-2); white-space: nowrap; border-bottom: 2px solid transparent; }
+.tabs a[aria-current="page"] { color: var(--fg); font-weight: 700; border-bottom-color: var(--fg); }
+.topbar__right { display: flex; align-items: center; gap: 16px; font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); }
+.icon-btn { width: var(--hit); height: var(--hit); flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: transparent; border: 0; border-radius: var(--radius-s); color: var(--fg); }
+.icon-btn:hover { background: var(--surface); }
+
+/* ---------- Mise en page maître / détail ---------- */
+.layout { flex: 1; display: grid; grid-template-columns: minmax(340px, 420px) 1fr; }
+.list { border-right: 1px solid var(--line); padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; }
+.detail { min-width: 0; padding: 40px 48px; display: flex; flex-direction: column; gap: 28px; max-width: 960px; }
+
+/* ---------- Liste ---------- */
+.list__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 0 8px; }
+.list__head h1 { margin: 0; font-size: 25px; font-weight: 700; line-height: 1.2; }
+.list__meta { margin: 2px 0 0; font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); }
+.list__hint { margin: 4px 0 0; font-size: 13px; font-style: italic; color: var(--fg-2); }
+.list__tools { display: flex; gap: 4px; }
+
+#groups { display: flex; flex-direction: column; gap: 20px; }
+.group { display: flex; flex-direction: column; gap: 2px; }
+.group h2 { margin: 0 0 6px; padding: 0 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+.group h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.group--ready h2 { color: var(--ready); }
+.group--blocked h2 { color: var(--blocked); }
+.group--refus h2 { color: var(--refus); }
+.group--protected h2 { color: var(--protected); }
+
+.row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 4px 12px; border-radius: var(--radius-m); border: 1px solid transparent; }
+.row.is-selected { background: var(--surface); border-color: var(--ctrl); }
+.row__action { width: var(--hit); height: var(--hit); flex: none; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: transparent; border-radius: var(--radius-m); border: 2px solid currentColor; }
+.row__action--ready { color: var(--ready); }
+.row__action--blocked { color: var(--blocked); }
+.row__action--refus { color: var(--refus); }
+.row__action--protected { color: var(--fg-2); border-width: 1px; border-color: var(--ctrl); }
+.row__select { flex: 1; min-width: 0; min-height: 56px; display: flex; flex-direction: column; justify-content: center; padding: 8px 4px; text-align: left; background: transparent; border: 0; }
+.row__top { display: flex; justify-content: space-between; gap: 8px; }
+.row__model { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row__type { font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); white-space: nowrap; }
+.row__line { font-size: 14px; color: var(--fg-2); }
+
+.credits { margin-top: auto; padding: 16px 8px 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.credits__label { font-size: 15px; font-weight: 600; color: var(--fg-2); }
+.credits__value { font-family: var(--font-mono); font-size: 14px; }
+
+/* ---------- Détail ---------- */
+.back { display: none; align-self: flex-start; align-items: center; gap: 8px; min-height: var(--hit); padding: 0 12px 0 4px; background: transparent; border: 0; border-radius: var(--radius-s); color: var(--fg); }
+.detail__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.detail__kind, .detail__ids { font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); overflow-wrap: anywhere; }
+.detail__head h2 { margin: 2px 0 4px; font-size: 40px; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
+
+.chip { font-family: var(--font-mono); font-size: 12px; padding: 4px 10px; border-radius: 3px; white-space: nowrap; }
+.chip--ready { background: var(--ready-fill); color: #FFFFFF; }
+.chip--blocked { background: var(--blocked); color: var(--bg); font-weight: 500; }
+.chip--refus { background: var(--refus-fill); color: #FFFFFF; }
+.chip--protected { color: var(--fg-2); border: 1px solid var(--ctrl); }
+
+.panel { margin: 0; padding: 24px; border: 1px solid var(--ctrl); border-radius: var(--radius-l); background: var(--surface); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.panel legend { padding: 0 8px; font-size: 15px; font-weight: 600; color: var(--fg-2); }
+.panel--info { gap: 10px; }
+.panel--info p { margin: 0; }
+.panel__message { font-size: 21px; }
+.panel ul { margin: 0; padding-left: 20px; color: var(--fg-2); }
+
+.method { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 6px 12px; border-radius: var(--radius-m); cursor: pointer; }
+.method input { appearance: none; -webkit-appearance: none; margin: 0; flex: none; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ctrl); background: transparent; cursor: pointer; }
+.method input:checked { border-color: var(--ready); background: var(--ready); box-shadow: inset 0 0 0 3px var(--surface); }
+.method__cat { flex: none; width: 52px; padding: 2px 0; text-align: center; border-radius: 3px; font-family: var(--font-mono); font-size: 13px; }
+.method__cat--purge { background: var(--fg); color: var(--bg); }
+.method__cat--clear { border: 1px solid var(--ctrl); }
+.method__text { display: flex; flex-direction: column; min-width: 0; }
+.method__name { font-size: 17px; }
+.method input:checked ~ .method__text .method__name { font-weight: 700; }
+.method__reco { color: var(--ready); font-weight: 700; }
+.method__id { font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); overflow-wrap: anywhere; }
+
+.note { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-m); border: 1px solid var(--ctrl); }
+.note svg { flex: none; margin-top: 3px; }
+.note__code { font-family: var(--font-mono); font-size: 14px; color: var(--fg-2); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.btn { min-height: 48px; display: inline-flex; align-items: center; gap: 10px; padding: 0 22px; background: transparent; border: 2px solid currentColor; border-radius: var(--radius-s); font-size: 17px; font-weight: 700; }
+.btn--primary { min-height: 52px; padding: 0 28px; font-size: 18px; color: var(--ready); }
+.btn--blocked { color: var(--blocked); }
+.btn--refus { color: var(--refus); }
+.actions__note { font-size: 15px; color: var(--fg-2); }
+
+/* ---------- Responsive ---------- */
+/* Tablette : liste plus étroite, marges réduites */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(300px, 360px) 1fr; }
+  .detail { padding: 32px; }
+  .detail__head h2 { font-size: 32px; }
+}
+/* Mobile : maître / détail sur deux vues, une seule visible à la fois */
+@media (max-width: 760px) {
+  .topbar { display: grid; grid-template-columns: 1fr auto; gap: 0; padding: 0 8px 0 16px; }
+  .topbar__left { display: contents; }
+  .brand { grid-column: 1; grid-row: 1; }
+  .topbar__right { grid-column: 2; grid-row: 1; }
+  .tabs { grid-column: 1 / -1; grid-row: 2; margin: 0 -8px 0 -16px; padding: 0 8px; border-top: 1px solid var(--line); }
+  .topbar__status { display: none; }          /* état station : déplacé sous la liste, voir .list__station */
+  .layout { grid-template-columns: 1fr; }
+  .list { border-right: 0; padding: 16px 8px; }
+  .detail { padding: 16px; gap: 20px; }
+  .back { display: inline-flex; }
+  .detail__head h2 { font-size: 28px; }
+  .panel { padding: 16px; }
+  .panel__message { font-size: 19px; }
+  .actions .btn { width: 100%; justify-content: center; }
+  .app[data-view="list"] .detail { display: none; }
+  .app[data-view="detail"] .list { display: none; }
+  .list__station { display: block; }
+}
+.list__station { display: none; padding: 0 8px; font-family: var(--font-mono); font-size: 13px; color: var(--fg-2); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-view="list">
+
+  <header class="topbar">
+    <div class="topbar__left">
+      <span class="brand">Disphas</span>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#" aria-current="page">Disques</a>
+        <a href="#">Effacements</a>
+        <a href="#">Historique</a>
+        <a href="#">Vérifier</a>
+      </nav>
+    </div>
+    <div class="topbar__right">
+      <span class="topbar__status">hors ligne · assistant connecté · licence active · règles 1.0.0</span>
+      <button type="button" class="icon-btn" aria-label="Paramètres" title="Paramètres">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="list" aria-label="Disques connectés">
+      <div class="list__head">
+        <div>
+          <h1 id="list-title">Disques · 7</h1>
+          <p class="list__meta">0 en cours · 8 simultanés permis</p>
+          <p class="list__hint">Hors lot : chaque effacement reçoit son propre certificat.</p>
+        </div>
+        <div class="list__tools">
+          <button type="button" class="icon-btn" aria-label="Nouveau lot" title="Nouveau lot">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button type="button" class="icon-btn" aria-label="Actualiser" title="Actualiser">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="list__station">hors ligne · assistant connecté · licence active · règles 1.0.0</p>
+      <div id="groups"></div>
+      <div class="credits">
+        <span class="credits__label">Crédits</span>
+        <span class="credits__value">[N] effacements restants</span>
+      </div>
+    </aside>
+
+    <main class="detail" id="detail" aria-live="polite"></main>
+  </div>
+</div>
+
+<template id="icon-ready"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a.8.8 0 0 0 1.2.7l12-7.5a.8.8 0 0 0 0-1.4l-12-7.5A.8.8 0 0 0 7 4.5z"/></svg></template>
+<template id="icon-blocked"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="1.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></svg></template>
+<template id="icon-refus"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></template>
+<template id="icon-protected"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6L12 3z"/></svg></template>
+<template id="icon-alert"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17h.01"/></svg></template>
+
+<script>
+/* Données de démonstration : celles de l'application réelle (mode démo). */
+const DRIVES = [
+  { sn:'DEMO-NVME-4567', type:'NVMe', model:'DEMO NVMe Data 2TB', size:'0,3 Go', idLabel:'EUI-64', idVal:'0011223344556677', st:'ready',
+    methods:[
+      { cat:'Purge', name:'NVMe Sanitize, effacement des blocs', id:'NvmeSanitizeBlockErase' },
+      { cat:'Purge', name:'NVMe Sanitize, effacement cryptographique', id:'NvmeSanitizeCryptoErase' },
+      { cat:'Purge', name:'NVMe Format, effacement cryptographique', id:'NvmeFormatCryptoErase' },
+      { cat:'Clear', name:'NVMe Format, effacement des données', id:'NvmeFormatUserDataErase' }], notes:[] },
+  { sn:'DEMO-HDD-8C21', type:'SATA HDD', model:'DEMO HDD 4TB', size:'0,3 Go', idLabel:'WWN', idVal:'5000c500deadbeef', st:'ready',
+    methods:[
+      { cat:'Purge', name:'ATA Sanitize, réécriture', id:'AtaSanitizeOverwrite' },
+      { cat:'Purge', name:'ATA Security Erase, renforcé', id:'AtaSecurityEraseEnhanced' },
+      { cat:'Clear', name:'Réécriture par l’ordinateur, une passe', id:'HostOverwrite' }],
+    notes:[
+      { text:'Effacement certifiable, mais destruction physique recommandée : nombre élevé de secteurs réalloués.', code:'D4' },
+      { text:'Réserve inscrite au certificat : erreurs non corrigibles signalées.', code:'R6' }] },
+  { sn:'DEMO-SSD-F0Z3', type:'SATA SSD', model:'DEMO SATA SSD 500GB', size:'500,1 Go', idLabel:'WWN', idVal:'5002538e00000001', st:'blocked', line:'Sécurité ATA gelée (B1)',
+    message:'Disque sain, une action de l’opérateur est nécessaire.', reasons:[{ text:'Sécurité ATA gelée : mettez l’ordinateur en veille, réveillez-le, puis inspectez à nouveau.', code:'B1' }], action:'Inspecter à nouveau' },
+  { sn:'DEMO-LOCK-7A11', type:'SATA SSD', model:'DEMO SATA SSD Locked 256GB', size:'0,3 Go', idLabel:'WWN', idVal:'5002538e00000002', st:'blocked', line:'Mot de passe ATA (B2)',
+    message:'Disque sain, une action de l’opérateur est nécessaire.', reasons:[{ text:'Verrouillé par un mot de passe ATA : saisissez le mot de passe utilisateur ou maître.', code:'B2' }], action:'Déverrouiller…' },
+  { sn:'DEMO-RO-0BAD', type:'NVMe', model:'DEMO NVMe Worn 256GB', size:'256,1 Go', idLabel:'EUI-64', idVal:'00a07501feedface', st:'refus', line:'Lecture seule (N3)',
+    message:'L’effacement ne peut pas être prouvé. Destruction physique requise.', reasons:[{ text:'Support en lecture seule.', code:'N3' }] },
+  { sn:'DEMO-MUTE-0N1X', type:'Inconnu', model:'DEMO Unresponsive 1TB', size:'0,3 Go', idLabel:'', idVal:'', st:'refus', line:'Inspection impossible (N1)',
+    message:'L’effacement ne peut pas être prouvé. Destruction physique requise.', reasons:[{ text:'Le disque n’a pas pu être inspecté.', code:'N1' }], force:true, action:'Forcer l’effacement' },
+  { sn:'DEMO-SYS-0001', type:'NVMe', model:'DEMO NVMe System 1TB', size:'1 To', idLabel:'EUI-64', idVal:'00a07501deadbeef', st:'protected', line:'Disque système (P1, P2)',
+    message:'Disphas ne touchera pas ce disque.', reasons:[{ text:'Disque système (/, /boot ou EFI).', code:'P1' }, { text:'Une partition est montée.', code:'P2' }] }
+];
+
+const GROUPS = [['ready','À lancer'],['blocked','À débloquer'],['refus','Refusés'],['protected','Protégés']];
+const CHIP = { ready:'▶ Prêt', blocked:'Bloqué', refus:'✕ Refus', protected:'Protégé' };
+const state = { picked: 'DEMO-HDD-8C21', method: {} };
+const mobile = window.matchMedia('(max-width: 760px)');
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const icon = (name) => document.getElementById('icon-' + name).innerHTML;
+const chosen = (d) => d.methods[state.method[d.sn] ?? 0];
+
+function actionLabel(d) {
+  if (d.st === 'ready') return 'Effacer ' + d.model + ' · ' + chosen(d).cat;
+  if (d.st === 'blocked') return d.action.replace('…', '') + ' ' + d.model;
+  if (d.st === 'refus') return d.force ? 'Forcer l’effacement de ' + d.model : 'Voir pourquoi ' + d.model + ' est refusé';
+  return 'Voir pourquoi ' + d.model + ' est protégé';
+}
+
+function renderList() {
+  document.getElementById('groups').innerHTML = GROUPS.map(([st, label]) => {
+    const items = DRIVES.filter((d) => d.st === st);
+    if (!items.length) return '';
+    const id = 'g-' + st;
+    return `<section class="group group--${st}" aria-labelledby="${id}">
+      <h2 id="${id}">${label} · ${items.length}</h2>
+      ${items.map((d) => {
+        const on = d.sn === state.picked;
+        const line = st === 'ready' ? chosen(d).cat + ' · ' + chosen(d).name : d.line;
+        return `<div class="row${on ? ' is-selected' : ''}">
+          <button type="button" class="row__action row__action--${st}" data-act="${d.sn}" aria-label="${esc(actionLabel(d))}" title="${esc(actionLabel(d))}">${icon(st)}</button>
+          <button type="button" class="row__select" data-pick="${d.sn}" aria-pressed="${on}">
+            <span class="row__top"><span class="row__model">${esc(d.model)}</span><span class="row__type">${esc(d.type)}</span></span>
+            <span class="row__line">${esc(line)}</span>
+          </button>
+        </div>`;
+      }).join('')}
+    </section>`;
+  }).join('');
+}
+
+function renderDetail() {
+  const d = DRIVES.find((x) => x.sn === state.picked);
+  const ids = 's/n ' + d.sn + (d.idLabel ? ' · ' + d.idLabel + ' ' + d.idVal : '');
+  let body = '';
+  if (d.st === 'ready') {
+    const i0 = state.method[d.sn] ?? 0;
+    body = `<fieldset class="panel">
+        <legend>Décision de Disphas</legend>
+        ${d.methods.map((m, i) => `<label class="method">
+          <input type="radio" name="methode" value="${i}" ${i === i0 ? 'checked' : ''}>
+          <span class="method__cat method__cat--${m.cat.toLowerCase()}">${m.cat}</span>
+          <span class="method__text">
+            <span class="method__name">${esc(m.name)}${i === 0 ? ' · <span class="method__reco">recommandée</span>' : ''}</span>
+            <span class="method__id">${m.id}</span>
+          </span>
+        </label>`).join('')}
+      </fieldset>
+      ${d.notes.map((n) => `<div class="note">${icon('alert')}<div><div>${esc(n.text)}</div><div class="note__code">${n.code}</div></div></div>`).join('')}
+      <div class="actions">
+        <button type="button" class="btn btn--primary">${icon('ready').replace('width="18" height="18"', 'width="16" height="16"')}Effacer</button>
+        <span class="actions__note">${esc(d.methods[i0].name)} · certificat ${d.notes.length ? 'avec réserves' : 'sans réserve'}</span>
+      </div>`;
+  } else {
+    body = `<div class="panel panel--info">
+        <p class="panel__message">${esc(d.message)}</p>
+        <ul>${d.reasons.map((r) => `<li>${esc(r.text)} <span class="mono" style="font-size:13px">(${r.code})</span></li>`).join('')}</ul>
+        ${d.force ? '<p class="muted">Forçage possible : réécriture limitée à Clear, certificat NON CONFORME.</p>' : ''}
+      </div>
+      ${d.action ? `<div class="actions"><button type="button" class="btn btn--${d.st}">${esc(d.action)}</button></div>` : ''}`;
+  }
+  document.getElementById('detail').innerHTML = `
+    <button type="button" class="back" data-back aria-label="Retour à la liste des disques">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Disques
+    </button>
+    <div class="detail__head">
+      <div>
+        <div class="detail__kind">${esc(d.type)} · ${esc(d.size)}</div>
+        <h2 id="detail-title" tabindex="-1">${esc(d.model)}</h2>
+        <div class="detail__ids">${esc(ids)}</div>
+      </div>
+      <span class="chip chip--${d.st}">${CHIP[d.st]}</span>
+    </div>
+    ${body}`;
+}
+
+function render() { renderList(); renderDetail(); }
+
+function pick(sn, focusDetail) {
+  state.picked = sn;
+  render();
+  if (mobile.matches) {
+    document.getElementById('app').dataset.view = 'detail';
+    window.scrollTo(0, 0);
+    document.getElementById('detail-title').focus();
+  } else if (focusDetail) {
+    document.getElementById('detail-title').focus();
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const p = e.target.closest('[data-pick]');
+  if (p) return pick(p.dataset.pick, false);
+  const a = e.target.closest('[data-act]');
+  if (a) return pick(a.dataset.act, true);   // maquette : l'action ouvre le détail ; dans l'app, déclencher l'action réelle
+  if (e.target.closest('[data-back]')) {
+    document.getElementById('app').dataset.view = 'list';
+    const row = document.querySelector(`[data-pick="${state.picked}"]`);
+    if (row) row.focus();
+  }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.name === 'methode') {
+    state.method[state.picked] = Number(e.target.value);
+    render();
+    const r = document.querySelector(`input[name="methode"][value="${e.target.value}"]`);
+    if (r) r.focus();
+  }
+});
+mobile.addEventListener('change', () => { document.getElementById('app').dataset.view = 'list'; });
+
+render();
+</script>
+</body>
+</html>

@@ -26,7 +26,49 @@
     "parallel_one": "{{count}} erasure running of {{max}} allowed by the offer",
     "parallel_other": "{{count}} erasures running of {{max}} allowed by the offer",
     "parallelUnlimited_one": "{{count}} erasure running (no limit)",
-    "parallelUnlimited_other": "{{count}} erasures running (no limit)"
+    "parallelUnlimited_other": "{{count}} erasures running (no limit)",
+    "count_one": "Drives · {{count}}",
+    "count_other": "Drives · {{count}}",
+    "meta": {
+      "limited_one": "{{count}} running · {{max}} allowed at once",
+      "limited_other": "{{count}} running · {{max}} allowed at once",
+      "unlimited_one": "{{count}} running · no limit",
+      "unlimited_other": "{{count}} running · no limit"
+    },
+    "outsideBatch": "No batch: each erasure gets its own certificate.",
+    "listLabel": "Connected drives",
+    "group": {
+      "ready": "To start · {{count}}",
+      "blocked": "To unblock · {{count}}",
+      "refus": "Refused · {{count}}",
+      "protected": "Protected · {{count}}",
+      "pending": "No decision yet · {{count}}"
+    },
+    "chip": {
+      "ready": "Ready",
+      "blocked": "Blocked",
+      "refus": "Refused",
+      "protected": "Protected",
+      "pending": "Inspecting"
+    },
+    "row": {
+      "erase": "Erase {{model}} · {{category}}",
+      "unlock": "Unlock {{model}}",
+      "reinspect": "Inspect {{model}} again",
+      "force": "Force the erasure of {{model}}",
+      "whyRefused": "See why {{model}} is refused",
+      "whyProtected": "See why {{model}} is protected",
+      "viewJob": "View the erasure of {{model}}",
+      "inspecting": "Inspecting {{model}}",
+      "running": "Erasure in progress"
+    },
+    "back": "Drives",
+    "backLabel": "Back to the drive list",
+    "erase": "Erase",
+    "withReserves": "certificate with reservations",
+    "withoutReserves": "certificate without reservations",
+    "reinspect": "Inspect again",
+    "licenseUntil": "{{offer}} · until {{until}}"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -42,7 +84,7 @@
     "SAY_NO": "SAY NO"
   },
   "verdict": {
-    "recommendation": "disphas decision",
+    "recommendation": "Disphas decision",
     "recommended": "Recommended method",
     "alternatives": "Other allowed methods",
     "category": "Category",
@@ -53,11 +95,14 @@
     "reserves": "Reserves",
     "reasons": "Reasons",
     "none": "none",
-    "protectedHint": "disphas will not touch this drive.",
-    "blockedHint": "The drive is healthy, but an operator action is needed first.",
-    "sayNoHint": "The erasure of this drive cannot be proven. Physical destruction is required.",
-    "forcible": "Forcing is possible: a host overwrite capped at Clear, certified NON-COMPLIANT.",
-    "reservesLine": "Reserves: {{list}}"
+    "protectedHint": "Disphas will not touch this drive.",
+    "blockedHint": "Healthy drive, an operator action is needed.",
+    "sayNoHint": "The erasure cannot be proven. Physical destruction required.",
+    "forcible": "Forcing is possible: host overwrite capped at Clear, NON CONFORME certificate.",
+    "reservesLine": "Reserves: {{list}}",
+    "recommendedShort": "recommended",
+    "destroyNote": "Certifiable erasure, but physical destruction is recommended: {{reason}}.",
+    "reserveNote": "Reservation written on the certificate: {{reason}}."
   },
   "protect": {
     "P1": "System drive (/, /boot or EFI)",
@@ -233,7 +278,8 @@
     "drives": "Drives",
     "history": "History",
     "verify": "Verify",
-    "jobs": "Erasures"
+    "jobs": "Erasures",
+    "label": "Sections"
   },
   "history": {
     "title": "Certificate history",
@@ -351,7 +397,8 @@
     "pdfSaved": "Batch {{batch}} closed. Batch certificate saved in",
     "closedEmpty": "Batch {{batch}} closed without any erasure: no batch certificate.",
     "pdfFailed": "The certificate of batch {{batch}} could not be produced; the batch stays open.",
-    "empty": "No verified certificate in this batch."
+    "empty": "No verified certificate in this batch.",
+    "alreadyOpen": "A batch is already open"
   },
   "settings": {
     "title": "Settings",
@@ -373,6 +420,25 @@
     "logoKept": "The logo already stored is kept and comes back with an offer that includes it.",
     "saved": "Settings saved.",
     "save": "Save",
-    "close": "Close"
+    "close": "Close",
+    "language": "Language"
+  },
+  "station": {
+    "offline": "offline",
+    "helper": {
+      "connected": "helper connected",
+      "preview": "browser preview",
+      "demo": "demo · fictional drives",
+      "disconnected": "helper unavailable"
+    },
+    "license": {
+      "Missing": "no license",
+      "Valid": "license active",
+      "Expired": "license expired",
+      "Revoked": "license revoked",
+      "NotYetValid": "license not valid yet",
+      "Invalid": "license invalid"
+    },
+    "rules": "rules {{version}}"
   }
 }

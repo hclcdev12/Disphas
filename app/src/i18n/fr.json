@@ -26,7 +26,49 @@
     "parallel_one": "{{count}} effacement en cours sur {{max}} autorisés par l'offre",
     "parallel_other": "{{count}} effacements en cours sur {{max}} autorisés par l'offre",
     "parallelUnlimited_one": "{{count}} effacement en cours (pas de limite)",
-    "parallelUnlimited_other": "{{count}} effacements en cours (pas de limite)"
+    "parallelUnlimited_other": "{{count}} effacements en cours (pas de limite)",
+    "count_one": "Disques · {{count}}",
+    "count_other": "Disques · {{count}}",
+    "meta": {
+      "limited_one": "{{count}} en cours · {{max}} simultanés permis",
+      "limited_other": "{{count}} en cours · {{max}} simultanés permis",
+      "unlimited_one": "{{count}} en cours · sans limite",
+      "unlimited_other": "{{count}} en cours · sans limite"
+    },
+    "outsideBatch": "Hors lot : chaque effacement reçoit son propre certificat.",
+    "listLabel": "Disques connectés",
+    "group": {
+      "ready": "À lancer · {{count}}",
+      "blocked": "À débloquer · {{count}}",
+      "refus": "Refusés · {{count}}",
+      "protected": "Protégés · {{count}}",
+      "pending": "Sans décision · {{count}}"
+    },
+    "chip": {
+      "ready": "Prêt",
+      "blocked": "Bloqué",
+      "refus": "Refus",
+      "protected": "Protégé",
+      "pending": "Inspection"
+    },
+    "row": {
+      "erase": "Effacer {{model}} · {{category}}",
+      "unlock": "Déverrouiller {{model}}",
+      "reinspect": "Inspecter à nouveau {{model}}",
+      "force": "Forcer l’effacement de {{model}}",
+      "whyRefused": "Voir pourquoi {{model}} est refusé",
+      "whyProtected": "Voir pourquoi {{model}} est protégé",
+      "viewJob": "Voir l’effacement de {{model}}",
+      "inspecting": "Inspection de {{model}} en cours",
+      "running": "Effacement en cours"
+    },
+    "back": "Disques",
+    "backLabel": "Retour à la liste des disques",
+    "erase": "Effacer",
+    "withReserves": "certificat avec réserves",
+    "withoutReserves": "certificat sans réserve",
+    "reinspect": "Inspecter à nouveau",
+    "licenseUntil": "{{offer}} · jusqu’au {{until}}"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -42,7 +84,7 @@
     "SAY_NO": "SAY NO"
   },
   "verdict": {
-    "recommendation": "Décision disphas",
+    "recommendation": "Décision de Disphas",
     "recommended": "Méthode recommandée",
     "alternatives": "Autres méthodes autorisées",
     "category": "Catégorie",
@@ -53,11 +95,14 @@
     "reserves": "Réserves",
     "reasons": "Raisons",
     "none": "aucune",
-    "protectedHint": "disphas ne touchera pas à ce disque.",
-    "blockedHint": "Le disque est sain, mais une action de l'opérateur est nécessaire d'abord.",
-    "sayNoHint": "L'effacement de ce disque n'est pas prouvable. La destruction physique est requise.",
-    "forcible": "Le forçage est possible : réécriture hôte plafonnée à Clear, certifiée NON CONFORME.",
-    "reservesLine": "Réserves : {{list}}"
+    "protectedHint": "Disphas ne touchera pas ce disque.",
+    "blockedHint": "Disque sain, une action de l’opérateur est nécessaire.",
+    "sayNoHint": "L’effacement ne peut pas être prouvé. Destruction physique requise.",
+    "forcible": "Forçage possible : réécriture limitée à Clear, certificat NON CONFORME.",
+    "reservesLine": "Réserves : {{list}}",
+    "recommendedShort": "recommandée",
+    "destroyNote": "Effacement certifiable, mais destruction physique recommandée : {{reason}}.",
+    "reserveNote": "Réserve inscrite au certificat : {{reason}}."
   },
   "protect": {
     "P1": "Disque système (/, /boot ou EFI)",
@@ -233,7 +278,8 @@
     "drives": "Disques",
     "history": "Historique",
     "verify": "Vérifier",
-    "jobs": "Effacements"
+    "jobs": "Effacements",
+    "label": "Sections"
   },
   "history": {
     "title": "Historique des certificats",
@@ -351,7 +397,8 @@
     "pdfSaved": "Lot {{batch}} clos. Certificat de lot enregistré dans",
     "closedEmpty": "Lot {{batch}} clos, sans effacement : aucun certificat de lot.",
     "pdfFailed": "Le certificat du lot {{batch}} n'a pas pu être produit ; le lot reste ouvert.",
-    "empty": "Aucun certificat vérifié dans ce lot."
+    "empty": "Aucun certificat vérifié dans ce lot.",
+    "alreadyOpen": "Un lot est déjà ouvert"
   },
   "settings": {
     "title": "Réglages",
@@ -373,6 +420,25 @@
     "logoKept": "Le logo déjà enregistré est conservé et reviendra avec une offre qui l’inclut.",
     "saved": "Réglages enregistrés.",
     "save": "Enregistrer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "language": "Langue"
+  },
+  "station": {
+    "offline": "hors ligne",
+    "helper": {
+      "connected": "assistant connecté",
+      "preview": "aperçu navigateur",
+      "demo": "démo · disques fictifs",
+      "disconnected": "assistant indisponible"
+    },
+    "license": {
+      "Missing": "sans licence",
+      "Valid": "licence active",
+      "Expired": "licence expirée",
+      "Revoked": "licence révoquée",
+      "NotYetValid": "licence pas encore valide",
+      "Invalid": "licence invalide"
+    },
+    "rules": "règles {{version}}"
   }
 }

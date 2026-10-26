@@ -44,6 +44,8 @@ BUNDLED_NPM = (
 FONTS = (
     ("Inter", "assets/fonts/LICENSE-Inter.txt"),
     ("JetBrains Mono", "assets/fonts/LICENSE-JetBrainsMono.txt"),
+    ("Atkinson Hyperlegible Next", "assets/fonts/LICENSE-AtkinsonHyperlegibleNext.txt"),
+    ("Klaudia", "assets/fonts/klaudia/OFL.txt"),
 )
 LICENSE_FILE = re.compile(r"^(licen[cs]e|copying|notice|copyright|unlicense)([-._].*)?$", re.I)
 

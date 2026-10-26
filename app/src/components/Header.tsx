@@ -1,70 +1,89 @@
 import { useTranslation } from "react-i18next";
-import wordmark from "../../../assets/logo/disphas-wordmark-os.svg";
+import { Settings } from "lucide-react";
 import type { HelloResult } from "../bindings/HelloResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
-import { LANGUAGES, type Language } from "../i18n";
-import { Settings } from "lucide-react";
-import { Badge, Dot } from "./ui";
 
+export type View = "drives" | "jobs" | "history" | "verify";
+
+const VIEWS: View[] = ["drives", "jobs", "history", "verify"];
+
+/**
+ * Header shared by every tab (docs/maquettes/disphas-ecran-disques.md §3.1): the
+ * brand, the tabs, the state of the workstation and the settings. Language
+ * and theme live in the settings.
+ */
 export function Header({
   hello,
   mode,
   connected,
   license,
-  onLicense,
+  view,
+  onView,
   onSettings,
 }: {
   hello: HelloResult | null;
   mode: "tauri" | "preview" | "demo";
   connected: boolean;
   license: LicenseStatusResult | null;
-  onLicense: () => void;
+  view: View;
+  onView: (view: View) => void;
   onSettings: () => void;
 }) {
-  const { t, i18n } = useTranslation();
-  const helper = mode === "tauri" ? (connected ? "connected" : "disconnected") : mode;
+  const { t } = useTranslation();
   return (
-    <header className="flex items-center gap-4 border-b border-edge px-6 py-4">
-      <img src={wordmark} alt="disphas" className="h-6" />
-      {hello && <span className="font-mono text-xs text-ash">{t("header.rules", { version: hello.rules_version })}</span>}
-      <div className="ml-auto flex items-center gap-2">
-        <Badge tone="ready">
-          <Dot tone="ready" />
-          {t("header.offline")}
-        </Badge>
-        <Badge tone={helper === "connected" || helper === "demo" ? "brand" : helper === "preview" ? "blocked" : "sayno"}>
-          <Dot tone={helper === "connected" || helper === "demo" ? "brand" : helper === "preview" ? "blocked" : "sayno"} />
-          {t(`header.helper.${helper}`)}
-        </Badge>
-        {license && (
-          <button type="button" onClick={onLicense} className="cursor-pointer">
-            <Badge tone={license.state === "Valid" ? "ready" : "neutral"}>
-              {t(`header.license.${license.state}`)}
-            </Badge>
-          </button>
-        )}
+    <header className="topbar flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-edge px-8">
+      <div className="topbar-left flex min-w-0 items-center gap-8">
+        <span className="topbar-brand py-4 font-brand text-[26px] leading-none font-bold">Disphas</span>
+        <nav className="topbar-tabs flex gap-1 self-stretch overflow-x-auto" aria-label={t("nav.label")}>
+          {VIEWS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              aria-current={view === tab ? "page" : undefined}
+              onClick={() => onView(tab)}
+              className={`flex min-h-14 items-center border-b-2 px-3.5 whitespace-nowrap ${
+                view === tab ? "border-soft font-bold text-soft" : "border-transparent text-ash hover:text-soft"
+              }`}
+            >
+              {t(`nav.${tab}`)}
+            </button>
+          ))}
+        </nav>
+      </div>
+      <div className="topbar-right flex items-center gap-4">
+        <span className="topbar-status font-mono text-sm text-ash">
+          <Station hello={hello} mode={mode} connected={connected} license={license} />
+        </span>
         <button
           type="button"
           aria-label={t("settings.title")}
           title={t("settings.title")}
           onClick={onSettings}
-          className="rounded-md border border-edge p-1.5 text-ash hover:text-soft"
+          className="inline-flex size-11 items-center justify-center rounded text-soft hover:bg-card"
         >
-          <Settings size={14} />
+          <Settings size={18} aria-hidden="true" />
         </button>
-        <select
-          aria-label="Language"
-          className="rounded-md border border-edge bg-card py-1 pr-6 pl-2 text-xs text-ash"
-          value={i18n.language}
-          onChange={(event) => void i18n.changeLanguage(event.target.value as Language)}
-        >
-          {LANGUAGES.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang.toUpperCase()}
-            </option>
-          ))}
-        </select>
       </div>
     </header>
   );
+}
+
+/** "hors ligne · assistant connecté · licence active · règles 1.0.0". */
+export function Station({
+  hello,
+  mode,
+  connected,
+  license,
+}: {
+  hello: HelloResult | null;
+  mode: "tauri" | "preview" | "demo";
+  connected: boolean;
+  license: LicenseStatusResult | null;
+}) {
+  const { t } = useTranslation();
+  const helper = mode === "tauri" ? (connected ? "connected" : "disconnected") : mode;
+  const parts = [t("station.offline"), t(`station.helper.${helper}`)];
+  if (license) parts.push(t(`station.license.${license.state}`));
+  if (hello) parts.push(t("station.rules", { version: hello.rules_version }));
+  return <>{parts.join(" · ")}</>;
 }

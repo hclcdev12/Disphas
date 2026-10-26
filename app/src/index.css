@@ -1,50 +1,91 @@
 @import "tailwindcss";
 
-/* Charter fonts, embedded: the application never loads anything from the network. */
+/*
+ * Fonts of the disphas charter, embedded: the application never loads anything
+ * from the network. Klaudia only sets the word "Disphas" (docs/maquettes/disphas-ecran-disques.md §2).
+ */
 @font-face {
-  font-family: "Inter";
+  font-family: "Atkinson Hyperlegible Next";
   font-weight: 400;
-  src: url("../../assets/fonts/Inter-Regular-latin.ttf") format("truetype");
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-Regular-latin.ttf") format("truetype");
 }
+
 @font-face {
-  font-family: "Inter";
+  font-family: "Atkinson Hyperlegible Next";
   font-weight: 400;
-  src: url("../../assets/fonts/Inter-Regular-latin-ext.ttf") format("truetype");
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-Regular-latin-ext.ttf") format("truetype");
   unicode-range: U+0100-024F, U+1E00-1EFF;
 }
+
 @font-face {
-  font-family: "Inter";
-  font-weight: 700;
-  src: url("../../assets/fonts/Inter-Bold-latin.ttf") format("truetype");
+  font-family: "Atkinson Hyperlegible Next";
+  font-weight: 600;
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-SemiBold-latin.ttf") format("truetype");
 }
+
 @font-face {
-  font-family: "Inter";
-  font-weight: 700;
-  src: url("../../assets/fonts/Inter-Bold-latin-ext.ttf") format("truetype");
+  font-family: "Atkinson Hyperlegible Next";
+  font-weight: 600;
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-SemiBold-latin-ext.ttf") format("truetype");
   unicode-range: U+0100-024F, U+1E00-1EFF;
 }
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-weight: 700;
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-Bold-latin.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-weight: 700;
+  src: url("../../assets/fonts/AtkinsonHyperlegibleNext-Bold-latin-ext.ttf") format("truetype");
+  unicode-range: U+0100-024F, U+1E00-1EFF;
+}
+
 @font-face {
   font-family: "JetBrains Mono";
   font-weight: 400;
   src: url("../../assets/fonts/JetBrainsMono-Regular-latin.ttf") format("truetype");
 }
 
-/* Charter palette (docs/oblivio_charte_graphique.md). */
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  src: url("../../assets/fonts/JetBrainsMono-Regular-latin-ext.ttf") format("truetype");
+  unicode-range: U+0100-024F, U+1E00-1EFF;
+}
 
-  --color-night: #090d16;
-  --color-card: #111827;
-  --color-edge: #1f2937;
-  --color-soft: #f9fafb;
-  --color-ash: #9ca3af;
-  --color-ready: #10b981;
-  --color-sayno: #ef4444;
-  --color-brand: #6366f1;
-  /* BLOCKED: orange, to be added to the charter (cadre_projet.md §4). */
-  --color-blocked: #f59e0b;
-  --color-protected: #6b7280;
+@font-face {
+  font-family: "Klaudia";
+  font-weight: 700;
+  src: url("../../assets/fonts/klaudia/Klaudia-Bold.ttf") format("truetype");
+}
+
+/*
+ * Schiste theme, the dark one (docs/maquettes/disphas-ecran-disques.md §2). The
+ * token names predate it and are kept so every screen follows: night = page,
+ * card = surface, edge = separators, soft = text, ash = secondary text.
+ * There is no accent colour: "brand" is the text colour.
+ */
+@theme {
+  --font-sans: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-brand: "Klaudia", Georgia, serif;
+
+  --color-night: #1b1f21;
+  --color-card: #2c3337;
+  --color-edge: #4a5256;
+  --color-ctrl: #959c9a;
+  --color-soft: #eceae3;
+  --color-ash: #c9cabd;
+  --color-brand: #eceae3;
+  --color-ready: #6cc791;
+  --color-ready-fill: #2f7d4f;
+  --color-blocked: #e8b04a;
+  --color-sayno: #f0857c;
+  --color-sayno-fill: #b3261e;
+  --color-protected: #959c9a;
 }
 
 html,
@@ -55,6 +96,21 @@ body,
 
 body {
   @apply bg-night font-sans text-soft antialiased;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+/* Keyboard focus is always visible (docs/maquettes/disphas-ecran-disques.md §5). */
+:focus-visible {
+  outline: 3px solid var(--color-soft);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }
 
 /*
@@ -70,7 +126,7 @@ body {
 @layer base {
   select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c9cabd' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.5rem center;
     background-repeat: no-repeat;
     background-size: 0.875rem;
@@ -78,5 +134,117 @@ body {
   option {
     background-color: var(--color-card);
     color: var(--color-soft);
+  }
+}
+
+/*
+ * Disques tab, master / detail (docs/maquettes/disphas-ecran-disques.md §4):
+ * two columns above 760 px, one view at a time below.
+ */
+.drives-screen {
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+}
+.drives-list {
+  min-width: 0;
+}
+.drives-back,
+.drives-station {
+  display: none;
+}
+
+/* Method radio drawn by hand: green ring and dot when checked. */
+.method-radio {
+  appearance: none;
+  margin: 0;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-ctrl);
+  background: transparent;
+  cursor: pointer;
+}
+.method-radio:checked {
+  border-color: var(--color-ready);
+  background: var(--color-ready);
+  box-shadow: inset 0 0 0 3px var(--color-card);
+}
+
+@media (max-width: 1100px) {
+  .drives-screen {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  }
+  .drives-detail {
+    padding: 32px;
+  }
+  .drives-title {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    padding: 0 8px 0 16px;
+  }
+  .topbar-left {
+    display: contents;
+  }
+  .topbar-brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .topbar-right {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .topbar-tabs {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0 -8px 0 -16px;
+    padding: 0 8px;
+    border-top: 1px solid var(--color-edge);
+    scrollbar-width: none;
+  }
+  .topbar-status {
+    display: none;
+  }
+  .drives-screen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .drives-list {
+    border-right: 0;
+    padding: 16px 8px;
+  }
+  .drives-detail {
+    padding: 16px;
+    gap: 20px;
+  }
+  .drives-back {
+    display: inline-flex;
+  }
+  .drives-station {
+    display: block;
+  }
+  .drives-title {
+    font-size: 28px;
+  }
+  .drives-panel {
+    padding: 16px;
+  }
+  .drives-message {
+    font-size: 19px;
+  }
+  .drives-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
+  .drives-screen[data-view="list"] .drives-detail {
+    display: none;
+  }
+  .drives-screen[data-view="detail"] .drives-list {
+    display: none;
   }
 }

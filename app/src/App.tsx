@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, TriangleAlert, X } from "lucide-react";
 import type { Acknowledgement } from "./bindings/Acknowledgement";
 import type { HelloResult } from "./bindings/HelloResult";
 import type { InspectResult } from "./bindings/InspectResult";
@@ -13,20 +12,18 @@ import { LicenseDialog } from "./components/LicenseDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
 import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
-import { DriveCard, type EraseRequest } from "./components/DriveCard";
-import { Header } from "./components/Header";
+import { DrivesScreen, type BatchNotice, type EraseRequest } from "./components/DrivesScreen";
+import { Header, type View } from "./components/Header";
 import { HistoryScreen } from "./components/HistoryScreen";
 import { JobsScreen, type JobInfo } from "./components/JobsScreen";
-import { BatchBar, type BatchNotice } from "./components/BatchBar";
 import type { BatchArgs } from "./bindings/BatchArgs";
 import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
-import { Button, Mono } from "./components/ui";
 import { api, type HelperError, type Outcome, type Settings } from "./lib/api";
 import type { Language } from "./i18n";
 
 export default function App() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [hello, setHello] = useState<Outcome<HelloResult> | null>(null);
   const [devices, setDevices] = useState<Outcome<ListDevicesResult> | null>(null);
   const [inspections, setInspections] = useState<Record<string, Outcome<InspectResult>>>({});
@@ -49,7 +46,7 @@ export default function App() {
   }, [jobInfo]);
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
-  const [view, setView] = useState<"drives" | "jobs" | "history" | "verify">("drives");
+  const [view, setView] = useState<View>("drives");
   const [batch, setBatch] = useState<BatchArgs | null>(loadBatch);
   const [batchNotice, setBatchNotice] = useState<BatchNotice | null>(null);
   const [closingBatch, setClosingBatch] = useState(false);
@@ -232,118 +229,67 @@ export default function App() {
         mode={api.mode}
         connected={connected}
         license={license}
-        onLicense={() => setLicenseOpen(true)}
+        view={view}
+        onView={(tab) => {
+          setView(tab);
+          setOpenJob(null);
+        }}
         onSettings={() => setSettingsOpen(true)}
       />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
-        <>
-        <nav className="mb-5 flex gap-1 border-b border-edge">
-          {(["drives", "jobs", "history", "verify"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setView(tab);
-                setOpenJob(null);
-              }}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm font-bold ${
-                view === tab ? "border-brand text-soft" : "border-transparent text-ash hover:text-soft"
-              }`}
-            >
-              {t(`nav.${tab}`)}
-            </button>
-          ))}
-        </nav>
-        {view === "jobs" && openJob && jobInfo[openJob] ? (
-          <JobScreen
-            jobId={openJob}
-            model={jobInfo[openJob].model}
-            resumed={jobInfo[openJob].resumed}
-            hostWrite={jobInfo[openJob].hostWrite}
-            job={jobs[openJob] ?? emptyJob()}
-            onBack={() => setOpenJob(null)}
-          />
-        ) : view === "jobs" ? (
-          <JobsScreen jobs={jobs} info={jobInfo} onOpen={setOpenJob} />
-        ) : view === "history" ? (
-          <HistoryScreen labels={labels} />
-        ) : view === "verify" ? (
-          <VerifyScreen labels={labels} />
-        ) : (
-        <>
-        <div className="mb-4 flex items-center">
-          <h1 className="text-xl font-bold">{t("drives.title")}</h1>
-          <Button className="ml-auto flex items-center gap-2" onClick={() => void refresh()} disabled={!connected}>
-            <RefreshCw size={14} />
-            {t("drives.refresh")}
-          </Button>
-        </div>
-        {maxParallel !== undefined && (
-          <p className="mb-4 text-sm text-ash">
-            {maxParallel === null
-              ? t("drives.parallelUnlimited", { count: runningCount })
-              : t("drives.parallel", { count: runningCount, max: maxParallel })}
-          </p>
-        )}
-        {hello && !hello.ok && <p className="text-sayno">{t(`errors.${hello.error.code}`)}</p>}
-        <BatchBar
+      {view === "drives" ? (
+        <DrivesScreen
+          hello={hello}
+          mode={api.mode}
+          connected={connected}
+          license={license}
+          devices={devices}
+          inspections={inspections}
+          labels={labels}
+          runningCount={runningCount}
+          maxParallel={maxParallel}
+          runningOn={runningOn}
+          finishedOn={finishedOn}
+          interrupted={interrupted}
+          onDismissInterrupted={(id) => setInterrupted((current) => current.filter((job) => job.job_id !== id))}
           batch={batch}
-          onOpen={(next) => {
+          batchNotice={batchNotice}
+          closingBatch={closingBatch}
+          onOpenBatch={(next) => {
             changeBatch(next);
             setBatchNotice(null);
           }}
-          onClose={() => void closeBatch()}
-          closing={closingBatch}
-          notice={batchNotice}
+          onCloseBatch={() => void closeBatch()}
           onOpenPdf={(path) => void api.openCertificate(path)}
+          onRefresh={() => void refresh()}
+          onReinspect={(serial) => void reinspect(serial)}
+          onErase={setRequest}
+          onUnlock={setUnlocking}
+          onOpenJob={(id) => {
+            setView("jobs");
+            setOpenJob(id);
+          }}
+          onLicense={() => setLicenseOpen(true)}
         />
-        {interrupted.map((job) => (
-          <div
-            key={job.job_id}
-            className="mb-4 flex gap-3 rounded-lg border border-sayno/40 bg-sayno/10 p-4 text-sm"
-          >
-            <TriangleAlert size={16} className="mt-0.5 shrink-0 text-sayno" />
-            <div>
-              <p className="font-bold text-sayno">{t("jobs.interruptedTitle")}</p>
-              <p className="mt-1">
-                {job.device.identity.model} · S/N <Mono>{job.device.identity.serial}</Mono>
-              </p>
-              <p className="mt-1 text-ash">{t("jobs.interruptedHint")}</p>
-            </div>
-            <button
-              type="button"
-              aria-label={t("actions.dismiss")}
-              className="ml-auto self-start text-ash hover:text-soft"
-              onClick={() => setInterrupted((current) => current.filter((other) => other.job_id !== job.job_id))}
-            >
-              <X size={16} />
-            </button>
-          </div>
-        ))}
-        {devices?.ok && devices.value.devices.length === 0 && <p className="text-ash">{t("drives.empty")}</p>}
-        <div className="space-y-4">
-          {devices?.ok &&
-            devices.value.devices.map((summary) => (
-              <DriveCard
-                key={summary.device.identity.serial}
-                summary={summary}
-                inspection={inspections[summary.device.identity.serial]}
-                labels={labels}
-                onErase={setRequest}
-                onUnlock={setUnlocking}
-                running={runningOn(summary.device.identity.serial)}
-                finished={finishedOn(summary.device.identity.serial)}
-                onOpenJob={(id) => {
-                  setView("jobs");
-                  setOpenJob(id);
-                }}
-              />
-            ))}
-        </div>
-        </>
-        )}
-        </>
-      </main>
+      ) : (
+        <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
+          {view === "jobs" && openJob && jobInfo[openJob] ? (
+            <JobScreen
+              jobId={openJob}
+              model={jobInfo[openJob].model}
+              resumed={jobInfo[openJob].resumed}
+              hostWrite={jobInfo[openJob].hostWrite}
+              job={jobs[openJob] ?? emptyJob()}
+              onBack={() => setOpenJob(null)}
+            />
+          ) : view === "jobs" ? (
+            <JobsScreen jobs={jobs} info={jobInfo} onOpen={setOpenJob} />
+          ) : view === "history" ? (
+            <HistoryScreen labels={labels} />
+          ) : (
+            <VerifyScreen labels={labels} />
+          )}
+        </main>
+      )}
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}

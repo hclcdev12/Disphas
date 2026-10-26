@@ -5,7 +5,7 @@ import type { Acknowledgement } from "../bindings/Acknowledgement";
 import type { Disposition } from "../bindings/Disposition";
 import { requiredAcknowledgements } from "../lib/acknowledgements";
 import type { HelperError } from "../lib/api";
-import type { EraseRequest } from "./DriveCard";
+import type { EraseRequest } from "./DrivesScreen";
 import { Badge, Button, Mono } from "./ui";
 
 const REUSE: Disposition = { kind: "Reuse" };

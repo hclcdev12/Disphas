@@ -15,6 +15,7 @@ certificat d'audit signé Ed25519, 100 % offline.
 | [Certificat](docs/certificat.md) | Brouillon : format signé, statuts, chaîne de confiance, vérification |
 | [Licences en ligne](docs/licences_en_ligne.md) | Décidé, non implémenté : clé boutique, activation et renouvellement en ligne, contrôle des postes |
 | [Offres](docs/offres.md) | Décidé, non implémenté : niveaux d'offre, droits par offre (disques en parallèle, logo client), lots de travail |
+| [Maquette écran Disques](docs/maquettes/disphas-ecran-disques.md) | Référence de l'onglet Disques (liste et détail, thème Schiste), avec sa maquette HTML ; codée le 2026-10-26 |
 | [Site web](docs/site.md) | Validé, en cours : vitrine, espace client, Stripe, API de licences ; site autonome dans `site/` |
 | [Protocole UI ↔ helper](docs/protocole_ipc.md) | Frontière de sécurité : commandes, contrôles, événements, reprise |
 | [Manuel de l'opérateur](docs/manuel_operateur.md) | Installation, licence, effacement, lots, certificats, cas particuliers (installé dans `/usr/share/doc/disphas/`) |

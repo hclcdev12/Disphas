@@ -2,19 +2,20 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Tone = "ready" | "sayno" | "blocked" | "protected" | "brand" | "neutral";
 
+/** Status chips are filled; every other control is outlined (docs/maquettes/disphas-ecran-disques.md §2). */
 const toneClasses: Record<Tone, string> = {
-  ready: "border-ready/40 bg-ready/10 text-ready",
-  sayno: "border-sayno/40 bg-sayno/10 text-sayno",
-  blocked: "border-blocked/40 bg-blocked/10 text-blocked",
-  protected: "border-protected/50 bg-protected/15 text-ash",
-  brand: "border-brand/40 bg-brand/10 text-brand",
-  neutral: "border-edge bg-night text-ash",
+  ready: "border-ready-fill bg-ready-fill text-white",
+  sayno: "border-sayno-fill bg-sayno-fill text-white",
+  blocked: "border-blocked bg-blocked text-night",
+  protected: "border-ctrl text-ash",
+  brand: "border-ctrl text-soft",
+  neutral: "border-ctrl text-ash",
 };
 
 export function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-bold tracking-wide ${toneClasses[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 font-mono text-xs whitespace-nowrap ${toneClasses[tone]}`}
     >
       {children}
     </span>
@@ -33,13 +34,14 @@ export function Dot({ tone }: { tone: Tone }) {
   return <span className={`h-2 w-2 rounded-full ${color}`} />;
 }
 
-type Variant = "primary" | "danger" | "ghost";
+type Variant = "primary" | "danger" | "blocked" | "ghost";
 
+/** Buttons are never filled with colour: a 2 px outline, text in the colour of the action. */
 const variantClasses: Record<Variant, string> = {
-  // Indigo is reserved for main actions and safety confirmations (UI spec §5).
-  primary: "bg-brand text-white hover:bg-brand/85 disabled:bg-brand/30",
-  danger: "border border-sayno/60 text-sayno hover:bg-sayno/10 disabled:opacity-40",
-  ghost: "border border-edge text-ash hover:text-soft hover:border-ash/40",
+  primary: "border-2 border-soft text-soft hover:bg-card disabled:opacity-40",
+  danger: "border-2 border-sayno text-sayno hover:bg-card disabled:opacity-40",
+  blocked: "border-2 border-blocked text-blocked hover:bg-card disabled:opacity-40",
+  ghost: "border border-ctrl text-soft hover:bg-card disabled:opacity-40",
 };
 
 export function Button({
@@ -50,7 +52,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`rounded-lg px-3.5 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed ${variantClasses[variant]} ${className}`}
+      className={`min-h-11 rounded px-3.5 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed ${variantClasses[variant]} ${className}`}
       {...props}
     />
   );

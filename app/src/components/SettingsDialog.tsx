@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageUp, Trash2 } from "lucide-react";
 import { api, type Settings } from "../lib/api";
+import { LANGUAGES, type Language } from "../i18n";
 import { Button } from "./ui";
 
 /** Same bounds as the helper, which checks again before signing. */
@@ -37,7 +38,7 @@ export function SettingsDialog({
   onClose: () => void;
   onChanged: (settings: Settings) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const [organization, setOrganization] = useState(settings.organization ?? "");
@@ -90,6 +91,22 @@ export function SettingsDialog({
     >
       <h2 className="text-lg font-bold">{t("settings.title")}</h2>
       <p className="mt-1 text-sm text-ash">{t("settings.intro")}</p>
+
+      {/* Language moved here from the header (docs/maquettes/disphas-ecran-disques.md §3.1). */}
+      <label className="mt-4 block text-sm font-bold">
+        {t("settings.language")}
+        <select
+          className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-2 pr-8 font-normal"
+          value={i18n.language}
+          onChange={(event) => void i18n.changeLanguage(event.target.value as Language)}
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang} value={lang}>
+              {{ en: "English", fr: "Français", de: "Deutsch" }[lang]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="mt-4 block text-sm font-bold">
         {t("settings.organization")}

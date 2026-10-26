@@ -26,7 +26,49 @@
     "parallel_one": "{{count}} Löschvorgang läuft, {{max}} vom Angebot erlaubt",
     "parallel_other": "{{count}} Löschvorgänge laufen, {{max}} vom Angebot erlaubt",
     "parallelUnlimited_one": "{{count}} Löschvorgang läuft (keine Begrenzung)",
-    "parallelUnlimited_other": "{{count}} Löschvorgänge laufen (keine Begrenzung)"
+    "parallelUnlimited_other": "{{count}} Löschvorgänge laufen (keine Begrenzung)",
+    "count_one": "Laufwerke · {{count}}",
+    "count_other": "Laufwerke · {{count}}",
+    "meta": {
+      "limited_one": "{{count}} laufend · {{max}} gleichzeitig erlaubt",
+      "limited_other": "{{count}} laufend · {{max}} gleichzeitig erlaubt",
+      "unlimited_one": "{{count}} laufend · ohne Begrenzung",
+      "unlimited_other": "{{count}} laufend · ohne Begrenzung"
+    },
+    "outsideBatch": "Kein Los: Jede Löschung erhält ihr eigenes Zertifikat.",
+    "listLabel": "Angeschlossene Laufwerke",
+    "group": {
+      "ready": "Zu starten · {{count}}",
+      "blocked": "Zu entsperren · {{count}}",
+      "refus": "Abgelehnt · {{count}}",
+      "protected": "Geschützt · {{count}}",
+      "pending": "Noch ohne Entscheidung · {{count}}"
+    },
+    "chip": {
+      "ready": "Bereit",
+      "blocked": "Blockiert",
+      "refus": "Abgelehnt",
+      "protected": "Geschützt",
+      "pending": "Prüfung"
+    },
+    "row": {
+      "erase": "{{model}} löschen · {{category}}",
+      "unlock": "{{model}} entsperren",
+      "reinspect": "{{model}} erneut prüfen",
+      "force": "Löschung von {{model}} erzwingen",
+      "whyRefused": "Warum {{model}} abgelehnt ist",
+      "whyProtected": "Warum {{model}} geschützt ist",
+      "viewJob": "Löschung von {{model}} anzeigen",
+      "inspecting": "{{model}} wird geprüft",
+      "running": "Löschung läuft"
+    },
+    "back": "Laufwerke",
+    "backLabel": "Zurück zur Laufwerksliste",
+    "erase": "Löschen",
+    "withReserves": "Zertifikat mit Vorbehalten",
+    "withoutReserves": "Zertifikat ohne Vorbehalt",
+    "reinspect": "Erneut prüfen",
+    "licenseUntil": "{{offer}} · bis {{until}}"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -42,7 +84,7 @@
     "SAY_NO": "SAY NO"
   },
   "verdict": {
-    "recommendation": "disphas-Entscheidung",
+    "recommendation": "Entscheidung von Disphas",
     "recommended": "Empfohlene Methode",
     "alternatives": "Weitere zulässige Methoden",
     "category": "Kategorie",
@@ -53,11 +95,14 @@
     "reserves": "Vorbehalte",
     "reasons": "Gründe",
     "none": "keine",
-    "protectedHint": "disphas wird dieses Laufwerk nicht anrühren.",
-    "blockedHint": "Das Laufwerk ist intakt, erfordert aber zuerst eine Aktion des Bedieners.",
-    "sayNoHint": "Die Löschung dieses Laufwerks ist nicht nachweisbar. Die physische Vernichtung ist erforderlich.",
-    "forcible": "Erzwingen ist möglich: Überschreiben durch den Host, höchstens Clear, als NICHT KONFORM zertifiziert.",
-    "reservesLine": "Vorbehalte: {{list}}"
+    "protectedHint": "Disphas rührt dieses Laufwerk nicht an.",
+    "blockedHint": "Laufwerk in Ordnung, eine Aktion des Bedieners ist nötig.",
+    "sayNoHint": "Die Löschung kann nicht nachgewiesen werden. Physische Vernichtung erforderlich.",
+    "forcible": "Erzwingen möglich: Überschreiben durch den Rechner, auf Clear begrenzt, Zertifikat NON CONFORME.",
+    "reservesLine": "Vorbehalte: {{list}}",
+    "recommendedShort": "empfohlen",
+    "destroyNote": "Zertifizierbare Löschung, aber physische Vernichtung empfohlen: {{reason}}.",
+    "reserveNote": "Vorbehalt im Zertifikat: {{reason}}."
   },
   "protect": {
     "P1": "Systemlaufwerk (/, /boot oder EFI)",
@@ -233,7 +278,8 @@
     "drives": "Laufwerke",
     "history": "Verlauf",
     "verify": "Prüfen",
-    "jobs": "Löschungen"
+    "jobs": "Löschungen",
+    "label": "Bereiche"
   },
   "history": {
     "title": "Verlauf der Bescheinigungen",
@@ -351,7 +397,8 @@
     "pdfSaved": "Los {{batch}} geschlossen. Loszertifikat gespeichert in",
     "closedEmpty": "Los {{batch}} ohne Löschung geschlossen: kein Loszertifikat.",
     "pdfFailed": "Das Zertifikat des Loses {{batch}} konnte nicht erstellt werden; das Los bleibt offen.",
-    "empty": "Keine geprüfte Bescheinigung in diesem Los."
+    "empty": "Keine geprüfte Bescheinigung in diesem Los.",
+    "alreadyOpen": "Ein Los ist bereits geöffnet"
   },
   "settings": {
     "title": "Einstellungen",
@@ -373,6 +420,25 @@
     "logoKept": "Das bereits gespeicherte Logo bleibt erhalten und wird mit einem Angebot, das es enthält, wieder verwendet.",
     "saved": "Einstellungen gespeichert.",
     "save": "Speichern",
-    "close": "Schließen"
+    "close": "Schließen",
+    "language": "Sprache"
+  },
+  "station": {
+    "offline": "offline",
+    "helper": {
+      "connected": "Helfer verbunden",
+      "preview": "Browser-Vorschau",
+      "demo": "Demo · fiktive Laufwerke",
+      "disconnected": "Helfer nicht verfügbar"
+    },
+    "license": {
+      "Missing": "keine Lizenz",
+      "Valid": "Lizenz aktiv",
+      "Expired": "Lizenz abgelaufen",
+      "Revoked": "Lizenz widerrufen",
+      "NotYetValid": "Lizenz noch nicht gültig",
+      "Invalid": "Lizenz ungültig"
+    },
+    "rules": "Regeln {{version}}"
   }
 }
