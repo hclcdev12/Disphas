@@ -60,7 +60,9 @@
       "whyProtected": "Warum {{model}} geschützt ist",
       "viewJob": "Löschung von {{model}} anzeigen",
       "inspecting": "{{model}} wird geprüft",
-      "running": "Löschung läuft"
+      "running": "Löschung läuft",
+      "startsIn_one": "Startet in {{count}} s",
+      "startsIn_other": "Startet in {{count}} s"
     },
     "back": "Laufwerke",
     "backLabel": "Zurück zur Laufwerksliste",
@@ -139,21 +141,19 @@
   "confirm": {
     "title": "Löschung bestätigen",
     "forceTitle": "Löschung erzwingen",
-    "irreversible": "Dieser Vorgang ist unumkehrbar. Alle Daten auf diesem Laufwerk werden vernichtet.",
-    "method": "Methode:",
-    "acknowledge": "Ich habe zur Kenntnis genommen:",
-    "serial": "Geben Sie die letzten 4 Zeichen der Seriennummer ein",
     "justification": "Begründung (erforderlich, mindestens 20 Zeichen)",
     "justificationCount": "{{count}} Zeichen",
     "submit": "Endgültig löschen",
     "submitForce": "Erzwingen und als nicht konform zertifizieren",
-    "sent": "Anfrage an den Helper übermittelt.",
     "refused": "Der Helper hat die Anfrage abgelehnt:",
     "zeroPass": "Mit einem Durchgang mit Nullen abschließen",
     "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es.",
     "justificationPrivacy": "Dieser Text wird unverändert in die Bescheinigung signiert, die danach nicht mehr geändert werden kann: Geben Sie keine personenbezogenen Daten ein (Name eines Mitarbeiters, Inhalt des Laufwerks…).",
     "signedAs": "Signiert im Namen von: Bediener {{operator}} · Organisation {{organization}} (änderbar in den Einstellungen)",
-    "notSet": "nicht angegeben"
+    "notSet": "nicht angegeben",
+    "scan": "Seriennummer des Laufwerks",
+    "scanPlaceholder": "Etikett scannen oder die letzten 4 Zeichen eingeben",
+    "scanMismatch": "Stimmt nicht mit der Seriennummer dieses Laufwerks überein."
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"
@@ -242,12 +242,14 @@
       "NON_CONFORME": "Erzwungene Löschung: physische Vernichtung erforderlich.",
       "REFUS": "Die Löschung konnte nicht nachgewiesen werden: physische Vernichtung erforderlich."
     },
-    "export": "Signiertes PDF-Zertifikat exportieren",
     "exporting": "Wird erstellt…",
     "saved": "Gespeichert unter",
     "open": "Öffnen",
     "back": "Zurück zu den Löschungen",
-    "resumed": "Diese Löschung wurde nach einem unerwarteten Abbruch von disphas fortgesetzt: Das Laufwerk hat sie selbstständig weitergeführt, disphas prüft jetzt das Ergebnis."
+    "resumed": "Diese Löschung wurde nach einem unerwarteten Abbruch von disphas fortgesetzt: Das Laufwerk hat sie selbstständig weitergeführt, disphas prüft jetzt das Ergebnis.",
+    "openCertificate": "Zertifikat öffnen",
+    "pdfFailed": "Das Zertifikat konnte nicht gespeichert werden.",
+    "retryPdf": "Erneut versuchen"
   },
   "unlock": {
     "title": "Laufwerk entsperren",
@@ -421,7 +423,9 @@
     "saved": "Einstellungen gespeichert.",
     "save": "Speichern",
     "close": "Schließen",
-    "language": "Sprache"
+    "language": "Sprache",
+    "strict": "Strenger Modus: Seriennummer vor jeder Löschung",
+    "strictHint": "Standardmäßig startet eine Löschung nach 10 Sekunden, in denen sie abgebrochen werden kann (Esc). Im strengen Modus wartet sie auf die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen."
   },
   "station": {
     "offline": "offline",
@@ -440,5 +444,11 @@
       "Invalid": "Lizenz ungültig"
     },
     "rules": "Regeln {{version}}"
+  },
+  "launch": {
+    "starting_one": "Löschung von {{model}} in {{count}} s",
+    "starting_other": "Löschung von {{model}} in {{count}} s",
+    "cancel": "Abbrechen",
+    "refused": "{{model}}: Löschung vom Helfer abgelehnt"
   }
 }

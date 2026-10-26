@@ -3,6 +3,7 @@
 //! relays, but never touches a device and never decides.
 
 mod certificate;
+mod drives;
 mod helper;
 mod history;
 mod settings;
@@ -269,6 +270,15 @@ fn set_logo(data: String, app: tauri::AppHandle) -> Result<settings::Settings, S
     settings::set_logo(&config_dir(&app)?, &bytes)
 }
 
+/// Turns the strict confirmation mode on or off.
+#[tauri::command]
+fn set_strict_confirmation(
+    enabled: bool,
+    app: tauri::AppHandle,
+) -> Result<settings::Settings, String> {
+    settings::set_strict_confirmation(&config_dir(&app)?, enabled)
+}
+
 /// Removes the customer's logo.
 #[tauri::command]
 fn clear_logo(app: tauri::AppHandle) -> Result<settings::Settings, String> {
@@ -331,6 +341,10 @@ pub fn run() {
                 eprintln!("disphas-app: {reason}");
             }
             app.manage(HelperState(helper));
+            let handle = app.handle().clone();
+            drives::watch(move || {
+                let _ = handle.emit("disphas://drives-changed", ());
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -345,7 +359,8 @@ pub fn run() {
             get_settings,
             save_settings,
             set_logo,
-            clear_logo
+            clear_logo,
+            set_strict_confirmation
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {

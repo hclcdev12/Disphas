@@ -29,6 +29,11 @@ pub struct Settings {
     pub operator: Option<String>,
     /// Format of the stored logo: `png` or `svg`.
     pub logo: Option<String>,
+    /// Strict mode: each erasure waits for the serial number read on the
+    /// drive (scanned or typed) instead of the cancellation delay
+    /// (`docs/cadre_projet.md` §5.4).
+    #[serde(default)]
+    pub strict_confirmation: bool,
 }
 
 fn settings_file(dir: &Path) -> PathBuf {
@@ -78,6 +83,14 @@ pub fn save(
     let mut settings = load(dir);
     settings.organization = field(organization, MAX_ORGANIZATION_CHARS, "organization")?;
     settings.operator = field(operator, MAX_OPERATOR_CHARS, "operator")?;
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Turns the strict confirmation mode on or off.
+pub fn set_strict_confirmation(dir: &Path, enabled: bool) -> Result<Settings, String> {
+    let mut settings = load(dir);
+    settings.strict_confirmation = enabled;
     store(dir, &settings)?;
     Ok(settings)
 }

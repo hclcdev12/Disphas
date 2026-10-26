@@ -1,24 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TriangleAlert } from "lucide-react";
-import type { Acknowledgement } from "../bindings/Acknowledgement";
 import type { Disposition } from "../bindings/Disposition";
 import { requiredAcknowledgements } from "../lib/acknowledgements";
 import type { HelperError } from "../lib/api";
 import type { EraseRequest } from "./DrivesScreen";
-import { Badge, Button, Mono } from "./ui";
+import { Badge, Button } from "./ui";
 
 const REUSE: Disposition = { kind: "Reuse" };
 
+/** Shortest justification of a forced erasure, as the helper requires. */
+const MIN_JUSTIFICATION = 20;
+
 /**
- * Safety guard before an erasure (cadre_projet.md §5.4): the operator types the
- * last four characters of the serial number, acknowledges every warning and,
- * when forcing, writes a justification. The helper checks all of it again.
+ * The erasures that still need a dialog (docs/cadre_projet.md §5.4): forcing
+ * a refused drive (a written justification, signed into a NON CONFORME
+ * certificate), and every erasure in strict mode, where the serial number is
+ * read on the drive, scanned in full or its last four characters typed. An
+ * ordinary erasure starts after a cancellation delay instead. The helper
+ * checks everything again.
  */
 export function ConfirmDialog({
   request,
   labels,
   signer,
+  strict,
   onCancel,
   onConfirm,
 }: {
@@ -26,36 +32,30 @@ export function ConfirmDialog({
   labels: Record<string, string>;
   /** Operator and organization signed into the certificate (Settings). */
   signer: { operator: string | null; organization: string | null };
+  /** Strict mode: the serial number read on the drive is required. */
+  strict: boolean;
   onCancel: () => void;
-  onConfirm: (input: {
-    confirmation: string;
-    acknowledged: Acknowledgement[];
-    justification: string | null;
-    zeroPass: boolean;
-  }) => Promise<HelperError | null>;
+  onConfirm: (input: { confirmation: string | null; justification: string | null }) => Promise<HelperError | null>;
 }) {
   const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
   const [confirmation, setConfirmation] = useState("");
-  const [checked, setChecked] = useState<Set<Acknowledgement>>(new Set());
   const [justification, setJustification] = useState("");
   const [busy, setBusy] = useState(false);
-  const [zeroPass, setZeroPass] = useState(false);
-  const [answer, setAnswer] = useState<HelperError | "sent" | null>(null);
+  const [error, setError] = useState<HelperError | null>(null);
 
   const { inspection, choice, forced } = request;
+  const serial = inspection.device.identity.serial;
   const verdict = inspection.verdict;
   const disposition = verdict.state === "READY" ? verdict.disposition : REUSE;
   const warnings = requiredAcknowledgements(choice, disposition);
   const label = (code: string) => (labels[code] ? `${labels[code]} (${code})` : code);
-  const warningText = (code: Acknowledgement) => (code === "NS_ALL" ? t("scope.NS_ALL") : label(code));
+  const warningText = (code: string) => (code === "NS_ALL" ? t("scope.NS_ALL") : label(code));
 
-  // The serial number is never shown in full here: the operator reads it on the drive.
-  const ready =
-    confirmation.length === 4 &&
-    warnings.every((warning) => checked.has(warning)) &&
-    (!forced || justification.trim().length >= 20) &&
-    !busy;
+  // A scanner types the whole serial number then Enter; by hand, the last four characters do.
+  const typed = confirmation.trim();
+  const serialOk = !strict || typed === serial || (typed.length === 4 && typed === serial.slice(-4));
+  const ready = serialOk && (!forced || justification.trim().length >= MIN_JUSTIFICATION) && !busy;
 
   useEffect(() => {
     const element = dialog.current;
@@ -63,23 +63,15 @@ export function ConfirmDialog({
     return () => element?.close();
   }, []);
 
-  const toggle = (warning: Acknowledgement) =>
-    setChecked((current) => {
-      const next = new Set(current);
-      if (next.has(warning)) next.delete(warning);
-      else next.add(warning);
-      return next;
-    });
-
   const submit = async () => {
+    if (!ready) return;
     setBusy(true);
-    const error = await onConfirm({
-      confirmation,
-      acknowledged: [...checked],
+    setError(null);
+    const answer = await onConfirm({
+      confirmation: strict ? typed : null,
       justification: forced ? justification : null,
-      zeroPass: choice.method === "HostOverwrite" && zeroPass,
     });
-    setAnswer(error ?? "sent");
+    setError(answer);
     setBusy(false);
   };
 
@@ -87,92 +79,77 @@ export function ConfirmDialog({
     <dialog
       ref={dialog}
       onCancel={onCancel}
-      className="m-auto w-[34rem] max-w-[92vw] rounded-lg border border-edge bg-card p-6 text-soft backdrop:bg-black/70"
+      className="m-auto w-[36rem] max-w-[92vw] rounded-lg border border-ctrl bg-card p-6 text-soft backdrop:bg-black/70"
     >
-      <h2 className="text-lg font-bold">{forced ? t("confirm.forceTitle") : t("confirm.title")}</h2>
-      <p className="mt-1 text-sm text-ash">
-        {inspection.device.identity.model} · {inspection.device.node_hint && <Mono>{inspection.device.node_hint}</Mono>}
+      <h2 className="text-xl font-bold">{forced ? t("confirm.forceTitle") : t("confirm.title")}</h2>
+      <p className="mt-1 text-ash">
+        {inspection.device.identity.model} · s/n <span className="font-mono">{serial}</span>
       </p>
-      <div className="mt-4 flex gap-2 rounded-md border border-sayno/40 bg-sayno/10 p-3 text-sm text-sayno">
-        <TriangleAlert size={16} className="mt-0.5 shrink-0" />
-        {t("confirm.irreversible")}
-      </div>
 
-      <p className="mt-4 text-sm">
-        {t("confirm.method")} <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
-        {label(choice.method)}
+      <p className="mt-4">
+        <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
+        {labels[choice.method] ?? choice.method}
       </p>
-      <p className="mt-2 text-xs text-ash">
+      <p className="mt-1 text-sm text-ash">
         {t("confirm.signedAs", {
           operator: signer.operator ?? t("confirm.notSet"),
           organization: signer.organization ?? t("confirm.notSet"),
         })}
       </p>
-      {choice.method === "HostOverwrite" && (
-        <label className="mt-2 flex cursor-pointer items-start gap-2 text-sm text-ash">
-          <input
-            type="checkbox"
-            className="mt-1 accent-brand"
-            checked={zeroPass}
-            onChange={(event) => setZeroPass(event.target.checked)}
-          />
-          <span>
-            {t("confirm.zeroPass")}
-            <span className="block text-xs">{t("confirm.zeroPassHint")}</span>
-          </span>
-        </label>
-      )}
 
       {warnings.length > 0 && (
-        <fieldset className="mt-4">
-          <legend className="text-sm font-bold">{t("confirm.acknowledge")}</legend>
+        <ul className="mt-4 flex flex-col gap-2">
           {warnings.map((warning) => (
-            <label key={warning} className="mt-1.5 flex cursor-pointer items-start gap-2 text-sm text-ash">
-              <input
-                type="checkbox"
-                className="mt-1 accent-brand"
-                checked={checked.has(warning)}
-                onChange={() => toggle(warning)}
-              />
+            <li key={warning} className="flex items-start gap-2.5 rounded-md border border-ctrl px-3 py-2 text-sm">
+              <TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
               {warningText(warning)}
-            </label>
+            </li>
           ))}
-        </fieldset>
+        </ul>
       )}
 
       {forced && (
-        <label className="mt-4 block text-sm font-bold">
+        <label className="mt-4 block font-bold">
           {t("confirm.justification")}
           <textarea
-            className="mt-1.5 block h-20 w-full rounded-md border border-edge bg-night p-2 text-sm font-normal"
+            className="mt-1.5 block h-24 w-full rounded border border-ctrl bg-night p-2 font-normal"
             maxLength={500}
             value={justification}
             onChange={(event) => setJustification(event.target.value)}
+            autoFocus={!strict}
           />
-          <span className="text-xs font-normal text-ash">
+          <span className="text-sm font-normal text-ash">
             {t("confirm.justificationCount", { count: justification.trim().length })}
           </span>
-          <span className="block text-xs font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
+          <span className="block text-sm font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
         </label>
       )}
 
-      <label className="mt-4 block text-sm font-bold">
-        {t("confirm.serial")}
-        <input
-          className="mt-1.5 block w-32 rounded-md border border-edge bg-night px-2 py-1.5 text-center font-mono tracking-[0.4em]"
-          maxLength={4}
-          autoComplete="off"
-          spellCheck={false}
-          value={confirmation}
-          onChange={(event) => setConfirmation(event.target.value)}
-        />
-      </label>
+      {strict && (
+        <label className="mt-4 block font-bold">
+          {t("confirm.scan")}
+          <input
+            className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-mono font-normal"
+            autoComplete="off"
+            spellCheck={false}
+            autoFocus
+            placeholder={t("confirm.scanPlaceholder")}
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void submit();
+            }}
+          />
+          {typed.length > 0 && !serialOk && (
+            <span className="text-sm font-normal text-sayno">{t("confirm.scanMismatch")}</span>
+          )}
+        </label>
+      )}
 
-      {answer === "sent" && <p className="mt-4 text-sm text-ready">{t("confirm.sent")}</p>}
-      {answer && answer !== "sent" && (
+      {error && (
         <p className="mt-4 text-sm text-sayno">
-          {t("confirm.refused")} {t(`errors.${answer.code}`, { defaultValue: answer.code })}
-          {answer.detail && <span className="block font-mono text-xs text-ash">{answer.detail}</span>}
+          {t("confirm.refused")} {t(`errors.${error.code}`, { defaultValue: error.code })}
+          {error.detail && <span className="block font-mono text-xs text-ash">{error.detail}</span>}
         </p>
       )}
 

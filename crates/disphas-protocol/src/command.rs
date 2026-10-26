@@ -149,8 +149,10 @@ pub struct SanitizeArgs {
     pub device: DeviceRef,
     /// Method to execute; `None` for the recommended one.
     pub method: Option<Method>,
-    /// Last four characters of the serial number, typed by the operator.
-    pub confirmation: String,
+    /// Serial number read on the drive in strict mode (scanned in full, or
+    /// its last four characters typed); `None` when the app relies on its
+    /// cancellation delay instead (`docs/cadre_projet.md` §5.4, protocol 3).
+    pub confirmation: Option<String>,
     /// Warnings the operator acknowledged.
     pub acknowledged: Vec<Acknowledgement>,
     /// Present only to force a SAY NO verdict.

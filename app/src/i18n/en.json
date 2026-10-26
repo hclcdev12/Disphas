@@ -60,7 +60,9 @@
       "whyProtected": "See why {{model}} is protected",
       "viewJob": "View the erasure of {{model}}",
       "inspecting": "Inspecting {{model}}",
-      "running": "Erasure in progress"
+      "running": "Erasure in progress",
+      "startsIn_one": "Starts in {{count}} s",
+      "startsIn_other": "Starts in {{count}} s"
     },
     "back": "Drives",
     "backLabel": "Back to the drive list",
@@ -139,21 +141,19 @@
   "confirm": {
     "title": "Confirm the erasure",
     "forceTitle": "Force the erasure",
-    "irreversible": "This operation is irreversible. All data on this drive will be destroyed.",
-    "method": "Method:",
-    "acknowledge": "I have read and acknowledge:",
-    "serial": "Type the last 4 characters of the serial number",
     "justification": "Justification (required, at least 20 characters)",
     "justificationCount": "{{count}} characters",
     "submit": "Erase permanently",
     "submitForce": "Force and certify non-compliant",
-    "sent": "Request sent to the helper.",
     "refused": "The helper refused the request:",
     "zeroPass": "Finish with a pass of zeros",
     "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so.",
     "justificationPrivacy": "This text is signed as typed into the certificate, which can no longer be changed: do not enter personal data (an employee's name, the drive's contents…).",
     "signedAs": "Signed on behalf of: operator {{operator}} · organization {{organization}} (change in Settings)",
-    "notSet": "not set"
+    "notSet": "not set",
+    "scan": "Serial number of the drive",
+    "scanPlaceholder": "Scan the label, or type the last 4 characters",
+    "scanMismatch": "Does not match the serial number of this drive."
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"
@@ -242,12 +242,14 @@
       "NON_CONFORME": "Forced erasure: physical destruction required.",
       "REFUS": "The erasure could not be proven: physical destruction required."
     },
-    "export": "Export the signed PDF certificate",
     "exporting": "Rendering…",
     "saved": "Saved to",
     "open": "Open",
     "back": "Back to erasures",
-    "resumed": "This erasure was resumed after disphas stopped unexpectedly: the drive carried on by itself, disphas is now checking the result."
+    "resumed": "This erasure was resumed after disphas stopped unexpectedly: the drive carried on by itself, disphas is now checking the result.",
+    "openCertificate": "Open the certificate",
+    "pdfFailed": "The certificate could not be saved.",
+    "retryPdf": "Retry"
   },
   "unlock": {
     "title": "Unlock the drive",
@@ -421,7 +423,9 @@
     "saved": "Settings saved.",
     "save": "Save",
     "close": "Close",
-    "language": "Language"
+    "language": "Language",
+    "strict": "Strict mode: serial number before each erasure",
+    "strictHint": "By default, an erasure starts after 10 seconds during which it can be cancelled (Escape). In strict mode, it waits for the serial number read on the drive: barcode scanner, or the last 4 characters typed."
   },
   "station": {
     "offline": "offline",
@@ -440,5 +444,11 @@
       "Invalid": "license invalid"
     },
     "rules": "rules {{version}}"
+  },
+  "launch": {
+    "starting_one": "Erasing {{model}} in {{count}} s",
+    "starting_other": "Erasing {{model}} in {{count}} s",
+    "cancel": "Cancel",
+    "refused": "{{model}}: erasure refused by the helper"
   }
 }

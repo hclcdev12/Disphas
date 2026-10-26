@@ -24,4 +24,4 @@ pub use wire::{MAX_MESSAGE_BYTES, Request, Response, ServerMessage};
 /// Version of this protocol, exchanged in `Hello`.
 ///
 /// 2 (2026-10-20): `LicenseStatusResult.entitlements`, `PARALLEL_LIMIT`.
-pub const PROTOCOL_VERSION: u32 = 2;
+pub const PROTOCOL_VERSION: u32 = 3;

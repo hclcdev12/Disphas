@@ -378,7 +378,7 @@ mod tests {
                 verdict_id: VerdictId("b2f1".to_owned()),
                 device: device(),
                 method: Some(Method::NvmeSanitizeBlockErase),
-                confirmation: "4567".to_owned(),
+                confirmation: Some("4567".to_owned()),
                 acknowledged: vec![
                     Acknowledgement::Disposition(DispositionCode::ReallocatedAboveThreshold),
                     Acknowledgement::Scope(ScopeWarning::AllNamespaces),

@@ -78,6 +78,13 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     la fenêtre Licence, sans compteur d'effacements (O5) ; la langue passe dans les Paramètres. À reporter dans
     `DESIGN.md` (dossier de marque) : vert pour « prêt / recommandée », ambre pour « à débloquer ». Restent :
     autres onglets, thème clair Registre, icônes de l'application, site ;
+  - **revue UX du 2026-10-26** (validée par le propriétaire) : étape 1 codée le 2026-10-26, protocole 3 —
+    effacement lancé sans saisie après un délai d'annulation de 10 s (mode strict en option : n° de série scanné
+    ou 4 derniers caractères), avertissements validés d'un clic, plus de saut vers l'onglet Effacements,
+    certificat PDF enregistré automatiquement à la fin de chaque effacement, liste des disques suivie toute seule
+    (l'app lit `/sys/block` et ne demande un inventaire au helper que quand un disque apparaît ou disparaît).
+    Étape 2 : sélection multiple et « Effacer N disques », notification de fin. Étape 3 : Historique, Vérifier,
+    assistant de premier lancement ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

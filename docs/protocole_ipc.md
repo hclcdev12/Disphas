@@ -86,7 +86,7 @@ Avant toute action, le helper retrouve le disque **par son identité**. Si l'ide
 
 | Commande | Arguments | Résultat |
 |---|---|---|
-| `Hello` | version du protocole, version de l'app | version du helper, `rules_version`, SHA-256 du binaire, état de licence. Versions incompatibles → `PROTOCOL_MISMATCH`. Version **2** depuis le 2026-10-20 (droits par offre, `PARALLEL_LIMIT`) : l'app et le helper d'un même paquet parlent la même version |
+| `Hello` | version du protocole, version de l'app | version du helper, `rules_version`, SHA-256 du binaire, état de licence. Versions incompatibles → `PROTOCOL_MISMATCH`. Version **2** depuis le 2026-10-20 (droits par offre, `PARALLEL_LIMIT`), **3** depuis le 2026-10-26 (`confirmation` facultative, contrôle 4) : l'app et le helper d'un même paquet parlent la même version |
 | `ListDevices` | — | Disques avec identité, taille, type et état rapide (PROTÉGÉ, etc.) |
 | `Inspect` | `device` | Profil complet + **verdict** + `verdict_id` (valable 10 min) + méthodes autorisées |
 | `Unlock` | `device`, mot de passe ATA | Déverrouillage d'un disque *Locked* (état BLOQUÉ B2). Le mot de passe n'est jamais journalisé et est effacé de la mémoire après usage |
@@ -112,7 +112,7 @@ Le déblocage d'un disque *Frozen* (B1) passe par une mise en veille, déclench�
   "verdict_id": "b2f1…",
   "device": { "node_hint": "/dev/nvme0n1", "identity": { … } },
   "method": null,                          // null = méthode recommandée ; sinon une des méthodes autorisées
-  "confirmation": "4567",                  // 4 derniers caractères du S/N, saisis par l'opérateur
+  "confirmation": null,                    // mode strict : S/N lu sur le disque (entier, ou ses 4 derniers caractères) ; sinon null
   "acknowledged": ["D4", "R4", "NS_ALL"],  // avertissements dont l'opérateur a pris acte
   "force": null,                           // ou {"justification": "…"} — uniquement sur SAY NO
   "operator": "J. Martin", "organization": "Atelier XYZ"   // déclaratifs, inscrits tels quels
@@ -124,8 +124,9 @@ Le helper contrôle, **dans cet ordre**, et refuse au premier échec :
 1. `verdict_id` connu et non expiré → sinon `VERDICT_EXPIRED`.
 2. Identité relue sur le disque = identité du verdict → sinon `DEVICE_CHANGED`.
 3. Protections réévaluées (montages, swap, volumes…) → sinon `PROTECTED`.
-4. `confirmation` = 4 derniers caractères du S/N → sinon `CONFIRMATION_MISMATCH` ; un disque sans S/N
-   (vide ou blanc) ne peut jamais être confirmé.
+4. Un disque sans S/N (vide ou blanc) n'est jamais effacé, et une `confirmation` présente (mode strict) vaut le
+   S/N entier ou ses 4 derniers caractères → sinon `CONFIRMATION_MISMATCH`. `confirmation` absente : l'app a
+   appliqué son délai d'annulation ([cadre](cadre_projet.md) §5.4, protocole 3, 2026-10-26).
 5. `acknowledged` couvre **tous** les avertissements du verdict → sinon `ACK_MISSING`.
 6. `method` ∈ méthodes autorisées par le verdict → sinon `VERDICT_MISMATCH`.
 7. `force` présent seulement si verdict SAY NO, justification ≥ 20 caractères → sinon `FORCE_NOT_ALLOWED`.

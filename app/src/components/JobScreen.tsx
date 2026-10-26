@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, FileText, History, LoaderCircle, TriangleAlert, XCircle } from "lucide-react";
 import type { JobPhase } from "../bindings/JobPhase";
-import { api, type HelperError } from "../lib/api";
+import { api } from "../lib/api";
+import type { PdfState } from "../lib/launch";
 import type { JobView } from "../lib/jobs";
-import type { Language } from "../i18n";
 import { Badge, Button, Mono } from "./ui";
 
 const PHASES: JobPhase[] = ["Preparing", "Canaries", "Executing", "Verifying", "Validating", "Signing", "Done"];
@@ -26,6 +26,8 @@ export function JobScreen({
   model,
   resumed = false,
   hostWrite = false,
+  pdf,
+  onRetryPdf,
   onBack,
 }: {
   jobId: string;
@@ -35,12 +37,12 @@ export function JobScreen({
   resumed?: boolean;
   /** A host overwrite has no canaries step. */
   hostWrite?: boolean;
+  /** Certificate rendered automatically when the job ended. */
+  pdf: PdfState | undefined;
+  onRetryPdf: () => void;
   onBack: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [exporting, setExporting] = useState(false);
-  const [saved, setSaved] = useState<string | null>(null);
-  const [error, setError] = useState<HelperError | null>(null);
   // Only the steps this method goes through: a host overwrite writes no canaries.
   const phases = hostWrite ? PHASES.filter((phase) => phase !== "Canaries") : PHASES;
   const current = phases.indexOf(job.phase);
@@ -60,15 +62,6 @@ export function JobScreen({
     return () => window.clearInterval(timer);
   }, [estimate]);
   const elapsed = estimate !== null && job.progressAt !== null ? Math.max(0, Math.floor((now - job.progressAt) / 1000)) : 0;
-
-  const exportPdf = async () => {
-    setExporting(true);
-    setError(null);
-    const result = await api.renderCertificate(jobId, i18n.language as Language);
-    if (result.ok) setSaved(result.value);
-    else setError(result.error);
-    setExporting(false);
-  };
 
   const tone = job.status === "CONFORME" ? "ready" : "sayno";
   return (
@@ -166,26 +159,30 @@ export function JobScreen({
             <Badge tone={tone}>{t(`job.status.${job.status}`)}</Badge>
             <span className="text-sm">{t(`job.statusHint.${job.status}`)}</span>
           </div>
+          {/* The certificate is saved as soon as the erasure ends. */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button variant="primary" className="flex items-center gap-2" disabled={exporting} onClick={() => void exportPdf()}>
-              <FileText size={15} />
-              {exporting ? t("job.exporting") : t("job.export")}
-            </Button>
-            {saved && (
+            {(pdf === undefined || pdf.kind === "rendering") && <span className="text-sm text-ash">{t("job.exporting")}</span>}
+            {pdf?.kind === "saved" && (
               <>
+                <Button variant="primary" className="flex items-center gap-2" onClick={() => void api.openCertificate(pdf.path)}>
+                  <FileText size={15} aria-hidden="true" />
+                  {t("job.openCertificate")}
+                </Button>
                 <span className="text-xs text-ash">
-                  {t("job.saved")} <Mono>{saved}</Mono>
+                  {t("job.saved")} <Mono>{pdf.path}</Mono>
                 </span>
-                <Button onClick={() => void api.openCertificate(saved)}>{t("job.open")}</Button>
+              </>
+            )}
+            {pdf?.kind === "failed" && (
+              <>
+                <span className="text-sm text-sayno">
+                  {t("job.pdfFailed")} {t(`errors.${pdf.error.code}`, { defaultValue: pdf.error.code })}
+                  {pdf.error.detail && <span className="block font-mono text-xs text-ash">{pdf.error.detail}</span>}
+                </span>
+                <Button onClick={onRetryPdf}>{t("job.retryPdf")}</Button>
               </>
             )}
           </div>
-          {error && (
-            <p className="mt-2 text-sm text-sayno">
-              {t(`errors.${error.code}`, { defaultValue: error.code })}
-              {error.detail && <span className="block font-mono text-xs text-ash">{error.detail}</span>}
-            </p>
-          )}
         </div>
       )}
 

@@ -10,7 +10,7 @@
       "valid_until": null,
       "entitlements": null
     },
-    "protocol_version": 2,
+    "protocol_version": 3,
     "rules_version": "1.0.0"
   },
   "devices": [

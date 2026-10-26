@@ -147,7 +147,13 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
 3. **Forçage d'un disque Say NO** : justification obligatoire, niveau plafonné à *Clear*,
    certificat marqué **« NON CONFORME — Destruction physique requise »** avec la justification.
    Ne peut jamais afficher *Purge* ni *Clear conforme*.
-4. **Confirmation liée au disque** : saisie des 4 derniers **caractères** du numéro de série. Pas de mot-clé fixe.
+4. **Confirmation d'un effacement** (révisé le 2026-10-26, décision du propriétaire, revue UX) : par défaut, un
+   effacement démarre après un **délai d'annulation de 10 s**, affiché avec le disque, la méthode et les
+   avertissements, annulable (bouton ou Échap) ; plus de saisie. **Mode strict** en option (Paramètres) : le
+   numéro de série lu sur le disque est exigé, scanné en entier (douchette code-barres) ou ses 4 derniers
+   **caractères** tapés. Le forçage d'un disque Say NO garde sa fenêtre et sa justification (règle 3). La saisie
+   n'a jamais été une barrière de sécurité (le n° de série est affiché) : elle protégeait d'une erreur de disque,
+   ce que font le délai d'annulation et le mode strict.
 5. **Tout refus produit un rapport signé** (rapport de refus).
 6. **Traçabilité des sources** : chaque donnée du rapport indique sa provenance (firmware / source secondaire).
 

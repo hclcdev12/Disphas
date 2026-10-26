@@ -135,6 +135,24 @@ export function SettingsDialog({
       </label>
       {tooLong && <p className="mt-2 text-xs text-sayno">{t("settings.tooLong")}</p>}
 
+      {/* Strict mode (docs/cadre_projet.md §5.4): the serial number read on the drive before each erasure. */}
+      <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1 size-4 accent-soft"
+          checked={settings.strict_confirmation}
+          onChange={async (event) => {
+            const result = await api.setStrictConfirmation(event.target.checked);
+            if (result.ok) onChanged(result.value);
+            else setError(result.error.detail ?? result.error.code);
+          }}
+        />
+        <span>
+          <span className="font-bold">{t("settings.strict")}</span>
+          <span className="block text-xs text-ash">{t("settings.strictHint")}</span>
+        </span>
+      </label>
+
       <div className="mt-5 text-sm">
         <p className="font-bold">{t("settings.logo")}</p>
         {!logoAllowed && (

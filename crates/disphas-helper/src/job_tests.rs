@@ -465,9 +465,7 @@ fn sanitize(
         verdict_id: inspection.verdict_id.clone(),
         device: inspection.device.clone(),
         method,
-        confirmation: inspection.device.identity.serial
-            [inspection.device.identity.serial.len() - 4..]
-            .to_owned(),
+        confirmation: None,
         acknowledged,
         force: None,
         operator: Some("J. Martin".to_owned()),

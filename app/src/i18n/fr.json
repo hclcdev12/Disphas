@@ -60,7 +60,9 @@
       "whyProtected": "Voir pourquoi {{model}} est protégé",
       "viewJob": "Voir l’effacement de {{model}}",
       "inspecting": "Inspection de {{model}} en cours",
-      "running": "Effacement en cours"
+      "running": "Effacement en cours",
+      "startsIn_one": "Démarre dans {{count}} s",
+      "startsIn_other": "Démarre dans {{count}} s"
     },
     "back": "Disques",
     "backLabel": "Retour à la liste des disques",
@@ -139,21 +141,19 @@
   "confirm": {
     "title": "Confirmer l'effacement",
     "forceTitle": "Forcer l'effacement",
-    "irreversible": "Cette opération est irréversible. Toutes les données de ce disque seront détruites.",
-    "method": "Méthode :",
-    "acknowledge": "J'ai pris connaissance de :",
-    "serial": "Tapez les 4 derniers caractères du numéro de série",
     "justification": "Justification (obligatoire, 20 caractères minimum)",
     "justificationCount": "{{count}} caractères",
     "submit": "Effacer définitivement",
     "submitForce": "Forcer et certifier non conforme",
-    "sent": "Demande transmise au helper.",
     "refused": "Le helper a refusé la demande :",
     "zeroPass": "Terminer par une passe de zéros",
     "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique.",
     "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…).",
     "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (modifiable dans Réglages)",
-    "notSet": "non renseigné"
+    "notSet": "non renseigné",
+    "scan": "N° de série du disque",
+    "scanPlaceholder": "Scannez l’étiquette, ou tapez les 4 derniers caractères",
+    "scanMismatch": "Ne correspond pas au n° de série de ce disque."
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
@@ -242,12 +242,14 @@
       "NON_CONFORME": "Effacement forcé : destruction physique requise.",
       "REFUS": "L'effacement n'a pas pu être prouvé : destruction physique requise."
     },
-    "export": "Exporter le certificat PDF signé",
     "exporting": "Rendu en cours…",
     "saved": "Enregistré dans",
     "open": "Ouvrir",
     "back": "Retour aux effacements",
-    "resumed": "Cet effacement a été repris après un arrêt inattendu de disphas : le disque l'a poursuivi seul, disphas en vérifie maintenant le résultat."
+    "resumed": "Cet effacement a été repris après un arrêt inattendu de disphas : le disque l'a poursuivi seul, disphas en vérifie maintenant le résultat.",
+    "openCertificate": "Ouvrir le certificat",
+    "pdfFailed": "Le certificat n’a pas pu être enregistré.",
+    "retryPdf": "Réessayer"
   },
   "unlock": {
     "title": "Déverrouiller le disque",
@@ -421,7 +423,9 @@
     "saved": "Réglages enregistrés.",
     "save": "Enregistrer",
     "close": "Fermer",
-    "language": "Langue"
+    "language": "Langue",
+    "strict": "Mode strict : n° de série avant chaque effacement",
+    "strictHint": "Par défaut, un effacement démarre après 10 secondes pendant lesquelles il peut être annulé (Échap). En mode strict, il attend le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés."
   },
   "station": {
     "offline": "hors ligne",
@@ -440,5 +444,11 @@
       "Invalid": "licence invalide"
     },
     "rules": "règles {{version}}"
+  },
+  "launch": {
+    "starting_one": "Effacement de {{model}} dans {{count}} s",
+    "starting_other": "Effacement de {{model}} dans {{count}} s",
+    "cancel": "Annuler",
+    "refused": "{{model}} : effacement refusé par l’assistant"
   }
 }

@@ -26,6 +26,7 @@ import type { HelperError, Outcome } from "../lib/api";
 import { newBatchId } from "../lib/batch";
 import { capacity } from "../lib/format";
 import type { JobView } from "../lib/jobs";
+import type { PdfState } from "../lib/launch";
 import { Station } from "./Header";
 import { JobProgress } from "./JobsScreen";
 import { Badge, Button, Mono } from "./ui";
@@ -35,6 +36,8 @@ export type EraseRequest = {
   inspection: InspectResult;
   choice: MethodChoice;
   forced: boolean;
+  /** Host overwrite only: a final pass of zeros, for an inconspicuous drive. */
+  zeroPass?: boolean;
 };
 
 /** What closing the batch produced. */
@@ -122,6 +125,10 @@ export function DrivesScreen(props: {
   onRefresh: () => void;
   onReinspect: (serial: string) => void;
   onErase: (request: EraseRequest) => void;
+  /** Milliseconds left before each waiting erasure starts, by serial number. */
+  pending: Record<string, number>;
+  /** Certificate of a finished job, rendered automatically. */
+  pdfOf: (jobId: string) => PdfState | undefined;
   onUnlock: (inspection: InspectResult) => void;
   onOpenJob: (id: string) => void;
   onLicense: () => void;
@@ -132,6 +139,7 @@ export function DrivesScreen(props: {
   const [picked, setPicked] = useState<string | null>(null);
   // Method chosen per verdict: a new inspection starts again from the recommended one.
   const [methods, setMethods] = useState<Record<string, number>>({});
+  const [zeroPass, setZeroPass] = useState<Record<string, boolean>>({});
   const [view, setView] = useState<"list" | "detail">("list");
   const [editingBatch, setEditingBatch] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -190,8 +198,10 @@ export function DrivesScreen(props: {
     const verdict = value.verdict;
     switch (verdict.state) {
       case "READY": {
+        if (props.pending[serial] !== undefined) return;
         const choice = chosen(value);
-        if (choice) props.onErase({ inspection: value, choice, forced: false });
+        if (choice)
+          props.onErase({ inspection: value, choice, forced: false, zeroPass: zeroPass[value.verdict_id] ?? false });
         return;
       }
       case "BLOCKED":
@@ -231,6 +241,8 @@ export function DrivesScreen(props: {
   /** Second line of a row: the method, or the reason with its codes. */
   const rowLine = (drive: DeviceSummary): string => {
     const serial = serialOf(drive);
+    const waiting = props.pending[serial];
+    if (waiting !== undefined) return t("drives.row.startsIn", { count: Math.max(0, Math.ceil(waiting / 1000)) });
     const running = props.runningOn(serial);
     if (running) {
       const percent = running.job.progress?.percent;
@@ -371,7 +383,7 @@ export function DrivesScreen(props: {
                     type="button"
                     aria-label={actionText}
                     title={actionText}
-                    disabled={group === "ready" && !props.connected}
+                    disabled={group === "ready" && (!props.connected || props.pending[serial] !== undefined)}
                     onClick={() => act(drive)}
                     className={`inline-flex size-11 shrink-0 items-center justify-center rounded-md disabled:opacity-40 ${actionTone[group]}`}
                   >
@@ -436,6 +448,11 @@ export function DrivesScreen(props: {
             onUnlock={props.onUnlock}
             onReinspect={props.onReinspect}
             onOpenJob={props.onOpenJob}
+            waiting={props.pending[serialOf(selected)]}
+            pdfOf={props.pdfOf}
+            onOpenPdf={props.onOpenPdf}
+            zeroPass={(id) => zeroPass[id] ?? false}
+            onZeroPass={(id, value) => setZeroPass((current) => ({ ...current, [id]: value }))}
             language={i18n.language}
           />
         )}
@@ -459,6 +476,11 @@ function Detail({
   onUnlock,
   onReinspect,
   onOpenJob,
+  waiting,
+  pdfOf,
+  onOpenPdf,
+  zeroPass,
+  onZeroPass,
   language,
 }: {
   drive: DeviceSummary;
@@ -475,6 +497,11 @@ function Detail({
   onUnlock: (inspection: InspectResult) => void;
   onReinspect: (serial: string) => void;
   onOpenJob: (id: string) => void;
+  waiting: number | undefined;
+  pdfOf: (jobId: string) => PdfState | undefined;
+  onOpenPdf: (path: string) => void;
+  zeroPass: (verdictId: string) => boolean;
+  onZeroPass: (verdictId: string, value: boolean) => void;
   language: string;
 }) {
   const { t } = useTranslation();
@@ -526,6 +553,7 @@ function Detail({
           <span>{t("jobs.lastErasure")}</span>
           <Badge tone={finished.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${finished.status}`)}</Badge>
           <span className="w-full text-ash">{t("jobs.lastErasureHint")}</span>
+          <PdfButton pdf={pdfOf(finished.id)} onOpenPdf={onOpenPdf} />
           <Button onClick={() => onOpenJob(finished.id)}>{t("jobs.view")}</Button>
         </div>
       )}
@@ -552,6 +580,9 @@ function Detail({
           connected={connected}
           index={choiceIndex(inspection.value.verdict_id)}
           onChoose={(index) => onChoose(inspection.value.verdict_id, index)}
+          waiting={waiting}
+          zeroPass={zeroPass(inspection.value.verdict_id)}
+          onZeroPass={(value) => onZeroPass(inspection.value.verdict_id, value)}
           name={name}
           reasonText={reasonText}
           onErase={onErase}
@@ -573,11 +604,17 @@ function Verdict({
   onErase,
   onUnlock,
   onReinspect,
+  waiting,
+  zeroPass,
+  onZeroPass,
 }: {
   inspection: InspectResult;
   connected: boolean;
   index: number;
   onChoose: (index: number) => void;
+  waiting: number | undefined;
+  zeroPass: boolean;
+  onZeroPass: (value: boolean) => void;
   name: (code: string) => string;
   reasonText: (inspection: InspectResult, code: string) => string;
   onErase: (request: EraseRequest) => void;
@@ -628,6 +665,20 @@ function Verdict({
               </label>
             ))}
           </fieldset>
+          {choice.method === "HostOverwrite" && (
+            <label className="flex cursor-pointer items-start gap-3 px-1 text-ash">
+              <input
+                type="checkbox"
+                className="mt-1.5 size-4 accent-soft"
+                checked={zeroPass}
+                onChange={(event) => onZeroPass(event.target.checked)}
+              />
+              <span>
+                {t("confirm.zeroPass")}
+                <span className="block text-sm">{t("confirm.zeroPassHint")}</span>
+              </span>
+            </label>
+          )}
           {destroy.map((code) => (
             <Note key={code} code={code} text={t("verdict.destroyNote", { reason: name(code) })} />
           ))}
@@ -637,12 +688,14 @@ function Verdict({
           <Actions>
             <button
               type="button"
-              disabled={!connected}
-              onClick={() => onErase({ inspection, choice, forced: false })}
+              disabled={!connected || waiting !== undefined}
+              onClick={() => onErase({ inspection, choice, forced: false, zeroPass })}
               className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
             >
               <Play size={16} fill="currentColor" aria-hidden="true" />
-              {t("drives.erase")}
+              {waiting === undefined
+                ? t("drives.erase")
+                : t("drives.row.startsIn", { count: Math.max(0, Math.ceil(waiting / 1000)) })}
             </button>
             <span className="text-[15px] text-ash">
               {name(choice.method)} ·{" "}
@@ -706,6 +759,19 @@ function Verdict({
         />
       );
   }
+}
+
+/** Opens the certificate saved when the erasure ended, or says why there is none. */
+function PdfButton({ pdf, onOpenPdf }: { pdf: PdfState | undefined; onOpenPdf: (path: string) => void }) {
+  const { t } = useTranslation();
+  if (!pdf) return null;
+  if (pdf.kind === "rendering") return <span className="text-ash">{t("job.exporting")}</span>;
+  if (pdf.kind === "failed") return <span className="text-sayno">{t("job.pdfFailed")}</span>;
+  return (
+    <Button variant="primary" onClick={() => onOpenPdf(pdf.path)}>
+      {t("job.openCertificate")}
+    </Button>
+  );
 }
 
 function Panel({

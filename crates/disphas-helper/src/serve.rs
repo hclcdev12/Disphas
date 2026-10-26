@@ -201,7 +201,7 @@ mod tests {
             .collect()
     }
 
-    const HELLO: &str = r#"{"type":"request","id":1,"cmd":"Hello","args":{"protocol_version":2,"app_version":"test"}}"#;
+    const HELLO: &str = r#"{"type":"request","id":1,"cmd":"Hello","args":{"protocol_version":3,"app_version":"test"}}"#;
 
     #[test]
     fn answers_each_request_in_order_and_stops_at_end_of_input() {

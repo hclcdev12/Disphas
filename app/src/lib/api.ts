@@ -93,7 +93,13 @@ export type VerificationReport = {
 };
 
 /** Operator settings (app/src-tauri/src/settings.rs). */
-export type Settings = { organization: string | null; operator: string | null; logo: string | null };
+export type Settings = {
+  organization: string | null;
+  operator: string | null;
+  logo: string | null;
+  /** Each erasure waits for the serial number read on the drive (docs/cadre_projet.md §5.4). */
+  strict_confirmation: boolean;
+};
 
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
 export type HelperError = { code: string; detail: string | null };
@@ -134,6 +140,9 @@ export interface DisphasApi {
   saveSettings(organization: string, operator: string): Promise<Outcome<Settings>>;
   setLogo(data: string): Promise<Outcome<Settings>>;
   clearLogo(): Promise<Outcome<Settings>>;
+  setStrictConfirmation(enabled: boolean): Promise<Outcome<Settings>>;
+  /** Called when a drive is plugged in or out; returns the unsubscribe function. */
+  onDrivesChanged(handler: () => void): Promise<() => void>;
   /** Renders and saves the batch certificate of a batch from the history. */
   renderBatch(batchId: string, lang: Language): Promise<Outcome<string | null>>;
   /** Verifies a certificate (PDF, COSE or QR text, base64), fully offline. */
@@ -167,7 +176,7 @@ async function settingsCall(command: string, args: Record<string, unknown>): Pro
 }
 
 /** Must equal `PROTOCOL_VERSION` of `disphas-protocol`: the helper refuses any other. */
-const PROTOCOL_VERSION = 2;
+const PROTOCOL_VERSION = 3;
 
 const tauriApi: DisphasApi = {
   mode: "tauri",
@@ -201,10 +210,17 @@ const tauriApi: DisphasApi = {
     }
   },
   getSettings: () =>
-    invoke<Settings>("get_settings").catch(() => ({ organization: null, operator: null, logo: null })),
+    invoke<Settings>("get_settings").catch(() => ({
+      organization: null,
+      operator: null,
+      logo: null,
+      strict_confirmation: false,
+    })),
   saveSettings: (organization, operator) => settingsCall("save_settings", { organization, operator }),
   setLogo: (data) => settingsCall("set_logo", { data }),
   clearLogo: () => settingsCall("clear_logo", {}),
+  setStrictConfirmation: (enabled) => settingsCall("set_strict_confirmation", { enabled }),
+  onDrivesChanged: (handler) => listen("disphas://drives-changed", () => handler()),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
   renderBatch: async (batchId, lang) => {
     try {
@@ -248,10 +264,12 @@ const previewApi: DisphasApi = {
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
   deleteReports: async () => unavailable,
-  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null }),
+  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false }),
   saveSettings: async () => unavailable,
   setLogo: async () => unavailable,
   clearLogo: async () => unavailable,
+  setStrictConfirmation: async () => unavailable,
+  onDrivesChanged: async () => () => {},
   // The browser cannot verify: shows a fictional verified report, for layout only.
   verifyCertificate: async () => previewVerification.report as VerificationReport,
   codeLabels: async (lang) => (previewLabels as Record<Language, Record<string, string>>)[lang],

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Acknowledgement } from "./bindings/Acknowledgement";
 import type { HelloResult } from "./bindings/HelloResult";
 import type { InspectResult } from "./bindings/InspectResult";
 import type { JobSummary } from "./bindings/JobSummary";
@@ -21,17 +20,34 @@ import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
 import { api, type HelperError, type Outcome, type Settings } from "./lib/api";
 import type { Language } from "./i18n";
+import { requiredAcknowledgements } from "./lib/acknowledgements";
+import { CANCEL_DELAY_MS, type LaunchError, type Pending, type PdfState } from "./lib/launch";
+import { LaunchBar } from "./components/LaunchBar";
 
 export default function App() {
   const { i18n } = useTranslation();
   const [hello, setHello] = useState<Outcome<HelloResult> | null>(null);
   const [devices, setDevices] = useState<Outcome<ListDevicesResult> | null>(null);
   const [inspections, setInspections] = useState<Record<string, Outcome<InspectResult>>>({});
+  const inspectionsRef = useRef(inspections);
+  useEffect(() => {
+    inspectionsRef.current = inspections;
+  }, [inspections]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [request, setRequest] = useState<EraseRequest | null>(null);
+  // Erasures waiting for their cancellation delay, and failed launches to show.
+  const [pending, setPending] = useState<Pending[]>([]);
+  const [launchErrors, setLaunchErrors] = useState<LaunchError[]>([]);
+  // Certificate of each finished job, rendered as soon as it ends (or why not).
+  const [pdfs, setPdfs] = useState<Record<string, PdfState>>({});
   const [license, setLicense] = useState<LicenseStatusResult | null>(null);
   const [licenseOpen, setLicenseOpen] = useState(false);
-  const [settings, setSettings] = useState<Settings>({ organization: null, operator: null, logo: null });
+  const [settings, setSettings] = useState<Settings>({
+    organization: null,
+    operator: null,
+    logo: null,
+    strict_confirmation: false,
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     void api.getSettings().then(setSettings);
@@ -97,18 +113,60 @@ export default function App() {
     reinspectRef.current = reinspect;
   }, [reinspect]);
 
+  const renderPdf = useCallback(
+    async (id: string) => {
+      setPdfs((current) => ({ ...current, [id]: { kind: "rendering" } }));
+      const result = await api.renderCertificate(id, i18n.language as Language);
+      setPdfs((current) => ({
+        ...current,
+        [id]: result.ok ? { kind: "saved", path: result.value } : { kind: "failed", error: result.error },
+      }));
+    },
+    [i18n.language],
+  );
+  const renderPdfRef = useRef(renderPdf);
+  useEffect(() => {
+    renderPdfRef.current = renderPdf;
+  }, [renderPdf]);
+
   // Subscribed before any Sanitize, so no job event is ever missed. A finished
   // erasure changes its drive: it is inspected again.
   useEffect(() => {
     const unsubscribe = api.onEvent((event) => {
       setJobs((current) => applyEvent(current, event));
       if (event.event === "JobFinished") {
-        const info = jobInfoRef.current[event.data.job_id];
+        const id = event.data.job_id;
+        const info = jobInfoRef.current[id];
         if (info) void reinspectRef.current(info.serial);
+        // The certificate is saved at once, in the language shown now.
+        void renderPdfRef.current(id);
       }
     });
     return () => void unsubscribe.then((stop) => stop());
   }, []);
+
+  // Drives plugged in or out: new ones are inspected, the others keep their verdict.
+  const follow = useCallback(async () => {
+    const listed = await api.listDevices();
+    setDevices(listed);
+    if (!listed.ok) return;
+    const serials = new Set(listed.value.devices.map((summary) => summary.device.identity.serial));
+    const known = inspectionsRef.current;
+    setInspections((current) =>
+      Object.fromEntries(Object.entries(current).filter(([serial]) => serials.has(serial))),
+    );
+    for (const summary of listed.value.devices) {
+      const serial = summary.device.identity.serial;
+      if (known[serial]?.ok) continue;
+      const inspection = await api.inspect(summary.device);
+      setInspections((current) => ({ ...current, [serial]: inspection }));
+    }
+  }, []);
+  useEffect(() => {
+    if (!(hello?.ok ?? false)) return;
+    const unsubscribe = api.onDrivesChanged(() => void follow());
+    return () => void unsubscribe.then((stop) => stop());
+  }, [hello, follow]);
 
   const refresh = useCallback(async () => {
     setInspections({});
@@ -161,27 +219,28 @@ export default function App() {
     void api.codeLabels(i18n.language as Language).then(setLabels);
   }, [i18n.language]);
 
-  const confirm = async (input: {
-    confirmation: string;
-    acknowledged: Acknowledgement[];
-    justification: string | null;
-    zeroPass: boolean;
-  }): Promise<HelperError | null> => {
-    if (!request) return null;
+  /** Sends one erasure to the helper; the helper checks everything again. */
+  const start = async (
+    erase: EraseRequest,
+    input: { confirmation: string | null; justification: string | null },
+  ): Promise<HelperError | null> => {
+    const verdict = erase.inspection.verdict;
+    const disposition = verdict.state === "READY" ? verdict.disposition : { kind: "Reuse" as const };
     const result = await api.sanitize({
-      verdict_id: request.inspection.verdict_id,
-      device: request.inspection.device,
-      method: request.choice.method,
+      verdict_id: erase.inspection.verdict_id,
+      device: erase.inspection.device,
+      method: erase.choice.method,
       confirmation: input.confirmation,
-      acknowledged: input.acknowledged,
+      // The warnings were on screen when the operator launched the erasure.
+      acknowledged: requiredAcknowledgements(erase.choice, disposition),
       force: input.justification === null ? null : { justification: input.justification },
       operator: settings.operator,
       organization: settings.organization,
       batch,
-      zero_pass: input.zeroPass,
+      zero_pass: erase.choice.method === "HostOverwrite" && (erase.zeroPass ?? false),
     });
     if (!result.ok) return result.error;
-    const { model, serial } = request.inspection.device.identity;
+    const { model, serial } = erase.inspection.device.identity;
     setJobInfo((current) => ({
       ...current,
       [result.value.job_id]: {
@@ -189,16 +248,81 @@ export default function App() {
         serial,
         resumed: false,
         batch: batch?.id ?? null,
-        hostWrite: request.choice.method === "HostOverwrite",
+        hostWrite: erase.choice.method === "HostOverwrite",
       },
     }));
-    setRequest(null);
-    setOpenJob(null);
-    // In a batch the operator chains drives: stay on the list, each card shows
-    // its own progress. A single erasure opens the Erasures tab.
-    if (!batch) setView("jobs");
+    // The operator stays on the list: each drive shows its own progress.
     return null;
   };
+
+  /**
+   * An erasure asked for from the Disques tab. By default it starts after a
+   * cancellation delay, nothing to type; forcing a refused drive, or the
+   * strict mode, goes through the confirmation dialog (cadre_projet.md §5.4).
+   */
+  const launch = (erase: EraseRequest) => {
+    if (erase.forced || settings.strict_confirmation) {
+      setRequest(erase);
+      return;
+    }
+    const serial = erase.inspection.device.identity.serial;
+    setLaunchErrors((current) => current.filter((error) => error.serial !== serial));
+    // Called from a click, never while rendering.
+    const at = Date.now(); // oxlint-disable-line react/purity
+    setNow(at);
+    setPending((current) => [
+      ...current.filter((other) => other.serial !== serial),
+      { serial, erase, deadline: at + CANCEL_DELAY_MS },
+    ]);
+  };
+  const pendingRef = useRef(pending);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  const cancelPending = (serial: string) => {
+    // The ref first: a tick right now must not send a cancelled erasure.
+    pendingRef.current = pendingRef.current.filter((other) => other.serial !== serial);
+    setPending((current) => current.filter((other) => other.serial !== serial));
+  };
+
+  // Every quarter second: the countdown is redrawn, and erasures whose delay is over are sent.
+  const [now, setNow] = useState(() => Date.now());
+  const startRef = useRef(start);
+  useEffect(() => {
+    startRef.current = start;
+  });
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const timer = window.setInterval(() => {
+      const tick = Date.now();
+      setNow(tick);
+      const due = pendingRef.current.filter((entry) => entry.deadline <= tick);
+      if (due.length === 0) return;
+      pendingRef.current = pendingRef.current.filter((entry) => entry.deadline > tick);
+      setPending((current) => current.filter((entry) => entry.deadline > tick));
+      for (const entry of due) {
+        void startRef.current(entry.erase, { confirmation: null, justification: null }).then((error) => {
+          if (error) {
+            const { model, serial } = entry.erase.inspection.device.identity;
+            setLaunchErrors((current) => [...current, { serial, model, error }]);
+          }
+        });
+      }
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [pending.length]);
+
+  // Escape cancels the most recent launch still waiting.
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || document.querySelector("dialog[open]")) return;
+      const last = pending[pending.length - 1];
+      if (last) cancelPending(last.serial);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pending]);
 
   /** The erasure in progress on a drive, if any. */
   const runningOn = (serial: string) => {
@@ -262,7 +386,9 @@ export default function App() {
           onOpenPdf={(path) => void api.openCertificate(path)}
           onRefresh={() => void refresh()}
           onReinspect={(serial) => void reinspect(serial)}
-          onErase={setRequest}
+          onErase={launch}
+          pending={Object.fromEntries(pending.map((entry) => [entry.serial, entry.deadline - now]))}
+          pdfOf={(id) => pdfs[id]}
           onUnlock={setUnlocking}
           onOpenJob={(id) => {
             setView("jobs");
@@ -279,6 +405,8 @@ export default function App() {
               resumed={jobInfo[openJob].resumed}
               hostWrite={jobInfo[openJob].hostWrite}
               job={jobs[openJob] ?? emptyJob()}
+              pdf={pdfs[openJob]}
+              onRetryPdf={() => void renderPdf(openJob)}
               onBack={() => setOpenJob(null)}
             />
           ) : view === "jobs" ? (
@@ -290,6 +418,14 @@ export default function App() {
           )}
         </main>
       )}
+      <LaunchBar
+        pending={pending}
+        now={now}
+        errors={launchErrors}
+        labels={labels}
+        onCancel={cancelPending}
+        onDismiss={(serial) => setLaunchErrors((current) => current.filter((error) => error.serial !== serial))}
+      />
       {licenseOpen && license && (
         <LicenseDialog status={license} onClose={() => setLicenseOpen(false)} onChanged={setLicense} />
       )}
@@ -312,8 +448,13 @@ export default function App() {
           request={request}
           labels={labels}
           signer={{ operator: settings.operator, organization: settings.organization }}
+          strict={settings.strict_confirmation}
           onCancel={() => setRequest(null)}
-          onConfirm={confirm}
+          onConfirm={async (input) => {
+            const error = await start(request, input);
+            if (!error) setRequest(null);
+            return error;
+          }}
         />
       )}
     </div>

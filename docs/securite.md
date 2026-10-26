@@ -57,8 +57,9 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
 - **Clé boutique volée** (dès les licences en ligne) : le faussaire peut dater ses licences et certificats avant la
   révocation de l'émetteur, de même que `iat` est déclaré par le poste ([licences en ligne](licences_en_ligne.md) §7).
 - **A1 et le pipe** : un programme du même compte qui contrôle le processus de l'application peut envoyer
-  des commandes au helper pendant la session. Le helper exige alors toujours la confirmation par le n° de
-  série et applique toutes ses protections ; il ne peut pas effacer un disque protégé ni signer un faux
+  des commandes au helper pendant la session. Le helper applique alors toutes ses protections (la confirmation
+  par le n° de série, facultative depuis le protocole 3, n'a jamais arrêté ce cas : le n° de série est lisible
+  par `ListDevices`) ; il ne peut pas effacer un disque protégé ni signer un faux
   résultat, mais il peut effacer un disque **non protégé** branché. Réduction : `kernel.yama.ptrace_scope ≥ 1`
   (valeur constatée sur Pop!_OS 24.04 ; à vérifier sur chaque distribution cible), session dédiée à l'opérateur.
 - **Logo du client contrôlé par l'application seulement** ([offres](offres.md) §4.5, Q3) : le PDF est rendu par

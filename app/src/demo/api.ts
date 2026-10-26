@@ -93,7 +93,7 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null } as Settings,
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -244,7 +244,10 @@ function sanitize(args: SanitizeArgs): Outcome<{ job_id: string }> {
   const choice = choiceOf(verdict, args.method, forced);
   if (!choice) return fail(forced ? "FORCE_NOT_ALLOWED" : "VERDICT_MISMATCH");
   if (forced && (args.force?.justification.trim().length ?? 0) < 20) return fail("FORCE_NOT_ALLOWED");
-  if (args.confirmation.trim().toUpperCase() !== serial.slice(-4).toUpperCase()) return fail("CONFIRMATION_MISMATCH");
+  // Same rule as the helper (check 4): optional, else the whole serial number or its last four characters.
+  const typed = args.confirmation?.trim().toUpperCase();
+  if (typed !== undefined && typed !== serial.toUpperCase() && typed !== serial.slice(-4).toUpperCase())
+    return fail("CONFIRMATION_MISMATCH");
   const acknowledged = new Set<string>(args.acknowledged);
   if (requiredAcks(verdict, choice).some((ack) => !acknowledged.has(ack))) return fail("ACK_MISSING");
 
@@ -357,6 +360,11 @@ export const demoApi: DisphasApi = {
   },
   setLogo: async () => fail("UNAVAILABLE", "demo"),
   clearLogo: async () => fail("UNAVAILABLE", "demo"),
+  setStrictConfirmation: async (enabled) => {
+    state.settings = { ...state.settings, strict_confirmation: enabled };
+    return { ok: true, value: state.settings };
+  },
+  onDrivesChanged: async () => () => {},
   // The browser cannot verify: a fictional verified report, for layout only.
   verifyCertificate: async () => verification.report as VerificationReport,
   codeLabels: async (lang) => (labels as Record<Language, Record<string, string>>)[lang],

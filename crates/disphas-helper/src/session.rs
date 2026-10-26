@@ -425,10 +425,15 @@ impl<B: DeviceBackend> Session<B> {
             return Err(Failure::new(ErrorCode::Protected, codes.join(",")));
         }
 
-        // 4. Last four characters of the serial number. A drive without one
-        // cannot be confirmed (an empty confirmation would match).
-        if issued.identity.serial.trim().is_empty()
-            || args.confirmation != last_chars(&issued.identity.serial, 4)
+        // 4. A drive without a serial number is never erased (an empty
+        // confirmation would match). In strict mode the app sends the serial
+        // number read on the drive: the whole of it, or its last four
+        // characters; without it, the app's cancellation delay stands in.
+        let serial = &issued.identity.serial;
+        if serial.trim().is_empty()
+            || args.confirmation.as_deref().is_some_and(|confirmation| {
+                confirmation != serial && confirmation != last_chars(serial, 4)
+            })
         {
             return Err(Failure::new(
                 ErrorCode::ConfirmationMismatch,
@@ -1185,7 +1190,7 @@ mod tests {
             verdict_id: inspected.verdict_id.clone(),
             device: inspected.device.clone(),
             method: None,
-            confirmation: confirmation.to_owned(),
+            confirmation: Some(confirmation.to_owned()),
             acknowledged: vec![Acknowledgement::Scope(ScopeWarning::AllNamespaces)],
             force: None,
             operator: None,
@@ -1369,7 +1374,29 @@ mod tests {
     }
 
     #[test]
-    fn check_4_confirmation_must_be_the_last_four_characters() {
+    fn check_4_without_confirmation_relies_on_the_app_delay() {
+        let mut harness = Harness::greeted(vec![nvme_device("SN-0001")], LicenseState::Valid);
+        let inspected = harness.inspect("SN-0001");
+        let mut args = sanitize_args(&inspected, "");
+        args.confirmation = None;
+        let result = harness.send(Command::Sanitize(args));
+        if let Err(error) = result {
+            assert_ne!(error.code, ErrorCode::ConfirmationMismatch, "{error:?}");
+        }
+    }
+
+    #[test]
+    fn check_4_the_full_scanned_serial_number_confirms() {
+        let mut harness = Harness::greeted(vec![nvme_device("SN-0001")], LicenseState::Valid);
+        let inspected = harness.inspect("SN-0001");
+        let result = harness.send(Command::Sanitize(sanitize_args(&inspected, "SN-0001")));
+        if let Err(error) = result {
+            assert_ne!(error.code, ErrorCode::ConfirmationMismatch, "{error:?}");
+        }
+    }
+
+    #[test]
+    fn check_4_a_strict_confirmation_must_match() {
         let mut harness = Harness::greeted(vec![nvme_device("SN-0001")], LicenseState::Valid);
         let inspected = harness.inspect("SN-0001");
         for wrong in ["001", "N-0001", "SN-0", "0001 "] {
@@ -1385,6 +1412,11 @@ mod tests {
             let inspected = harness.inspect(serial);
             let confirmation = last_chars(serial, 4).to_owned();
             let result = harness.send(Command::Sanitize(sanitize_args(&inspected, &confirmation)));
+            assert_eq!(code(result), ErrorCode::ConfirmationMismatch, "{serial:?}");
+            // Nor without a confirmation, in the default mode.
+            let mut args = sanitize_args(&inspected, "");
+            args.confirmation = None;
+            let result = harness.send(Command::Sanitize(args));
             assert_eq!(code(result), ErrorCode::ConfirmationMismatch, "{serial:?}");
         }
     }
