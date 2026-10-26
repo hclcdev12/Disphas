@@ -290,7 +290,7 @@ export function DrivesScreen(props: {
 
   return (
     <div className="drives-screen grid min-h-0 flex-1" data-view={view}>
-      <aside className="drives-list flex flex-col gap-5 border-r border-edge px-4 py-6" aria-label={t("drives.listLabel")}>
+      <div className="drives-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
         <div className="flex items-start justify-between gap-2 px-2">
           <div>
             <h1 className="text-[25px] leading-tight font-bold">{t("drives.count", { count: drives.length })}</h1>
@@ -355,7 +355,30 @@ export function DrivesScreen(props: {
         )}
         {devices && !devices.ok && <p className="px-2 text-sayno">{t(`errors.${devices.error.code}`)}</p>}
         {devices?.ok && drives.length === 0 && <p className="px-2 text-ash">{t("drives.empty")}</p>}
+      </div>
 
+      <div className="drives-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+        <button
+          type="button"
+          onClick={back}
+          aria-label={t("drives.backLabel")}
+          className="drives-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
+        >
+          <ChevronLeft size={18} aria-hidden="true" />
+          {t("drives.back")}
+        </button>
+        {selected && (
+          <DetailHead
+            drive={selected}
+            inspection={inspections[serialOf(selected)]}
+            titleRef={titleRef}
+            language={i18n.language}
+          />
+        )}
+      </div>
+
+      {/* Same row as the detail below: the first drive faces the first method. */}
+      <aside className="drives-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6" aria-label={t("drives.listLabel")}>
         {grouped.map(({ group, drives: members }) => (
           <section key={group} aria-labelledby={`group-${group}`} className="flex flex-col gap-0.5">
             <h2
@@ -419,16 +442,7 @@ export function DrivesScreen(props: {
         )}
       </aside>
 
-      <main className="drives-detail flex min-w-0 max-w-[960px] flex-col gap-7 px-12 py-10" aria-live="polite">
-        <button
-          type="button"
-          onClick={back}
-          aria-label={t("drives.backLabel")}
-          className="drives-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
-        >
-          <ChevronLeft size={18} aria-hidden="true" />
-          {t("drives.back")}
-        </button>
+      <main className="drives-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10" aria-live="polite">
         {selected && (
           <Detail
             drive={selected}
@@ -436,7 +450,6 @@ export function DrivesScreen(props: {
             running={props.runningOn(serialOf(selected))}
             finished={props.finishedOn(serialOf(selected))}
             connected={props.connected}
-            titleRef={titleRef}
             choiceIndex={(id) => methods[id] ?? 0}
             onChoose={(id, index) => setMethods((current) => ({ ...current, [id]: index }))}
             name={name}
@@ -449,7 +462,6 @@ export function DrivesScreen(props: {
             onOpenPdf={props.onOpenPdf}
             zeroPass={(id) => zeroPass[id] ?? false}
             onZeroPass={(id, value) => setZeroPass((current) => ({ ...current, [id]: value }))}
-            language={i18n.language}
           />
         )}
       </main>
@@ -457,45 +469,16 @@ export function DrivesScreen(props: {
   );
 }
 
-function Detail({
+/** The selected drive: type and capacity, model, serial number and WWN / EUI-64, state chip. */
+function DetailHead({
   drive,
   inspection,
-  running,
-  finished,
-  connected,
   titleRef,
-  choiceIndex,
-  onChoose,
-  name,
-  reasonText,
-  onErase,
-  onUnlock,
-  onReinspect,
-  onOpenJob,
-  pdfOf,
-  onOpenPdf,
-  zeroPass,
-  onZeroPass,
   language,
 }: {
   drive: DeviceSummary;
   inspection: Outcome<InspectResult> | undefined;
-  running: Running;
-  finished: Finished;
-  connected: boolean;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
-  choiceIndex: (verdictId: string) => number;
-  onChoose: (verdictId: string, index: number) => void;
-  name: (code: string) => string;
-  reasonText: (inspection: InspectResult, code: string) => string;
-  onErase: (request: EraseRequest) => void;
-  onUnlock: (inspection: InspectResult) => void;
-  onReinspect: (serial: string) => void;
-  onOpenJob: (id: string) => void;
-  pdfOf: (jobId: string) => PdfState | undefined;
-  onOpenPdf: (path: string) => void;
-  zeroPass: (verdictId: string) => boolean;
-  onZeroPass: (verdictId: string, value: boolean) => void;
   language: string;
 }) {
   const { t } = useTranslation();
@@ -509,9 +492,7 @@ function Detail({
     protected: <Badge tone="protected">{t("drives.chip.protected")}</Badge>,
     pending: <Badge tone="neutral">{t("drives.chip.pending")}</Badge>,
   };
-
   return (
-    <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="font-mono text-sm break-words text-ash">
@@ -531,7 +512,62 @@ function Detail({
         </div>
         {chip[group]}
       </div>
+  );
+}
 
+function Detail({
+  drive,
+  inspection,
+  running,
+  finished,
+  connected,
+  choiceIndex,
+  onChoose,
+  name,
+  reasonText,
+  onErase,
+  onUnlock,
+  onReinspect,
+  onOpenJob,
+  pdfOf,
+  onOpenPdf,
+  zeroPass,
+  onZeroPass,
+}: {
+  drive: DeviceSummary;
+  inspection: Outcome<InspectResult> | undefined;
+  running: Running;
+  finished: Finished;
+  connected: boolean;
+  choiceIndex: (verdictId: string) => number;
+  onChoose: (verdictId: string, index: number) => void;
+  name: (code: string) => string;
+  reasonText: (inspection: InspectResult, code: string) => string;
+  onErase: (request: EraseRequest) => void;
+  onUnlock: (inspection: InspectResult) => void;
+  onReinspect: (serial: string) => void;
+  onOpenJob: (id: string) => void;
+  pdfOf: (jobId: string) => PdfState | undefined;
+  onOpenPdf: (path: string) => void;
+  zeroPass: (verdictId: string) => boolean;
+  onZeroPass: (verdictId: string, value: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const { identity } = drive.device;
+
+  // The decision comes first, level with the drive list; the last erasure follows it.
+  const lastErasure = !running && finished && (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-ctrl p-4 text-sm">
+      <span>{t("jobs.lastErasure")}</span>
+      <Badge tone={finished.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${finished.status}`)}</Badge>
+      <span className="w-full text-ash">{t("jobs.lastErasureHint")}</span>
+      <PdfButton pdf={pdfOf(finished.id)} onOpenPdf={onOpenPdf} />
+      <Button onClick={() => onOpenJob(finished.id)}>{t("jobs.view")}</Button>
+    </div>
+  );
+
+  return (
+    <>
       {running && (
         <div className="flex flex-col gap-4 rounded-lg border border-ctrl bg-card p-6">
           <p className="font-semibold">{t("jobs.inProgress")}</p>
@@ -539,16 +575,6 @@ function Detail({
           <div className="drives-actions flex flex-wrap items-center gap-4">
             <Button onClick={() => onOpenJob(running.id)}>{t("jobs.view")}</Button>
           </div>
-        </div>
-      )}
-
-      {!running && finished && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-ctrl p-4 text-sm">
-          <span>{t("jobs.lastErasure")}</span>
-          <Badge tone={finished.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${finished.status}`)}</Badge>
-          <span className="w-full text-ash">{t("jobs.lastErasureHint")}</span>
-          <PdfButton pdf={pdfOf(finished.id)} onOpenPdf={onOpenPdf} />
-          <Button onClick={() => onOpenJob(finished.id)}>{t("jobs.view")}</Button>
         </div>
       )}
 
@@ -583,6 +609,8 @@ function Detail({
           onReinspect={() => onReinspect(identity.serial)}
         />
       )}
+
+      {lastErasure}
     </>
   );
 }
@@ -623,10 +651,25 @@ function Verdict({
       const destroy = verdict.disposition.kind === "DestroyRecommended" ? verdict.disposition.reasons : [];
       return (
         <>
-          <fieldset className="flex min-w-0 flex-col gap-1 rounded-lg border border-ctrl bg-card p-6">
-            <legend className="px-2 text-[15px] font-semibold text-ash">{t("verdict.recommendation")}</legend>
+          {/* Same rhythm as the drive list: a title like a group's, rows of 64 px, the chosen one framed. */}
+          <div
+            role="radiogroup"
+            aria-labelledby={`decision-${inspection.verdict_id}`}
+            className="flex min-w-0 flex-col gap-0.5"
+          >
+            <h3
+              id={`decision-${inspection.verdict_id}`}
+              className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash"
+            >
+              {t("verdict.recommendation")}
+            </h3>
             {choices.map((option, position) => (
-              <label key={option.method} className="flex min-h-14 cursor-pointer items-center gap-3.5 rounded-md px-3 py-1.5">
+              <label
+                key={option.method}
+                className={`flex min-h-16 cursor-pointer items-center gap-3.5 rounded-md border px-3 py-1 ${
+                  position === index ? "border-ctrl bg-card" : "border-transparent"
+                }`}
+              >
                 <input
                   type="radio"
                   name={`method-${inspection.verdict_id}`}
@@ -655,7 +698,7 @@ function Verdict({
                 </span>
               </label>
             ))}
-          </fieldset>
+          </div>
           {choice.method === "HostOverwrite" && (
             <label className="flex cursor-pointer items-start gap-3 px-1 text-ash">
               <input

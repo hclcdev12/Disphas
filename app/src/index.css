@@ -139,13 +139,30 @@ body {
 
 /*
  * Disques tab, master / detail (docs/maquettes/disphas-ecran-disques.md §4):
- * two columns above 760 px, one view at a time below.
+ * two columns above 760 px, one view at a time below. Two bands: the headers
+ * (list title, drive title) share a row, so the drive list and the detail
+ * start at the same height and the first drive faces the first method.
  */
 .drives-screen {
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "lhead dhead"
+    "lbody dbody";
 }
-.drives-list {
+.drives-lhead {
+  grid-area: lhead;
   min-width: 0;
+}
+.drives-lbody {
+  grid-area: lbody;
+  min-width: 0;
+}
+.drives-dhead {
+  grid-area: dhead;
+}
+.drives-dbody {
+  grid-area: dbody;
 }
 .drives-back,
 .drives-station {
@@ -174,8 +191,11 @@ body {
   .drives-screen {
     grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   }
-  .drives-detail {
-    padding: 32px;
+  .drives-dhead {
+    padding: 32px 32px 20px;
+  }
+  .drives-dbody {
+    padding: 0 32px 32px;
   }
   .drives-title {
     font-size: 32px;
@@ -214,12 +234,30 @@ body {
   .drives-screen {
     grid-template-columns: minmax(0, 1fr);
   }
-  .drives-list {
-    border-right: 0;
-    padding: 16px 8px;
+  .drives-screen[data-view="list"] {
+    grid-template-areas:
+      "lhead"
+      "lbody";
   }
-  .drives-detail {
-    padding: 16px;
+  .drives-screen[data-view="detail"] {
+    grid-template-areas:
+      "dhead"
+      "dbody";
+  }
+  .drives-lhead,
+  .drives-lbody {
+    border-right: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .drives-lhead {
+    padding-top: 16px;
+  }
+  .drives-dhead {
+    padding: 16px 16px 12px;
+  }
+  .drives-dbody {
+    padding: 0 16px 16px;
     gap: 20px;
   }
   .drives-back {
@@ -241,10 +279,10 @@ body {
     width: 100%;
     justify-content: center;
   }
-  .drives-screen[data-view="list"] .drives-detail {
-    display: none;
-  }
-  .drives-screen[data-view="detail"] .drives-list {
+  .drives-screen[data-view="list"] .drives-dhead,
+  .drives-screen[data-view="list"] .drives-dbody,
+  .drives-screen[data-view="detail"] .drives-lhead,
+  .drives-screen[data-view="detail"] .drives-lbody {
     display: none;
   }
 }
