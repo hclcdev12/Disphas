@@ -75,7 +75,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 
 - Rayons : 4 px pour les boutons, 6 px pour les lignes et avertissements, 8 px pour les cadres.
 - Cible tactile minimale : **44 × 44 px**.
-- Focus clavier : `outline: 3px solid var(--fg); outline-offset: 2px`, visible sur tous les éléments interactifs.
+- Focus clavier (révisé le 2026-10-28, choix du propriétaire) : `outline: 2px solid var(--ctrl); outline-offset: 2px`, fin et gris, visible sur tous les éléments interactifs **seulement quand on se déplace au clavier** (Tab, flèches, Entrée, Échap…). Jamais après un clic de souris, même quand l'app déplace le focus elle-même (menu qui se ferme, fenêtre qui s'ouvre) : `lib/modality.ts` retient si la dernière action venait de la souris ou du clavier.
 
 ---
 
@@ -137,7 +137,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 - Dessinée à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
 - 20 × 20 px, rayon 4 px, contour 2 px `--ctrl`, `--fg-2` au survol. Choisie : fond os `--fg` et coche `--bg` centrée (SVG). Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
 - Le `label` qui entoure chaque contrôle est la zone de clic (au moins 24 × 24 px, WCAG 2.2 critère 2.5.8).
-- Focus clavier : le contour de 3 px suit la forme du contrôle.
+- Focus clavier : le contour suit la forme du contrôle.
 
 **Plusieurs disques sélectionnés** (2026-10-28, première version)
 - En-tête : « {n} prêts à effacer » en mono 14 px `--fg-2`, puis « {n} disques sélectionnés » (H2, 40 px / 700).
@@ -212,7 +212,7 @@ Détails du mobile (≤ 760 px) :
 - La liste est dans un `aside` étiqueté « Disques connectés ». Chaque groupe est une `section` avec un `h2`. La sélection est exposée par `aria-pressed` sur le bouton de sélection.
 - Les méthodes sont de vrais boutons radio natifs, groupés par `name`, dans un `fieldset` avec une `legend`. La navigation aux flèches est native.
 - Le détail est en `aria-live="polite"` pour annoncer le changement de disque.
-- Le focus est toujours visible (contour de 3 px) et ne doit jamais être supprimé.
+- Le focus clavier est toujours visible (contour gris de 2 px) et ne doit jamais être supprimé ; il est masqué seulement après un clic de souris.
 - Jamais de couleur seule : chaque état a aussi une icône et un libellé.
 - Respecter `prefers-reduced-motion`.
 

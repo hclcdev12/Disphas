@@ -100,10 +100,17 @@ body {
   line-height: 1.55;
 }
 
-/* Keyboard focus is always visible (docs/maquettes/disphas-ecran-disques.md §5). */
+/*
+ * Focus outline: a thin grey ring, only while moving with the keyboard
+ * (owner's choice, 2026-10-28; docs/maquettes/disphas-ecran-disques.md §5).
+ * Never after a mouse click: lib/modality.ts marks the last input on <html>.
+ */
 :focus-visible {
-  outline: 3px solid var(--color-soft);
+  outline: 2px solid var(--color-ctrl);
   outline-offset: 2px;
+}
+:root[data-input="mouse"] :focus-visible {
+  outline: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
