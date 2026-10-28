@@ -88,10 +88,13 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     avec une seule fenêtre (méthode et avertissements de chaque disque, alerte si l'offre n'a pas assez de places,
     proposition d'ouvrir un lot avec son libellé ; en mode strict, chaque disque est scanné à son tour), résumé
     « N effacements terminés · N CONFORMES » dans l'application. Le 2026-10-28 : notification système en option
-    (Paramètres, désactivée par défaut, décidé par le propriétaire) via `tauri-plugin-notification` 2.4.0 (compatible
-    Tauri 2.11) : une seule bulle quand le dernier effacement en cours se termine, et seulement si la fenêtre est
-    en arrière-plan ; sous Linux elle passe par D-Bus (`org.freedesktop.Notifications`), sans réseau, sans n° de
-    série. Pastille d'état retirée du détail (prise pour un bouton) ; toute sélection de l'app est une case cochée,
+    (Paramètres, désactivée par défaut, décidé par le propriétaire) via `notify-rust` 4.17 : une seule bulle quand le
+    dernier effacement en cours se termine, et seulement si la fenêtre est en arrière-plan ; sous Linux elle passe
+    par D-Bus (`org.freedesktop.Notifications`), sans réseau, sans n° de série. L'app garde la connexion D-Bus de
+    la dernière bulle tant qu'elle tourne : GNOME Shell retire une notification dès que la connexion qui l'a
+    envoyée se ferme (`notificationDaemon.js`, `_onNameVanished`) ; c'est pourquoi `tauri-plugin-notification`,
+    qui la ferme aussitôt, a été écarté (bulle visible une fraction de seconde, constaté sur GNOME 50). La langue
+    choisie dans Paramètres est mémorisée (`settings.json` ; en démo, stockage du navigateur). Pastille d'état retirée du détail (prise pour un bouton) ; toute sélection de l'app est une case cochée,
     méthodes comprises (choix du propriétaire, écart assumé avec « rond = un seul choix » ; les méthodes restent des
     boutons radio pour le clavier et les lecteurs d'écran) ; cases dessinées à la main, car WebKitGTK les
     dessinait au thème GTK (coche décentrée). Étape 3 : Historique, Vérifier, assistant de premier lancement ;

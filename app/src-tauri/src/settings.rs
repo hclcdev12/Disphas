@@ -38,6 +38,10 @@ pub struct Settings {
     /// background. Off by default.
     #[serde(default)]
     pub notifications: bool,
+    /// Language of the interface chosen by the operator (`en`, `fr`, `de`);
+    /// `None`: the system's.
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 fn settings_file(dir: &Path) -> PathBuf {
@@ -103,6 +107,20 @@ pub fn set_strict_confirmation(dir: &Path, enabled: bool) -> Result<Settings, St
 pub fn set_notifications(dir: &Path, enabled: bool) -> Result<Settings, String> {
     let mut settings = load(dir);
     settings.notifications = enabled;
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Languages of the interface.
+pub const LANGUAGES: [&str; 3] = ["en", "fr", "de"];
+
+/// Remembers the language of the interface.
+pub fn set_language(dir: &Path, language: &str) -> Result<Settings, String> {
+    if !LANGUAGES.contains(&language) {
+        return Err(format!("language: one of {}", LANGUAGES.join(", ")));
+    }
+    let mut settings = load(dir);
+    settings.language = Some(language.to_owned());
     store(dir, &settings)?;
     Ok(settings)
 }
@@ -197,6 +215,22 @@ mod tests {
                 .notifications
         );
         assert!(load(dir.path()).notifications);
+    }
+
+    #[test]
+    fn the_language_is_remembered_among_the_known_ones() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        assert_eq!(load(dir.path()).language, None);
+        assert_eq!(
+            set_language(dir.path(), "fr")
+                .expect("saved")
+                .language
+                .as_deref(),
+            Some("fr")
+        );
+        assert_eq!(load(dir.path()).language.as_deref(), Some("fr"));
+        assert!(set_language(dir.path(), "xx").is_err());
+        assert_eq!(load(dir.path()).language.as_deref(), Some("fr"));
     }
 
     #[test]

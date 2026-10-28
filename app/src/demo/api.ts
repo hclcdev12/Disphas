@@ -23,6 +23,17 @@ import labels from "../dev/code-labels.json";
 import history from "../dev/history-sample.json";
 import verification from "../dev/verification-sample.json";
 
+/** The demo keeps no settings file: the chosen language lives in the browser's storage. */
+const LANGUAGE_KEY = "disphas-demo-language";
+
+function storedLanguage(): string | null {
+  try {
+    return localStorage.getItem(LANGUAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 const LICENSE: LicenseStatusResult = {
   state: "Valid",
   offer: "Demo",
@@ -94,7 +105,7 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false } as Settings,
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage() } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -363,6 +374,15 @@ export const demoApi: DisphasApi = {
   clearLogo: async () => fail("UNAVAILABLE", "demo"),
   setStrictConfirmation: async (enabled) => {
     state.settings = { ...state.settings, strict_confirmation: enabled };
+    return { ok: true, value: state.settings };
+  },
+  setLanguage: async (language) => {
+    state.settings = { ...state.settings, language };
+    try {
+      localStorage.setItem(LANGUAGE_KEY, language);
+    } catch {
+      // Storage refused: the language lasts for this session only.
+    }
     return { ok: true, value: state.settings };
   },
   setNotifications: async (enabled) => {

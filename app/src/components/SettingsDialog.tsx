@@ -98,7 +98,13 @@ export function SettingsDialog({
         <select
           className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-2 pr-8 font-normal"
           value={i18n.language}
-          onChange={(event) => void i18n.changeLanguage(event.target.value as Language)}
+          onChange={async (event) => {
+            const language = event.target.value as Language;
+            void i18n.changeLanguage(language);
+            // Remembered for the next launch.
+            const result = await api.setLanguage(language);
+            if (result.ok) onChanged(result.value);
+          }}
         >
           {LANGUAGES.map((lang) => (
             <option key={lang} value={lang}>

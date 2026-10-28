@@ -20,7 +20,7 @@ import type { BatchArgs } from "./bindings/BatchArgs";
 import { loadBatch, saveBatch } from "./lib/batch";
 import { VerifyScreen } from "./components/VerifyScreen";
 import { api, type HelperError, type Outcome, type Settings } from "./lib/api";
-import type { Language } from "./i18n";
+import { LANGUAGES, type Language } from "./i18n";
 import { requiredAcknowledgements } from "./lib/acknowledgements";
 import type { PdfState } from "./lib/pdf";
 
@@ -48,11 +48,17 @@ export default function App() {
     logo: null,
     strict_confirmation: false,
     notifications: false,
+    language: null,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
-    void api.getSettings().then(setSettings);
-  }, []);
+    void api.getSettings().then((stored) => {
+      setSettings(stored);
+      // The language chosen in the settings wins over the system's.
+      if (stored.language && (LANGUAGES as readonly string[]).includes(stored.language))
+        void i18n.changeLanguage(stored.language);
+    });
+  }, [i18n]);
   const [jobs, setJobs] = useState<Record<string, JobView>>({});
   // Several drives erase in parallel: every job of the session, and the one opened in detail.
   const [jobInfo, setJobInfo] = useState<Record<string, JobInfo>>({});
