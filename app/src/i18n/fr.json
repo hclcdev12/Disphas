@@ -62,12 +62,13 @@
     "selectedCount_other": "{{count}} disques sélectionnés",
     "multiReady_one": "{{count}} prêt à effacer",
     "multiReady_other": "{{count}} prêts à effacer",
-    "multiHint": "Ctrl + clic pour sélectionner plusieurs disques, Maj + clic pour une suite.",
+    "multiHint": "Ctrl + clic, Maj + clic ou Ctrl + A pour en sélectionner plusieurs · Échap : un seul.",
     "methodEach": "Méthode de chaque disque",
     "methodFor": "Méthode pour {{model}}",
     "unselect": "Retirer {{model}} de la sélection",
     "multiSkipped_one": "{{count}} disque sélectionné n'est pas prêt : il ne sera pas effacé.",
-    "multiSkipped_other": "{{count}} disques sélectionnés ne sont pas prêts : ils ne seront pas effacés."
+    "multiSkipped_other": "{{count}} disques sélectionnés ne sont pas prêts : ils ne seront pas effacés.",
+    "thenZeros": "+ passe de zéros"
   },
   "kind": {
     "Nvme": "NVMe",

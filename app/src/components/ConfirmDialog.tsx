@@ -143,7 +143,7 @@ export function ConfirmDialog({
       </p>
 
       <ul className="mt-4 flex max-h-[45vh] flex-col gap-2 overflow-y-auto">
-        {requests.map(({ inspection, choice }) => {
+        {requests.map(({ inspection, choice, zeroPass }) => {
           const serial = inspection.device.identity.serial;
           const verdict = inspection.verdict;
           const disposition = verdict.state === "READY" ? verdict.disposition : REUSE;
@@ -178,6 +178,7 @@ export function ConfirmDialog({
                   <p className="mt-1 text-sm">
                     <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
                     {labels[choice.method] ?? choice.method}
+                    {zeroPass && choice.method === "HostOverwrite" && <> {t("drives.thenZeros")}</>}
                   </p>
                   {warnings.length > 0 && <p className="mt-1 text-sm text-ash">{warnings.map(name).join(" · ")}</p>}
                   {error && (

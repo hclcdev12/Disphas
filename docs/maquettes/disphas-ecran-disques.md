@@ -142,12 +142,21 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 **Plusieurs disques sélectionnés** (2026-10-28, première version)
 - En-tête : « {n} prêts à effacer » en mono 14 px `--fg-2`, puis « {n} disques sélectionnés » (H2, 40 px / 700).
 - « Méthode de chaque disque », titre comme celui d'un groupe, à la hauteur du premier groupe de la liste.
-- Une ligne encadrée par disque : modèle et n° de série à gauche ; à droite, la liste déroulante des méthodes
-  (recommandée en premier) pour un disque prêt, sinon son état dans la couleur de l'état ; puis ✕ pour le retirer
-  de la sélection.
+- Une ligne par disque, **sans cadre** (pas de boîte dans la boîte) : modèle et n° de série à gauche ; à droite,
+  pour un disque prêt, le **bouton méthode** (révisé le 2026-10-28) : étiquette Purge/Clear, nom de la méthode,
+  dessous « recommandée » en vert ou « + passe de zéros », et une flèche ▾ ; sans contour au repos, encadré au
+  survol et menu ouvert. Tous les boutons méthode ont la même largeur et sont alignés en colonne. Un disque pas prêt
+  montre son état dans la couleur de l'état. Puis ✕ pour le retirer de la sélection.
+- Le **menu** des méthodes s'ouvre sous le bouton : une ligne par méthode (✓ devant la méthode choisie, étiquette,
+  nom, « recommandée » pour la première, identifiant technique dessous). Flèches pour se déplacer, Entrée pour
+  choisir, Échap pour fermer, clic à côté pour fermer.
 - « ▶ Effacer {n} disques » ne prend que les disques prêts ; une phrase dit combien sont laissés de côté. La fenêtre
   de confirmation est celle de l'effacement de plusieurs disques.
-- Listes déroulantes dessinées à la main (`appearance: none`, chevron SVG), pour la même raison que les cases.
+- **Passe finale de zéros** : ce n'est plus une case à part. La réécriture hôte apparaît deux fois parmi les méthodes,
+  seule et « + passe de zéros » (avec la phrase « Le disque paraîtra vierge. Double la durée… »), dans le menu comme
+  dans le détail d'un seul disque. Choisir une autre méthode retire donc la passe de zéros.
+- Clavier : flèches haut/bas dans la liste des disques (avec Maj pour étendre la sélection), **Ctrl + A** pour tous les
+  disques prêts, **Échap** pour revenir à un seul disque. La liste ne compte qu'un arrêt de tabulation.
 
 **Disque prêt**
 1. **Bloc « Décision de Disphas »**, **sans cadre** (révisé le 2026-10-27) : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste ; la première méthode est à la hauteur du premier disque.

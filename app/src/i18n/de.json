@@ -62,12 +62,13 @@
     "selectedCount_other": "{{count}} Laufwerke ausgewählt",
     "multiReady_one": "{{count}} bereit zum Löschen",
     "multiReady_other": "{{count}} bereit zum Löschen",
-    "multiHint": "Strg + Klick, um mehrere Laufwerke auszuwählen, Umschalt + Klick für einen Bereich.",
+    "multiHint": "Strg + Klick, Umschalt + Klick oder Strg + A für mehrere · Esc: nur eines.",
     "methodEach": "Methode je Laufwerk",
     "methodFor": "Methode für {{model}}",
     "unselect": "{{model}} aus der Auswahl entfernen",
     "multiSkipped_one": "{{count}} ausgewähltes Laufwerk ist nicht bereit: Es wird nicht gelöscht.",
-    "multiSkipped_other": "{{count}} ausgewählte Laufwerke sind nicht bereit: Sie werden nicht gelöscht."
+    "multiSkipped_other": "{{count}} ausgewählte Laufwerke sind nicht bereit: Sie werden nicht gelöscht.",
+    "thenZeros": "+ Nulldurchgang"
   },
   "kind": {
     "Nvme": "NVMe",

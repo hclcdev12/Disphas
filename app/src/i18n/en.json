@@ -62,12 +62,13 @@
     "selectedCount_other": "{{count}} drives selected",
     "multiReady_one": "{{count}} ready to erase",
     "multiReady_other": "{{count}} ready to erase",
-    "multiHint": "Ctrl + click to select several drives, Shift + click for a range.",
+    "multiHint": "Ctrl + click, Shift + click or Ctrl + A to select several · Esc: just one.",
     "methodEach": "Method of each drive",
     "methodFor": "Method for {{model}}",
     "unselect": "Remove {{model}} from the selection",
     "multiSkipped_one": "{{count}} selected drive is not ready: it will not be erased.",
-    "multiSkipped_other": "{{count}} selected drives are not ready: they will not be erased."
+    "multiSkipped_other": "{{count}} selected drives are not ready: they will not be erased.",
+    "thenZeros": "+ zero pass"
   },
   "kind": {
     "Nvme": "NVMe",

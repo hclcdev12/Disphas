@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
+  Check,
+  ChevronDown,
   ChevronLeft,
   KeyRound,
   LoaderCircle,
@@ -88,6 +90,29 @@ function choicesOf(inspection: InspectResult): MethodChoice[] {
   return verdict.state === "READY" ? [verdict.recommended, ...verdict.alternatives] : [];
 }
 
+/**
+ * What the operator can pick for a ready drive: each method, and host
+ * overwrite a second time with its final pass of zeros, so that the zero
+ * pass is one choice among the others rather than an extra setting.
+ */
+type MethodOption = { position: number; zero: boolean; choice: MethodChoice };
+
+function optionsOf(inspection: InspectResult): MethodOption[] {
+  return choicesOf(inspection).flatMap((choice, position) =>
+    choice.method === "HostOverwrite"
+      ? [
+          { position, zero: false, choice },
+          { position, zero: true, choice },
+        ]
+      : [{ position, zero: false, choice }],
+  );
+}
+
+/** The zero pass only goes with host overwrite (the helper refuses it otherwise). */
+function zeroFor(choice: MethodChoice, zeroPass: boolean): boolean {
+  return choice.method === "HostOverwrite" && zeroPass;
+}
+
 /** Reason codes of a drive that is not ready. */
 function reasonsOf(inspection: InspectResult): string[] {
   const verdict = inspection.verdict;
@@ -138,6 +163,8 @@ export function DrivesScreen(props: {
   // adds or removes one, Shift + click a range. Empty: the first drive.
   const [selection, setSelection] = useState<string[]>([]);
   const [anchor, setAnchor] = useState<string | null>(null);
+  // The row the arrows move from; the only row reached by Tab (one stop for the whole list).
+  const [cursor, setCursor] = useState<string | null>(null);
   // Method chosen per verdict: a new inspection starts again from the recommended one.
   const [methods, setMethods] = useState<Record<string, number>>({});
   const [zeroPass, setZeroPass] = useState<Record<string, boolean>>({});
@@ -157,6 +184,9 @@ export function DrivesScreen(props: {
   const many = selectedDrives.length > 1;
   // One drive in detail; several: the list of the selection instead.
   const selected = many ? null : (selectedDrives[0] ?? ordered[0] ?? null);
+  const tabStop =
+    [cursor, anchor].find((serial) => serial !== null && ordered.some((drive) => serialOf(drive) === serial)) ??
+    (selectedDrives[0] ? serialOf(selectedDrives[0]) : selected ? serialOf(selected) : null);
   /** Ready and not being erased: what "Erase N drives" takes. */
   const erasable = (drive: DeviceSummary) =>
     groupOf(inspections[serialOf(drive)]) === "ready" && props.runningOn(serialOf(drive)) === null;
@@ -175,6 +205,7 @@ export function DrivesScreen(props: {
         setSelection([...current, serial]);
       }
       setAnchor(serial);
+      setCursor(serial);
       return;
     }
     if (event.shiftKey && anchor !== null) {
@@ -183,12 +214,37 @@ export function DrivesScreen(props: {
       if (from >= 0 && to >= 0) {
         const [low, high] = from < to ? [from, to] : [to, from];
         setSelection(ordered.slice(low, high + 1).map(serialOf));
+        setCursor(serial);
         return;
       }
     }
     setSelection([serial]);
     setAnchor(serial);
+    setCursor(serial);
     open(false);
+  };
+  const focusRow = (serial: string) =>
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-pick="${serial}"]`)?.focus());
+  /** Up and down move the selection; with Shift, they stretch it from the anchor. */
+  const arrow = (serial: string, event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const at = ordered.findIndex((drive) => serialOf(drive) === serial);
+    const next = ordered[at + (event.key === "ArrowDown" ? 1 : -1)];
+    if (!next) return;
+    const target = serialOf(next);
+    if (event.shiftKey) {
+      const from = ordered.findIndex((drive) => serialOf(drive) === (anchor ?? serial));
+      const to = at + (event.key === "ArrowDown" ? 1 : -1);
+      const [low, high] = from < to ? [from, to] : [to, from];
+      setSelection(ordered.slice(low, high + 1).map(serialOf));
+      if (anchor === null) setAnchor(serial);
+    } else {
+      setSelection([target]);
+      setAnchor(target);
+    }
+    setCursor(target);
+    focusRow(target);
   };
   const selectAll = () => {
     setSelection(allSelected ? erasableSerials.slice(0, 1) : erasableSerials);
@@ -206,11 +262,41 @@ export function DrivesScreen(props: {
           inspection: inspection.value,
           choice,
           forced: false,
-          zeroPass: zeroPass[inspection.value.verdict_id] ?? false,
+          zeroPass: zeroFor(choice, zeroPass[inspection.value.verdict_id] ?? false),
         });
     }
     props.onEraseMany(requests);
   };
+
+  // Ctrl + A: every ready drive. Escape: back to one drive. Not while typing or in a dialog.
+  const shortcuts = useRef<(event: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    shortcuts.current = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.defaultPrevented ||
+        (target instanceof Element && target.closest("input, textarea, select, [contenteditable=true]")) ||
+        document.querySelector("dialog[open]")
+      )
+        return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+        if (erasableSerials.length === 0) return;
+        event.preventDefault();
+        setSelection(erasableSerials);
+        setAnchor(erasableSerials[0]);
+      } else if (event.key === "Escape" && many) {
+        const keep = selectedDrives.map(serialOf).find((serial) => serial === cursor) ?? serialOf(selectedDrives[0]);
+        setSelection([keep]);
+        setAnchor(keep);
+        setCursor(keep);
+      }
+    };
+  });
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => shortcuts.current(event);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     if (focusTick === 0) return;
@@ -258,7 +344,9 @@ export function DrivesScreen(props: {
     const value = inspection.value;
     if (value.verdict.state === "READY") {
       const choice = chosen(value);
-      return choice ? `${choice.category} · ${name(choice.method)}` : "";
+      if (!choice) return "";
+      const zero = zeroFor(choice, zeroPass[value.verdict_id] ?? false) ? ` ${t("drives.thenZeros")}` : "";
+      return `${choice.category} · ${name(choice.method)}${zero}`;
     }
     const codes = reasonsOf(value);
     return codes.length > 0 ? `${reasonText(value, codes[0])} (${codes.join(", ")})` : "";
@@ -269,7 +357,10 @@ export function DrivesScreen(props: {
       ? null
       : props.maxParallel === null
         ? t("drives.meta.unlimited", { count: props.runningCount })
-        : t("drives.meta.limited", { count: props.runningCount, max: props.maxParallel });
+        : t("drives.meta.limited", {
+            count: props.runningCount,
+            max: props.maxParallel,
+          });
 
   return (
     <div className="drives-screen grid min-h-0 flex-1" data-view={view}>
@@ -361,7 +452,9 @@ export function DrivesScreen(props: {
         {many && (
           <div className="min-w-0">
             <div className="font-mono text-sm text-ash">
-              {t("drives.multiReady", { count: selectedDrives.filter(erasable).length })}
+              {t("drives.multiReady", {
+                count: selectedDrives.filter(erasable).length,
+              })}
             </div>
             <h2 ref={titleRef} tabIndex={-1} className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
               {t("drives.selectedCount", { count: selectedDrives.length })}
@@ -402,6 +495,8 @@ export function DrivesScreen(props: {
                   type="button"
                   data-pick={serial}
                   aria-pressed={isSelected}
+                  tabIndex={serial === tabStop ? 0 : -1}
+                  onKeyDown={(event) => arrow(serial, event)}
                   // Shift + click selects a range, not the text of the rows.
                   onMouseDown={(event) => {
                     if (event.shiftKey) event.preventDefault();
@@ -450,6 +545,8 @@ export function DrivesScreen(props: {
             erasable={erasable}
             choiceIndex={(id) => methods[id] ?? 0}
             onChoose={(id, index) => setMethods((current) => ({ ...current, [id]: index }))}
+            zeroPass={(id) => zeroPass[id] ?? false}
+            onZeroPass={(id, value) => setZeroPass((current) => ({ ...current, [id]: value }))}
             name={name}
             rowLine={rowLine}
             onUnselect={unselect}
@@ -666,56 +763,45 @@ function Verdict({
             >
               {t("verdict.recommendation")}
             </h3>
-            {choices.map((option, position) => (
-              <label
-                key={option.method}
-                className={`flex min-h-16 cursor-pointer items-center gap-3.5 rounded-md border px-3 py-1 ${
-                  position === index ? "border-ctrl bg-card" : "border-transparent"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`method-${inspection.verdict_id}`}
-                  checked={position === index}
-                  onChange={() => onChoose(position)}
-                  className="ctl-check"
-                />
-                <span
-                  className={`w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${
-                    option.category === "Purge" ? "bg-soft text-night" : "border border-ctrl"
+            {optionsOf(inspection).map(({ position, zero, choice: option }) => {
+              const checked = position === index && zero === zeroFor(choice, zeroPass);
+              return (
+                <label
+                  key={`${option.method}${zero ? "+zero" : ""}`}
+                  className={`flex min-h-16 cursor-pointer items-center gap-3.5 rounded-md border px-3 py-1 ${
+                    checked ? "border-ctrl bg-card" : "border-transparent"
                   }`}
                 >
-                  {option.category}
-                </span>
-                <span className="flex min-w-0 flex-col">
-                  <span className={position === index ? "font-bold" : undefined}>
-                    {name(option.method)}
-                    {position === 0 && (
-                      <>
-                        {" · "}
-                        <span className="font-bold text-ready">{t("verdict.recommendedShort")}</span>
-                      </>
-                    )}
+                  <input
+                    type="radio"
+                    name={`method-${inspection.verdict_id}`}
+                    checked={checked}
+                    onChange={() => {
+                      onChoose(position);
+                      onZeroPass(zero);
+                    }}
+                    className="ctl-check"
+                  />
+                  <Category category={option.category} />
+                  <span className="flex min-w-0 flex-col">
+                    <span className={checked ? "font-bold" : undefined}>
+                      {name(option.method)}
+                      {zero && <> {t("drives.thenZeros")}</>}
+                      {position === 0 && !zero && (
+                        <>
+                          {" · "}
+                          <span className="font-bold text-ready">{t("verdict.recommendedShort")}</span>
+                        </>
+                      )}
+                    </span>
+                    <span className="text-sm break-all text-ash">
+                      {zero ? t("confirm.zeroPassHint") : <span className="font-mono">{option.method}</span>}
+                    </span>
                   </span>
-                  <span className="font-mono text-sm break-all text-ash">{option.method}</span>
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
-          {choice.method === "HostOverwrite" && (
-            <label className="flex cursor-pointer items-start gap-3 px-1 text-ash">
-              <input
-                type="checkbox"
-                className="ctl-check mt-0.5"
-                checked={zeroPass}
-                onChange={(event) => onZeroPass(event.target.checked)}
-              />
-              <span>
-                {t("confirm.zeroPass")}
-                <span className="block text-sm">{t("confirm.zeroPassHint")}</span>
-              </span>
-            </label>
-          )}
           {destroy.map((code) => (
             <Note key={code} code={code} text={t("verdict.destroyNote", { reason: name(code) })} />
           ))}
@@ -726,7 +812,14 @@ function Verdict({
             <button
               type="button"
               disabled={!connected}
-              onClick={() => onErase({ inspection, choice, forced: false, zeroPass })}
+              onClick={() =>
+                onErase({
+                  inspection,
+                  choice,
+                  forced: false,
+                  zeroPass: zeroFor(choice, zeroPass),
+                })
+              }
               className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
             >
               <Play size={16} fill="currentColor" aria-hidden="true" />
@@ -808,6 +901,8 @@ function SelectionDetail({
   erasable,
   choiceIndex,
   onChoose,
+  zeroPass,
+  onZeroPass,
   name,
   rowLine,
   onUnselect,
@@ -819,6 +914,8 @@ function SelectionDetail({
   erasable: (drive: DeviceSummary) => boolean;
   choiceIndex: (verdictId: string) => number;
   onChoose: (verdictId: string, index: number) => void;
+  zeroPass: (verdictId: string) => boolean;
+  onZeroPass: (verdictId: string, value: boolean) => void;
   name: (code: string) => string;
   rowLine: (drive: DeviceSummary) => string;
   onUnselect: (serial: string) => void;
@@ -840,25 +937,23 @@ function SelectionDetail({
           const choices = value ? choicesOf(value) : [];
           const group = groupOf(inspection);
           return (
-            <div key={serial} className="flex min-h-16 items-center gap-4 rounded-md border border-ctrl px-3 py-1.5">
+            <div key={serial} className="flex min-h-16 items-center gap-3 rounded-md px-3 py-1">
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-bold">{model}</span>
                 <span className="truncate font-mono text-sm text-ash">s/n {serial}</span>
               </div>
               {erasable(drive) && value && choices.length > 0 ? (
-                <select
-                  aria-label={t("drives.methodFor", { model })}
-                  className="ctl-select min-h-11 w-[27rem] max-w-[60%] rounded border border-ctrl bg-night pr-9 pl-3 text-[15px]"
-                  value={choiceIndex(value.verdict_id)}
-                  onChange={(event) => onChoose(value.verdict_id, Number(event.target.value))}
-                >
-                  {choices.map((choice, position) => (
-                    <option key={choice.method} value={position}>
-                      {choice.category} · {name(choice.method)}
-                      {position === 0 ? ` · ${t("verdict.recommendedShort")}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <MethodMenu
+                  options={optionsOf(value)}
+                  position={choiceIndex(value.verdict_id)}
+                  zero={zeroPass(value.verdict_id)}
+                  name={name}
+                  label={t("drives.methodFor", { model })}
+                  onPick={(position, zero) => {
+                    onChoose(value.verdict_id, position);
+                    onZeroPass(value.verdict_id, zero);
+                  }}
+                />
               ) : (
                 <span className={`max-w-[55%] text-sm ${groupText[group]}`}>{rowLine(drive)}</span>
               )}
@@ -884,6 +979,171 @@ function SelectionDetail({
         )}
       </Actions>
     </>
+  );
+}
+
+/** Purge filled, Clear outlined: the category of a method. */
+function Category({ category }: { category: string }) {
+  return (
+    <span
+      className={`w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${
+        category === "Purge" ? "bg-soft text-night" : "border border-ctrl"
+      }`}
+    >
+      {category}
+    </span>
+  );
+}
+
+/**
+ * The method of one drive among several: a quiet button showing the method
+ * chosen (the recommended one at first), which opens a menu of the methods.
+ * Host overwrite appears twice, alone and with its final pass of zeros.
+ * Arrows move in the menu, Enter picks, Escape closes.
+ */
+function MethodMenu({
+  options,
+  position,
+  zero,
+  name,
+  label,
+  onPick,
+}: {
+  options: MethodOption[];
+  position: number;
+  zero: boolean;
+  name: (code: string) => string;
+  label: string;
+  onPick: (position: number, zero: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const items = useRef<(HTMLButtonElement | null)[]>([]);
+  const current =
+    options.find((option) => option.position === position && option.zero === zeroFor(option.choice, zero)) ??
+    options[0];
+  const currentIndex = options.indexOf(current);
+
+  useEffect(() => {
+    if (!open) return;
+    items.current[currentIndex]?.focus();
+    const outside = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", outside);
+    return () => document.removeEventListener("mousedown", outside);
+  }, [open, currentIndex]);
+
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+  const onKey = (event: React.KeyboardEvent) => {
+    if (!open) return;
+    const at = items.current.findIndex((item) => item === document.activeElement);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      items.current[(at + step + options.length) % options.length]?.focus();
+    } else if (event.key === "Escape") {
+      // Closes the menu only, not the selection.
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+    } else if (event.key === "Tab") {
+      setOpen(false);
+    }
+  };
+
+  const title = (option: MethodOption, bold: boolean) => (
+    <span className={bold ? "font-bold" : undefined}>
+      {name(option.choice.method)}
+      {option.zero && <> {t("drives.thenZeros")}</>}
+    </span>
+  );
+
+  return (
+    <div ref={root} className="relative w-[26rem] max-w-[55%] shrink-0" onKeyDown={onKey}>
+      <button
+        ref={trigger}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${label} : ${name(current.choice.method)}`}
+        onClick={() => setOpen((value) => !value)}
+        className={`flex min-h-12 w-full items-center gap-3 rounded-md border px-3 text-left hover:border-ctrl hover:bg-card ${
+          open ? "border-ctrl bg-card" : "border-transparent"
+        }`}
+      >
+        <Category category={current.choice.category} />
+        <span className="flex min-w-0 flex-1 flex-col leading-snug">
+          <span className="truncate">{name(current.choice.method)}</span>
+          {current.zero ? (
+            <span className="text-xs text-ash">{t("drives.thenZeros")}</span>
+          ) : (
+            current.position === 0 && <span className="text-xs font-bold text-ready">{t("verdict.recommendedShort")}</span>
+          )}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-ash transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={label}
+          className="absolute top-full right-0 z-20 mt-1 flex w-[30rem] max-w-[85vw] flex-col gap-0.5 rounded-lg border border-ctrl bg-card p-1.5 shadow-xl shadow-black/50"
+        >
+          {options.map((option, at) => {
+            const checked = option === current;
+            return (
+              <button
+                key={`${option.choice.method}${option.zero ? "+zero" : ""}`}
+                ref={(item) => {
+                  items.current[at] = item;
+                }}
+                type="button"
+                role="menuitemradio"
+                aria-checked={checked}
+                tabIndex={-1}
+                onClick={() => {
+                  onPick(option.position, option.zero);
+                  close();
+                }}
+                className="flex min-h-12 w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left hover:bg-night focus:bg-night"
+              >
+                <span className="flex w-4 shrink-0 justify-center" aria-hidden="true">
+                  {checked && <Check size={16} />}
+                </span>
+                <Category category={option.choice.category} />
+                <span className="flex min-w-0 flex-col">
+                  <span>
+                    {title(option, checked)}
+                    {option.position === 0 && !option.zero && (
+                      <>
+                        {" · "}
+                        <span className="font-bold text-ready">{t("verdict.recommendedShort")}</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="text-xs text-ash">
+                    {option.zero ? (
+                      t("confirm.zeroPassHint")
+                    ) : (
+                      <span className="font-mono">{option.choice.method}</span>
+                    )}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
