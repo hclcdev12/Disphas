@@ -437,7 +437,9 @@
     "close": "Fermer",
     "language": "Langue",
     "strict": "Mode strict : n° de série avant chaque effacement",
-    "strictHint": "Par défaut, chaque effacement demande une confirmation d’un clic. En mode strict, il demande aussi le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés."
+    "strictHint": "Par défaut, chaque effacement demande une confirmation d’un clic. En mode strict, il demande aussi le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés.",
+    "notifications": "Notification de fin d'effacement",
+    "notificationsHint": "Quand l'app est en arrière-plan, le bureau affiche une notification lorsque les effacements en cours sont tous terminés. Elle ne contient aucun numéro de série."
   },
   "station": {
     "offline": "hors ligne",

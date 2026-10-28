@@ -4,6 +4,7 @@
 // `disphas-helper --features demo`; erasures are played back in accelerated
 // time, and certificates are PDFs rendered beforehand by the real renderer
 // with public test keys (crates/disphas-report/examples/demo_certificates.rs).
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Event as HelperEvent } from "../bindings/Event";
 import type { DeviceSummary } from "../bindings/DeviceSummary";
 import type { FinalStatus } from "../bindings/FinalStatus";
@@ -93,7 +94,7 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false } as Settings,
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -363,6 +364,14 @@ export const demoApi: DisphasApi = {
   setStrictConfirmation: async (enabled) => {
     state.settings = { ...state.settings, strict_confirmation: enabled };
     return { ok: true, value: state.settings };
+  },
+  setNotifications: async (enabled) => {
+    state.settings = { ...state.settings, notifications: enabled };
+    return { ok: true, value: state.settings };
+  },
+  // Under Tauri (npm run demo) the desktop shows it, as in the real app; in a browser, nothing.
+  notify: async (title, body) => {
+    if (isTauri()) await invoke<void>("notify", { title, body }).catch(() => {});
   },
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: a fictional verified report, for layout only.

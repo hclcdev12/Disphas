@@ -45,6 +45,10 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
   certificat qui ne se vérifie pas n'est jamais affiché comme fait.
 - **Disques → helper** : les données de firmware sont décodées de façon défensive (fuzzées).
 - **Poste → tiers** : seul le certificat signé fait foi ; le PDF n'est qu'un rendu.
+- **Application → bureau** (depuis le 2026-10-28, désactivé par défaut) : la notification de fin d'effacement
+  passe par le service de notifications du bureau (D-Bus de session sous Linux), jamais par le réseau. Elle ne
+  contient que des nombres et des statuts, aucun n° de série. Seule l'interface, sans droits root, l'envoie ; le
+  helper n'y touche pas.
 - **Serveur de licences → application** (décidé le 2026-10-11, non implémenté) : réponse bornée, une seule URL
   HTTPS, code réseau sans droits root ; la licence reçue n'est crue qu'après vérification de sa signature par le
   helper. Un faux serveur peut bloquer une activation, pas forger une licence

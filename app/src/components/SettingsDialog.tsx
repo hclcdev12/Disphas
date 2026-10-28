@@ -153,6 +153,24 @@ export function SettingsDialog({
         </span>
       </label>
 
+      {/* Off by default: a desktop notification when erasures finish while the window is in the background. */}
+      <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="ctl-check mt-0.5"
+          checked={settings.notifications}
+          onChange={async (event) => {
+            const result = await api.setNotifications(event.target.checked);
+            if (result.ok) onChanged(result.value);
+            else setError(result.error.detail ?? result.error.code);
+          }}
+        />
+        <span>
+          <span className="font-bold">{t("settings.notifications")}</span>
+          <span className="block text-xs text-ash">{t("settings.notificationsHint")}</span>
+        </span>
+      </label>
+
       <div className="mt-5 text-sm">
         <p className="font-bold">{t("settings.logo")}</p>
         {!logoAllowed && (

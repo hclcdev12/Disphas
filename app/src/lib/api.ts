@@ -99,6 +99,8 @@ export type Settings = {
   logo: string | null;
   /** Each erasure waits for the serial number read on the drive (docs/cadre_projet.md §5.4). */
   strict_confirmation: boolean;
+  /** Desktop notification when erasures finish while the window is in the background. */
+  notifications: boolean;
 };
 
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
@@ -141,6 +143,9 @@ export interface DisphasApi {
   setLogo(data: string): Promise<Outcome<Settings>>;
   clearLogo(): Promise<Outcome<Settings>>;
   setStrictConfirmation(enabled: boolean): Promise<Outcome<Settings>>;
+  setNotifications(enabled: boolean): Promise<Outcome<Settings>>;
+  /** Desktop notification, shown only when the window is in the background. The caller checks the setting. */
+  notify(title: string, body: string): Promise<void>;
   /** Called when a drive is plugged in or out; returns the unsubscribe function. */
   onDrivesChanged(handler: () => void): Promise<() => void>;
   /** Renders and saves the batch certificate of a batch from the history. */
@@ -215,11 +220,14 @@ const tauriApi: DisphasApi = {
       operator: null,
       logo: null,
       strict_confirmation: false,
+      notifications: false,
     })),
   saveSettings: (organization, operator) => settingsCall("save_settings", { organization, operator }),
   setLogo: (data) => settingsCall("set_logo", { data }),
   clearLogo: () => settingsCall("clear_logo", {}),
   setStrictConfirmation: (enabled) => settingsCall("set_strict_confirmation", { enabled }),
+  setNotifications: (enabled) => settingsCall("set_notifications", { enabled }),
+  notify: (title, body) => invoke<void>("notify", { title, body }).catch(() => {}),
   onDrivesChanged: (handler) => listen("disphas://drives-changed", () => handler()),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
   renderBatch: async (batchId, lang) => {
@@ -264,11 +272,13 @@ const previewApi: DisphasApi = {
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
   deleteReports: async () => unavailable,
-  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false }),
+  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false }),
   saveSettings: async () => unavailable,
   setLogo: async () => unavailable,
   clearLogo: async () => unavailable,
   setStrictConfirmation: async () => unavailable,
+  setNotifications: async () => unavailable,
+  notify: async () => {},
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: shows a fictional verified report, for layout only.
   verifyCertificate: async () => previewVerification.report as VerificationReport,

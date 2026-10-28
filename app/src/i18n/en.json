@@ -437,7 +437,9 @@
     "close": "Close",
     "language": "Language",
     "strict": "Strict mode: serial number before each erasure",
-    "strictHint": "By default, each erasure asks for a one-click confirmation. In strict mode, it also asks for the serial number read on the drive: barcode scanner, or the last 4 characters typed."
+    "strictHint": "By default, each erasure asks for a one-click confirmation. In strict mode, it also asks for the serial number read on the drive: barcode scanner, or the last 4 characters typed.",
+    "notifications": "Notify when erasures finish",
+    "notificationsHint": "When the app is in the background, the desktop shows a notification once all running erasures have finished. It contains no serial number."
   },
   "station": {
     "offline": "offline",

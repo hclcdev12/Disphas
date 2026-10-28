@@ -76,7 +76,7 @@ export function UnlockDialog({
             <input
               type="radio"
               name="password-kind"
-              className="ctl-radio"
+              className="ctl-check"
               checked={kind === option}
               onChange={() => setKind(option)}
             />

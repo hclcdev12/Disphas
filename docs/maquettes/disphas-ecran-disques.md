@@ -21,7 +21,7 @@ Règles de la charte appliquées (Gestalt) :
 |---|---|
 | Proximité | Le disque, son état et son action sont sur une même ligne ; les groupes sont séparés par 20 px. |
 | Région commune | La décision, les avertissements et l'explication sont chacun dans un cadre ; la ligne sélectionnée prend un fond. |
-| Similarité | Une couleur et une icône par état, identiques dans la liste (titre de groupe, bouton) et dans le détail (bouton). Les cases à cocher et les boutons radio forment une seule famille : même taille, même contour, même couleur quand ils sont choisis. |
+| Similarité | Une couleur et une icône par état, identiques dans la liste (titre de groupe, bouton) et dans le détail (bouton). Toute sélection de l'app a la même forme : une case avec une coche, pour les disques comme pour la méthode. |
 | Figure / fond | Seuls la ligne sélectionnée et les cadres de détail utilisent la surface `--surface`. |
 
 Un disque s'identifie **toujours** par modèle, numéro de série et WWN / EUI-64, **jamais** par un chemin `/dev/...`.
@@ -134,10 +134,11 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 - « s/n {sn} · {WWN|EUI-64} {valeur} » en mono 14 px `--fg-2`.
 - Pas de pastille d'état : l'état se lit dans la liste, et la pastille était prise pour un bouton.
 
-**Cases et boutons radio** (révisé le 2026-10-28)
-- Tous dessinés à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
-- Une seule famille : 20 × 20 px, contour 2 px `--ctrl`, `--fg-2` au survol. Case : rayon 4 px. Radio : rond.
-- Choisi : couleur os `--fg`. Case : fond `--fg` et coche `--bg` centrée (SVG). Radio : contour `--fg` et point `--fg` de 8 px centré. Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
+**Sélection : une case avec une coche, partout** (décidé par le propriétaire le 2026-10-28)
+- Disques, méthode d'effacement, mot de passe ATA, réglages : toute sélection est la même case, pour la cohérence entre la liste et le détail.
+- Écart assumé avec la convention classique (case carrée = plusieurs choix, rond = un seul choix ; NN/g, Carbon). Un choix unique reste un bouton radio dans le code : un seul à la fois, flèches du clavier pour changer, annoncé « bouton radio » par les lecteurs d'écran.
+- Dessinée à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
+- 20 × 20 px, rayon 4 px, contour 2 px `--ctrl`, `--fg-2` au survol. Choisie : fond os `--fg` et coche `--bg` centrée (SVG). Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
 - « Tout sélectionner » : dans la colonne des cases des disques, juste au-dessus d'elles ; un tiret quand une partie seulement est cochée.
 - Le `label` qui entoure chaque contrôle est la zone de clic (au moins 24 × 24 px, WCAG 2.2 critère 2.5.8).
 - Focus clavier : le contour de 3 px suit la forme du contrôle.
@@ -145,7 +146,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 **Disque prêt**
 1. **Bloc « Décision de Disphas »**, **sans cadre** (révisé le 2026-10-27) : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste ; la première méthode est à la hauteur du premier disque.
 2. **Une ligne par méthode** : un `label` cliquable de 64 px minimum, comme une ligne de disque, qui contient :
-   - un **bouton radio** de 20 px, dessiné à la main (`appearance: none`), voir « Cases et boutons radio » ci-dessous ;
+   - la **case** de sélection (bouton radio dessiné en case, voir « Sélection » ci-dessus) ;
    - la **catégorie** dans une étiquette de 52 px en mono 13 px : `Purge` remplie (`--fg` sur `--bg`), `Clear` en contour 1 px `--ctrl` ;
    - le **nom de la méthode** en 17 px ;
      - la méthode cochée est **en gras** ; la ligne cochée est encadrée comme le disque sélectionné (contour 1 px `--ctrl`, fond `--surface`) ;

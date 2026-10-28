@@ -744,7 +744,7 @@ function Verdict({
                   name={`method-${inspection.verdict_id}`}
                   checked={position === index}
                   onChange={() => onChoose(position)}
-                  className="ctl-radio"
+                  className="ctl-check"
                 />
                 <span
                   className={`w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${

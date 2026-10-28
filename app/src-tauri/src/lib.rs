@@ -279,6 +279,35 @@ fn set_strict_confirmation(
     settings::set_strict_confirmation(&config_dir(&app)?, enabled)
 }
 
+/// Turns the desktop notifications on or off.
+#[tauri::command]
+fn set_notifications(enabled: bool, app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::set_notifications(&config_dir(&app)?, enabled)
+}
+
+/// Shows a desktop notification when the window is in the background: in
+/// front, the app shows its own summary. The interface calls it only when
+/// the operator turned notifications on (off by default). Goes through the
+/// desktop's notification service (D-Bus on Linux), never the network.
+#[tauri::command]
+fn notify(title: String, body: String, app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+
+    let in_front = app
+        .get_webview_window("main")
+        .and_then(|window| window.is_focused().ok())
+        .unwrap_or(false);
+    if in_front {
+        return Ok(());
+    }
+    app.notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show()
+        .map_err(|error| error.to_string())
+}
+
 /// Removes the customer's logo.
 #[tauri::command]
 fn clear_logo(app: tauri::AppHandle) -> Result<settings::Settings, String> {
@@ -332,6 +361,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let handle = app.handle().clone();
             let helper = Helper::spawn(move |event| {
@@ -360,7 +390,9 @@ pub fn run() {
             save_settings,
             set_logo,
             clear_logo,
-            set_strict_confirmation
+            set_strict_confirmation,
+            set_notifications,
+            notify
         ])
         .run(tauri::generate_context!());
     if let Err(error) = result {

@@ -87,9 +87,14 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     Étape 2 codée le 2026-10-26 : cases à cocher sur les disques prêts (et « Tout »), « Effacer N disques »
     avec une seule fenêtre (méthode et avertissements de chaque disque, alerte si l'offre n'a pas assez de places,
     proposition d'ouvrir un lot avec son libellé ; en mode strict, chaque disque est scanné à son tour), résumé
-    « N effacements terminés · N CONFORMES » dans l'application. Pas de notification système : elle demanderait
-    un greffon Tauri de plus (`tauri-plugin-notification`), à décider par le propriétaire. Étape 3 : Historique,
-    Vérifier, assistant de premier lancement ;
+    « N effacements terminés · N CONFORMES » dans l'application. Le 2026-10-28 : notification système en option
+    (Paramètres, désactivée par défaut, décidé par le propriétaire) via `tauri-plugin-notification` 2.4.0 (compatible
+    Tauri 2.11) : une seule bulle quand le dernier effacement en cours se termine, et seulement si la fenêtre est
+    en arrière-plan ; sous Linux elle passe par D-Bus (`org.freedesktop.Notifications`), sans réseau, sans n° de
+    série. Pastille d'état retirée du détail (prise pour un bouton) ; toute sélection de l'app est une case cochée,
+    méthodes comprises (choix du propriétaire, écart assumé avec « rond = un seul choix » ; les méthodes restent des
+    boutons radio pour le clavier et les lecteurs d'écran) ; cases dessinées à la main, car WebKitGTK les
+    dessinait au thème GTK (coche décentrée). Étape 3 : Historique, Vérifier, assistant de premier lancement ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

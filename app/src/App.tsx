@@ -25,7 +25,7 @@ import { requiredAcknowledgements } from "./lib/acknowledgements";
 import type { PdfState } from "./lib/pdf";
 
 export default function App() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [hello, setHello] = useState<Outcome<HelloResult> | null>(null);
   const [devices, setDevices] = useState<Outcome<ListDevicesResult> | null>(null);
   const [inspections, setInspections] = useState<Record<string, Outcome<InspectResult>>>({});
@@ -47,6 +47,7 @@ export default function App() {
     operator: null,
     logo: null,
     strict_confirmation: false,
+    notifications: false,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
@@ -322,6 +323,19 @@ export default function App() {
 
   /** Erasures running now, resumed ones included (the helper counts the same, offres.md §4.4). */
   const runningCount = Object.values(jobs).filter((job) => job.status === null && job.phase !== "Interrupted").length;
+
+  // When the last running erasure ends, one desktop notification sums them up
+  // (if turned on in the settings); never one per drive.
+  const wasRunning = useRef(0);
+  useEffect(() => {
+    const before = wasRunning.current;
+    wasRunning.current = runningCount;
+    const total = finishedCount.conforme + finishedCount.other;
+    if (!settings.notifications || before === 0 || runningCount > 0 || total === 0) return;
+    const body = [t("finished.conforme", { count: finishedCount.conforme })];
+    if (finishedCount.other > 0) body.push(t("finished.other", { count: finishedCount.other }));
+    void api.notify(t("finished.title", { count: total }), body.join(" · "));
+  }, [runningCount, finishedCount, settings.notifications, t]);
   const maxParallel = license?.entitlements ? license.entitlements.max_parallel : undefined;
 
   const connected = hello?.ok ?? false;

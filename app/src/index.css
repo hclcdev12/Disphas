@@ -170,13 +170,13 @@ body {
 }
 
 /*
- * Checkboxes and radios drawn by hand: the native ones follow the GTK theme in
- * WebKitGTK (dark grey box, tick off centre). One family: 20 px, 2 px outline,
- * bone when chosen; square to tick several, round to choose one. The label
- * around each control is the click target.
+ * Every selection in the app is the same ticked box, drawn by hand: native
+ * controls follow the GTK theme in WebKitGTK (dark grey box, tick off
+ * centre). Single choices (erasure method, ATA password) stay radio inputs,
+ * one at a time and arrows to move, only drawn as a box (owner's choice,
+ * 2026-10-28). The label around each control is the click target.
  */
-.ctl-check,
-.ctl-radio {
+.ctl-check {
   appearance: none;
   -webkit-appearance: none;
   flex: none;
@@ -185,22 +185,15 @@ body {
   height: 20px;
   margin: 0;
   border: 2px solid var(--color-ctrl);
+  border-radius: 4px;
   background: transparent no-repeat center / 14px 14px;
   cursor: pointer;
   transition:
     border-color 0.1s,
     background-color 0.1s;
 }
-.ctl-check {
-  border-radius: 4px;
-}
-.ctl-radio {
-  border-radius: 50%;
-}
 .ctl-check:hover,
-.ctl-radio:hover,
-label:hover > .ctl-check,
-label:hover > .ctl-radio {
+label:hover > .ctl-check {
   border-color: var(--color-ash);
 }
 .ctl-check:checked,
@@ -214,13 +207,7 @@ label:hover > .ctl-radio {
 .ctl-check:indeterminate {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7h8' fill='none' stroke='%231b1f21' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E");
 }
-.ctl-radio:checked {
-  border-color: var(--color-soft);
-  background-image: radial-gradient(circle, var(--color-soft) 0 4px, transparent 4.5px);
-  background-size: 100% 100%;
-}
-.ctl-check:disabled,
-.ctl-radio:disabled {
+.ctl-check:disabled {
   cursor: not-allowed;
   opacity: 0.4;
 }

@@ -437,7 +437,9 @@
     "close": "Schließen",
     "language": "Sprache",
     "strict": "Strenger Modus: Seriennummer vor jeder Löschung",
-    "strictHint": "Standardmäßig verlangt jede Löschung eine Bestätigung mit einem Klick. Im strengen Modus zusätzlich die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen."
+    "strictHint": "Standardmäßig verlangt jede Löschung eine Bestätigung mit einem Klick. Im strengen Modus zusätzlich die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen.",
+    "notifications": "Benachrichtigung am Ende der Löschung",
+    "notificationsHint": "Wenn die App im Hintergrund ist, zeigt der Desktop eine Benachrichtigung, sobald alle laufenden Löschungen beendet sind. Sie enthält keine Seriennummer."
   },
   "station": {
     "offline": "offline",

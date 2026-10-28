@@ -34,6 +34,10 @@ pub struct Settings {
     /// (`docs/cadre_projet.md` §5.4).
     #[serde(default)]
     pub strict_confirmation: bool,
+    /// Desktop notification when erasures finish while the window is in the
+    /// background. Off by default.
+    #[serde(default)]
+    pub notifications: bool,
 }
 
 fn settings_file(dir: &Path) -> PathBuf {
@@ -91,6 +95,14 @@ pub fn save(
 pub fn set_strict_confirmation(dir: &Path, enabled: bool) -> Result<Settings, String> {
     let mut settings = load(dir);
     settings.strict_confirmation = enabled;
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Turns the desktop notifications on or off.
+pub fn set_notifications(dir: &Path, enabled: bool) -> Result<Settings, String> {
+    let mut settings = load(dir);
+    settings.notifications = enabled;
     store(dir, &settings)?;
     Ok(settings)
 }
@@ -167,6 +179,24 @@ mod tests {
         assert_eq!(load(dir.path()), saved);
         assert!(save(dir.path(), Some("x".repeat(129)), None).is_err());
         assert!(save(dir.path(), None, Some("a\tb".to_owned())).is_err());
+    }
+
+    #[test]
+    fn notifications_are_off_until_turned_on() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        // A settings file written before the option existed.
+        std::fs::write(
+            settings_file(dir.path()),
+            br#"{"organization":null,"operator":null,"logo":null}"#,
+        )
+        .expect("written");
+        assert!(!load(dir.path()).notifications);
+        assert!(
+            set_notifications(dir.path(), true)
+                .expect("saved")
+                .notifications
+        );
+        assert!(load(dir.path()).notifications);
     }
 
     #[test]
