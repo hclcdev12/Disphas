@@ -751,56 +751,25 @@ function Verdict({
       const destroy = verdict.disposition.kind === "DestroyRecommended" ? verdict.disposition.reasons : [];
       return (
         <>
-          {/* Same rhythm as the drive list: a title like a group's, rows of 64 px, the chosen one framed. */}
-          <div
-            role="radiogroup"
-            aria-labelledby={`decision-${inspection.verdict_id}`}
-            className="flex min-w-0 flex-col gap-0.5"
-          >
-            <h3
-              id={`decision-${inspection.verdict_id}`}
-              className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash"
-            >
+          {/* Same recipe as several drives: the method button and its menu, level with the first drive. */}
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h3 className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash">
               {t("verdict.recommendation")}
             </h3>
-            {optionsOf(inspection).map(({ position, zero, choice: option }) => {
-              const checked = position === index && zero === zeroFor(choice, zeroPass);
-              return (
-                <label
-                  key={`${option.method}${zero ? "+zero" : ""}`}
-                  className={`flex min-h-16 cursor-pointer items-center gap-3.5 rounded-md border px-3 py-1 ${
-                    checked ? "border-ctrl bg-card" : "border-transparent"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={`method-${inspection.verdict_id}`}
-                    checked={checked}
-                    onChange={() => {
-                      onChoose(position);
-                      onZeroPass(zero);
-                    }}
-                    className="ctl-check"
-                  />
-                  <Category category={option.category} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className={checked ? "font-bold" : undefined}>
-                      {name(option.method)}
-                      {zero && <> {t("drives.thenZeros")}</>}
-                      {position === 0 && !zero && (
-                        <>
-                          {" · "}
-                          <span className="font-bold text-ready">{t("verdict.recommendedShort")}</span>
-                        </>
-                      )}
-                    </span>
-                    <span className="text-sm break-all text-ash">
-                      {zero ? t("confirm.zeroPassHint") : <span className="font-mono">{option.method}</span>}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+            <div className="flex min-h-16 items-center">
+              <MethodMenu
+                options={optionsOf(inspection)}
+                position={index}
+                zero={zeroPass}
+                name={name}
+                label={t("drives.methodFor", { model: inspection.device.identity.model })}
+                wide
+                onPick={(position, zero) => {
+                  onChoose(position);
+                  onZeroPass(zero);
+                }}
+              />
+            </div>
           </div>
           {destroy.map((code) => (
             <Note key={code} code={code} text={t("verdict.destroyNote", { reason: name(code) })} />
@@ -826,7 +795,8 @@ function Verdict({
               {t("drives.erase")}
             </button>
             <span className="text-[15px] text-ash">
-              {name(choice.method)} ·{" "}
+              {name(choice.method)}
+              {zeroFor(choice, zeroPass) && <> {t("drives.thenZeros")}</>} ·{" "}
               {choice.reserves.length > 0 ? t("drives.withReserves") : t("drives.withoutReserves")}
             </span>
           </Actions>
@@ -1007,6 +977,7 @@ function MethodMenu({
   zero,
   name,
   label,
+  wide = false,
   onPick,
 }: {
   options: MethodOption[];
@@ -1014,6 +985,8 @@ function MethodMenu({
   zero: boolean;
   name: (code: string) => string;
   label: string;
+  /** One drive: a larger button under the title, its menu opening to the right. */
+  wide?: boolean;
   onPick: (position: number, zero: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -1065,7 +1038,7 @@ function MethodMenu({
   );
 
   return (
-    <div ref={root} className="relative w-[26rem] max-w-[55%] shrink-0" onKeyDown={onKey}>
+    <div ref={root} className={`relative shrink-0 ${wide ? "w-[34rem] max-w-full" : "w-[26rem] max-w-[55%]"}`} onKeyDown={onKey}>
       <button
         ref={trigger}
         type="button"
@@ -1096,7 +1069,7 @@ function MethodMenu({
         <div
           role="menu"
           aria-label={label}
-          className="absolute top-full right-0 z-20 mt-1 flex w-[30rem] max-w-[85vw] flex-col gap-0.5 rounded-lg border border-ctrl bg-card p-1.5 shadow-xl shadow-black/50"
+          className={`absolute top-full z-20 mt-1 flex ${wide ? "left-0 w-full" : "right-0 w-[30rem]"} max-w-[85vw] flex-col gap-0.5 rounded-lg border border-ctrl bg-card p-1.5 shadow-xl shadow-black/50`}
         >
           {options.map((option, at) => {
             const checked = option === current;

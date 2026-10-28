@@ -132,7 +132,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 - Pas de pastille d'état : l'état se lit dans la liste, et la pastille était prise pour un bouton.
 
 **Sélection : une case avec une coche, partout** (décidé par le propriétaire le 2026-10-28)
-- Méthode d'effacement, mot de passe ATA, réglages : toute case à cocher ou choix unique est la même case. Les disques, eux, se sélectionnent par surbrillance (voir la ligne de disque).
+- Mot de passe ATA, réglages, fenêtres : toute case à cocher ou choix unique est la même case. Les disques se sélectionnent par surbrillance (voir la ligne de disque) et la méthode par le bouton méthode.
 - Écart assumé avec la convention classique (case carrée = plusieurs choix, rond = un seul choix ; NN/g, Carbon). Un choix unique reste un bouton radio dans le code : un seul à la fois, flèches du clavier pour changer, annoncé « bouton radio » par les lecteurs d'écran.
 - Dessinée à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
 - 20 × 20 px, rayon 4 px, contour 2 px `--ctrl`, `--fg-2` au survol. Choisie : fond os `--fg` et coche `--bg` centrée (SVG). Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
@@ -159,14 +159,13 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
   disques prêts, **Échap** pour revenir à un seul disque. La liste ne compte qu'un arrêt de tabulation.
 
 **Disque prêt**
-1. **Bloc « Décision de Disphas »**, **sans cadre** (révisé le 2026-10-27) : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste ; la première méthode est à la hauteur du premier disque.
-2. **Une ligne par méthode** : un `label` cliquable de 64 px minimum, comme une ligne de disque, qui contient :
-   - la **case** de sélection (bouton radio dessiné en case, voir « Sélection » ci-dessus) ;
-   - la **catégorie** dans une étiquette de 52 px en mono 13 px : `Purge` remplie (`--fg` sur `--bg`), `Clear` en contour 1 px `--ctrl` ;
-   - le **nom de la méthode** en 17 px ;
-     - la méthode cochée est **en gras** ; la ligne cochée est encadrée comme le disque sélectionné (contour 1 px `--ctrl`, fond `--surface`) ;
-     - la première méthode porte « · **recommandée** », ce dernier mot en vert `--ready` et en gras ;
-   - sous le nom, l'**identifiant technique** en mono 14 px `--fg-2` (par exemple `AtaSanitizeOverwrite`).
+1. **Bloc « Décision de Disphas »**, sans cadre : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste.
+2. **Bouton méthode** (révisé le 2026-10-28, même recette que pour plusieurs disques) : sous le titre, à la hauteur
+   du premier disque, aligné à gauche avec les avertissements et le bouton Effacer, 34 rem de large. Il montre
+   l'étiquette Purge/Clear, le nom de la méthode retenue, dessous « recommandée » en vert ou « + passe de zéros »,
+   et une flèche ▾ ; sans contour au repos, encadré au survol et menu ouvert. Le menu s'ouvre dessous, à la même
+   largeur : ✓ devant la méthode retenue, étiquette, nom, « recommandée » pour la première, identifiant technique
+   dessous ; la réécriture hôte y figure deux fois, seule et « + passe de zéros ».
 3. **Avertissements**, s'il y en a : un cadre par note, contour 1 px `--ctrl`, icône triangle, le texte, puis le code (D4, R6…) en mono `--fg-2`. Ils restent neutres pour l'instant, sans couleur.
 4. **Ligne d'action** :
    - le bouton **« ▶ Effacer »** : seulement le mot « Effacer », sans la catégorie ; contour 2 px et texte `--ready`, fond transparent, 52 px de haut, 18 px / 700 ;
