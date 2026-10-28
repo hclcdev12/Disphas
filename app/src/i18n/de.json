@@ -257,11 +257,12 @@
     "exporting": "Wird erstellt…",
     "saved": "Gespeichert unter",
     "open": "Öffnen",
-    "back": "Zurück zu den Löschungen",
     "resumed": "Diese Löschung wurde nach einem unerwarteten Abbruch von disphas fortgesetzt: Das Laufwerk hat sie selbstständig weitergeführt, disphas prüft jetzt das Ergebnis.",
     "openCertificate": "Zertifikat öffnen",
     "pdfFailed": "Das Zertifikat konnte nicht gespeichert werden.",
-    "retryPdf": "Erneut versuchen"
+    "retryPdf": "Erneut versuchen",
+    "steps": "Schritte",
+    "resumedShort": "Nach einem Abbruch fortgesetzt"
   },
   "unlock": {
     "title": "Laufwerk entsperren",
@@ -286,7 +287,21 @@
     "inProgress": "Löschung läuft",
     "view": "Löschung anzeigen",
     "lastErasure": "Letzte Löschung in dieser Sitzung",
-    "lastErasureHint": "Die Entscheidung unten stammt aus einer neuen Prüfung nach dieser Löschung."
+    "lastErasureHint": "Die Entscheidung unten stammt aus einer neuen Prüfung nach dieser Löschung.",
+    "count_one": "Löschungen · {{count}}",
+    "count_other": "Löschungen · {{count}}",
+    "meta": "{{running}} laufend · {{done}} beendet",
+    "group": {
+      "running_one": "Laufend · {{count}}",
+      "running_other": "Laufend · {{count}}",
+      "done_one": "Beendet · {{count}}",
+      "done_other": "Beendet · {{count}}"
+    },
+    "batch": "Los {{name}}",
+    "batchDone": "{{done}} / {{total}} beendet",
+    "inBatch": "Los {{name}}",
+    "backLabel": "Zurück zur Liste der Löschungen",
+    "emptyHint": "Starten Sie eine Löschung im Reiter Laufwerke: Sie erscheint hier, mit ihren Schritten und dann ihrer Bescheinigung."
   },
   "nav": {
     "drives": "Laufwerke",

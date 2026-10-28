@@ -257,11 +257,12 @@
     "exporting": "Rendering…",
     "saved": "Saved to",
     "open": "Open",
-    "back": "Back to erasures",
     "resumed": "This erasure was resumed after disphas stopped unexpectedly: the drive carried on by itself, disphas is now checking the result.",
     "openCertificate": "Open the certificate",
     "pdfFailed": "The certificate could not be saved.",
-    "retryPdf": "Retry"
+    "retryPdf": "Retry",
+    "steps": "Steps",
+    "resumedShort": "Resumed after a stop"
   },
   "unlock": {
     "title": "Unlock the drive",
@@ -286,7 +287,21 @@
     "inProgress": "Erasure in progress",
     "view": "View erasure",
     "lastErasure": "Last erasure in this session",
-    "lastErasureHint": "The decision below comes from a new inspection, made after this erasure."
+    "lastErasureHint": "The decision below comes from a new inspection, made after this erasure.",
+    "count_one": "Erasures · {{count}}",
+    "count_other": "Erasures · {{count}}",
+    "meta": "{{running}} running · {{done}} finished",
+    "group": {
+      "running_one": "Running · {{count}}",
+      "running_other": "Running · {{count}}",
+      "done_one": "Finished · {{count}}",
+      "done_other": "Finished · {{count}}"
+    },
+    "batch": "Batch {{name}}",
+    "batchDone": "{{done}} / {{total}} finished",
+    "inBatch": "batch {{name}}",
+    "backLabel": "Back to the list of erasures",
+    "emptyHint": "Start an erasure from the Drives tab: it will show here, with its steps, then its certificate."
   },
   "nav": {
     "drives": "Drives",

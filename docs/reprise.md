@@ -105,8 +105,10 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     scanné puis Entrée, collage n'importe où dans l'onglet) et résultat en une phrase (« Certificat authentique ·
     CONFORME · émis le … par … »), détails repliés ; assistant de premier lancement (langue, organisation et
     opérateur, licence, mode d'emploi en 3 points), sautable, montré une fois (`onboarded` dans `settings.json` ; en
-    démo, seulement sous Tauri). Restent de la revue : D5 (B1 par mise en veille), E4 (vue d'ensemble des
-    effacements), P2 (changement rapide d'opérateur), motifs prêts à choisir pour le forçage ;
+    démo, seulement sous Tauri). Le 2026-10-28 : sélection des disques par surbrillance (Ctrl/Maj + clic, Ctrl + A, Échap,
+    flèches), bouton méthode avec menu (la passe de zéros devient une méthode), focus visible au clavier seulement,
+    onglet Effacements en liste et détail avec la progression de chaque lot (E4). Restent de la revue : D5 (B1 par
+    mise en veille), P2 (changement rapide d'opérateur), motifs prêts à choisir pour le forçage ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

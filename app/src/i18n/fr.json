@@ -257,11 +257,12 @@
     "exporting": "Rendu en cours…",
     "saved": "Enregistré dans",
     "open": "Ouvrir",
-    "back": "Retour aux effacements",
     "resumed": "Cet effacement a été repris après un arrêt inattendu de disphas : le disque l'a poursuivi seul, disphas en vérifie maintenant le résultat.",
     "openCertificate": "Ouvrir le certificat",
     "pdfFailed": "Le certificat n’a pas pu être enregistré.",
-    "retryPdf": "Réessayer"
+    "retryPdf": "Réessayer",
+    "steps": "Étapes",
+    "resumedShort": "Repris après un arrêt"
   },
   "unlock": {
     "title": "Déverrouiller le disque",
@@ -286,7 +287,21 @@
     "inProgress": "Effacement en cours",
     "view": "Voir l'effacement",
     "lastErasure": "Dernier effacement de cette session",
-    "lastErasureHint": "La décision ci-dessous vient d'une nouvelle inspection, faite après cet effacement."
+    "lastErasureHint": "La décision ci-dessous vient d'une nouvelle inspection, faite après cet effacement.",
+    "count_one": "Effacements · {{count}}",
+    "count_other": "Effacements · {{count}}",
+    "meta": "{{running}} en cours · {{done}} terminés",
+    "group": {
+      "running_one": "En cours · {{count}}",
+      "running_other": "En cours · {{count}}",
+      "done_one": "Terminé · {{count}}",
+      "done_other": "Terminés · {{count}}"
+    },
+    "batch": "Lot {{name}}",
+    "batchDone": "{{done}} / {{total}} terminés",
+    "inBatch": "lot {{name}}",
+    "backLabel": "Revenir à la liste des effacements",
+    "emptyHint": "Lancez un effacement depuis l'onglet Disques : il apparaîtra ici, avec ses étapes, puis son certificat."
   },
   "nav": {
     "drives": "Disques",

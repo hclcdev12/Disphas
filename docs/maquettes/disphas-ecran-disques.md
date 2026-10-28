@@ -183,6 +183,28 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 
 ---
 
+### 3.4 Onglet Effacements (2026-10-28)
+
+Même grille que l'onglet Disques (classes `split-*` partagées) : liste à gauche, détail à droite, première ligne de la
+liste à la hauteur du titre « Étapes ».
+- **En-tête de liste** : « Effacements · {n} », puis « {n} en cours · {n} terminés » en mono 14 px `--fg-2`. Pour chaque
+  lot de la session : « Lot {libellé} » et « {terminés} / {total} terminés », avec une barre de progression d'ensemble
+  (moyenne des disques du lot, 100 % pour un disque terminé).
+- **Groupes** : « En cours · {n} » puis « Terminés · {n} », les plus récents en premier.
+- **Ligne** : un seul bouton, 64 px minimum, sélection en surbrillance comme un disque. Ligne 1 : roue qui tourne si en
+  cours, modèle, et à droite le pourcentage en mono, ou le statut en mono dans sa couleur (CONFORME en vert, sinon en
+  rouge) ; pas de pastille pleine dans la liste. Ligne 2 : l'étape en cours, ou « {Purge/Clear} · {méthode} », puis
+  « lot {libellé} ». Une fine barre sous un effacement en cours.
+- **En-tête du détail** : « Effacement en cours | terminé · {méthode} » en mono, le modèle (40 px / 700), « s/n {sn} ·
+  {identifiant de l'effacement} ».
+- **Détail** : titre « Étapes » comme un titre de groupe, les étapes côte à côte (une par ligne sous 760 px) ; la barre
+  de progression et ses chiffres ; « Ne débranchez pas le disque… » dans un cadre bordé ambre, **sans fond teinté** ;
+  à la fin, un cadre `--ctrl` avec la pastille de statut, sa phrase et « Ouvrir le certificat » ; le journal d'audit
+  replié.
+- **Barres de progression** : remplissage os `--fg` sur une piste `--line`, aucune couleur d'état.
+- Sans effacement : « Aucun effacement dans cette session. » à gauche, et à droite une phrase qui renvoie à l'onglet
+  Disques.
+
 ## 4. Responsive
 
 | Largeur | Comportement |

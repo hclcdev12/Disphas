@@ -61,3 +61,12 @@ export function Button({
 export function Mono({ children }: { children: ReactNode }) {
   return <span className="font-mono text-[0.85em] text-soft">{children}</span>;
 }
+
+/** A progress bar: bone on a grey track, no colour (docs/maquettes/disphas-ecran-disques.md §2). */
+export function Bar({ percent, className = "h-1" }: { percent: number; className?: string }) {
+  return (
+    <span className={`block overflow-hidden rounded-full bg-edge ${className}`} aria-hidden="true">
+      <span className="block h-full bg-soft transition-all duration-300" style={{ width: `${percent}%` }} />
+    </span>
+  );
+}

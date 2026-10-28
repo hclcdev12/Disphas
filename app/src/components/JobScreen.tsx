@@ -5,7 +5,7 @@ import type { JobPhase } from "../bindings/JobPhase";
 import { api } from "../lib/api";
 import type { PdfState } from "../lib/pdf";
 import type { JobView } from "../lib/jobs";
-import { Badge, Button, Mono } from "./ui";
+import { Badge, Bar, Button, Mono } from "./ui";
 
 const PHASES: JobPhase[] = ["Preparing", "Canaries", "Executing", "Verifying", "Validating", "Signing", "Done"];
 
@@ -19,20 +19,20 @@ function duration(seconds: number): string {
   return minutes > 0 ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 }
 
-/** Monitoring and closing screens of an erasure (UI spec §4, screens 3 and 4). */
-export function JobScreen({
-  jobId,
+/**
+ * One erasure, followed then closed (UI spec §4, screens 3 and 4), laid out
+ * like the detail of a drive: the steps level with the first erasure of the
+ * list, the progress, then the result and its certificate. Warnings are
+ * outlined, never on a tinted background.
+ */
+export function JobDetail({
   job,
-  model,
   resumed = false,
   hostWrite = false,
   pdf,
   onRetryPdf,
-  onBack,
 }: {
-  jobId: string;
   job: JobView;
-  model: string;
   /** Resumed by the helper after a crash (docs/protocole_ipc.md §10). */
   resumed?: boolean;
   /** A host overwrite has no canaries step. */
@@ -40,7 +40,6 @@ export function JobScreen({
   /** Certificate rendered automatically when the job ended. */
   pdf: PdfState | undefined;
   onRetryPdf: () => void;
-  onBack: () => void;
 }) {
   const { t, i18n } = useTranslation();
   // Only the steps this method goes through: a host overwrite writes no canaries.
@@ -61,64 +60,45 @@ export function JobScreen({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [estimate]);
-  const elapsed = estimate !== null && job.progressAt !== null ? Math.max(0, Math.floor((now - job.progressAt) / 1000)) : 0;
+  const elapsed =
+    estimate !== null && job.progressAt !== null ? Math.max(0, Math.floor((now - job.progressAt) / 1000)) : 0;
 
-  const tone = job.status === "CONFORME" ? "ready" : "sayno";
   return (
-    <section className="rounded-lg border border-edge bg-card p-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold">{finished ? t("job.finished") : t("job.title")}</h1>
-        <span className="text-ash">{model}</span>
+    <>
+      {/* Same rhythm as the list: a title like a group's, level with the first erasure. */}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h3 className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash">{t("job.steps")}</h3>
+        <ol
+          className="job-steps grid min-h-16 items-center gap-2 text-center text-sm"
+          style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}
+        >
+          {phases.map((phase, index) => {
+            const done = finished || index < current;
+            const active = !finished && index === current;
+            return (
+              <li
+                key={phase}
+                aria-current={active ? "step" : undefined}
+                className={`flex flex-col items-center gap-1.5 ${active ? "font-bold text-soft" : done ? "text-soft" : "text-ash"}`}
+              >
+                {done ? (
+                  <CheckCircle2 size={18} className="text-ready" aria-hidden="true" />
+                ) : active ? (
+                  <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Circle size={18} aria-hidden="true" />
+                )}
+                {t(`job.phase.${phase}`)}
+              </li>
+            );
+          })}
+        </ol>
       </div>
-      <p className="mt-1 text-xs text-ash">
-        <Mono>{jobId}</Mono>
-      </p>
-
-      {resumed && (
-        <div className="mt-4 flex gap-2 rounded-md border border-brand/40 bg-brand/10 p-3 text-sm text-soft">
-          <History size={16} className="mt-0.5 shrink-0 text-brand" />
-          {t("job.resumed")}
-        </div>
-      )}
-
-      {!finished && (
-        <div className="mt-4 flex gap-2 rounded-md border border-blocked/40 bg-blocked/10 p-3 text-sm text-blocked">
-          <TriangleAlert size={16} className="mt-0.5 shrink-0" />
-          {t("job.warning")}
-        </div>
-      )}
-
-      <ol
-        className="mt-5 grid gap-2 text-center text-xs"
-        style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}
-      >
-        {phases.map((phase, index) => {
-          const done = finished || index < current;
-          const active = !finished && index === current;
-          return (
-            <li key={phase} className={`flex flex-col items-center gap-1.5 ${done || active ? "text-soft" : "text-ash/50"}`}>
-              {done ? (
-                <CheckCircle2 size={18} className="text-ready" />
-              ) : active ? (
-                <LoaderCircle size={18} className="animate-spin text-brand" />
-              ) : (
-                <Circle size={18} />
-              )}
-              {t(`job.phase.${phase}`)}
-            </li>
-          );
-        })}
-      </ol>
 
       {estimate !== null && (
-        <div className="mt-5">
-          <div className="h-2 overflow-hidden rounded-full bg-night">
-            <div
-              className="h-full animate-pulse bg-brand/50 transition-all duration-1000"
-              style={{ width: `${Math.min(99, Math.round((elapsed * 100) / Math.max(1, estimate)))}%` }}
-            />
-          </div>
-          <p className="mt-1.5 flex flex-wrap gap-3 text-xs text-ash">
+        <div>
+          <Bar percent={Math.min(99, Math.round((elapsed * 100) / Math.max(1, estimate)))} className="h-2" />
+          <p className="mt-2 flex flex-wrap gap-3 text-sm text-ash">
             <span>{t("job.elapsed", { elapsed: duration(elapsed) })}</span>
             {elapsed < estimate ? (
               <span>{t("job.estimateLeft", { eta: duration(estimate - elapsed) })}</span>
@@ -126,17 +106,15 @@ export function JobScreen({
               <span className="text-blocked">{t("job.estimateExceeded", { max: duration(estimate * 2) })}</span>
             )}
           </p>
-          <p className="mt-1 text-xs text-ash">{t("job.firmwareSilent")}</p>
+          <p className="mt-1 text-sm text-ash">{t("job.firmwareSilent")}</p>
         </div>
       )}
 
       {!finished && progress && estimate === null && (
-        <div className="mt-5">
-          <div className="h-2 overflow-hidden rounded-full bg-night">
-            <div className="h-full bg-brand transition-all duration-300" style={{ width: `${progress.percent}%` }} />
-          </div>
-          <p className="mt-1.5 flex gap-3 text-xs text-ash">
-            <span>{progress.percent} %</span>
+        <div>
+          <Bar percent={progress.percent} className="h-2" />
+          <p className="mt-2 flex flex-wrap gap-3 font-mono text-sm text-ash">
+            <span className="text-soft">{progress.percent} %</span>
             {progress.bytes_done !== null && <span>{bytes(progress.bytes_done, i18n.language)}</span>}
             {progress.bytes_per_second !== null && (
               <span>{t("job.rate", { rate: bytes(progress.bytes_per_second, i18n.language) })}</span>
@@ -148,34 +126,52 @@ export function JobScreen({
         </div>
       )}
 
+      {resumed && (
+        <p className="flex items-start gap-3 rounded-md border border-ctrl px-4 py-3.5">
+          <History size={18} className="mt-1 shrink-0" aria-hidden="true" />
+          {t("job.resumed")}
+        </p>
+      )}
+
+      {!finished && (
+        <p className="flex items-start gap-3 rounded-md border border-blocked px-4 py-3.5">
+          <TriangleAlert size={18} className="mt-1 shrink-0 text-blocked" aria-hidden="true" />
+          {t("job.warning")}
+        </p>
+      )}
+
       {finished && job.status && (
-        <div className={`mt-6 rounded-lg border p-4 ${tone === "ready" ? "border-ready/40 bg-ready/10" : "border-sayno/40 bg-sayno/10"}`}>
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-4 rounded-lg border border-ctrl p-6">
+          <div className="flex flex-wrap items-center gap-3">
             {job.status === "CONFORME" ? (
-              <CheckCircle2 className="text-ready" />
+              <CheckCircle2 className="text-ready" aria-hidden="true" />
             ) : (
-              <XCircle className="text-sayno" />
+              <XCircle className="text-sayno" aria-hidden="true" />
             )}
-            <Badge tone={tone}>{t(`job.status.${job.status}`)}</Badge>
-            <span className="text-sm">{t(`job.statusHint.${job.status}`)}</span>
+            <Badge tone={job.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${job.status}`)}</Badge>
+            <span className="text-[17px]">{t(`job.statusHint.${job.status}`)}</span>
           </div>
           {/* The certificate is saved as soon as the erasure ends. */}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            {(pdf === undefined || pdf.kind === "rendering") && <span className="text-sm text-ash">{t("job.exporting")}</span>}
+          <div className="flex flex-wrap items-center gap-4">
+            {(pdf === undefined || pdf.kind === "rendering") && <span className="text-ash">{t("job.exporting")}</span>}
             {pdf?.kind === "saved" && (
               <>
-                <Button variant="primary" className="flex items-center gap-2" onClick={() => void api.openCertificate(pdf.path)}>
-                  <FileText size={15} aria-hidden="true" />
+                <Button
+                  variant="primary"
+                  className="flex min-h-12 items-center gap-2 px-5.5 text-[17px]"
+                  onClick={() => void api.openCertificate(pdf.path)}
+                >
+                  <FileText size={16} aria-hidden="true" />
                   {t("job.openCertificate")}
                 </Button>
-                <span className="text-xs text-ash">
+                <span className="text-sm text-ash">
                   {t("job.saved")} <Mono>{pdf.path}</Mono>
                 </span>
               </>
             )}
             {pdf?.kind === "failed" && (
               <>
-                <span className="text-sm text-sayno">
+                <span className="text-sayno">
                   {t("job.pdfFailed")} {t(`errors.${pdf.error.code}`, { defaultValue: pdf.error.code })}
                   {pdf.error.detail && <span className="block font-mono text-xs text-ash">{pdf.error.detail}</span>}
                 </span>
@@ -186,22 +182,20 @@ export function JobScreen({
         </div>
       )}
 
-      <details className="mt-6" open={!finished}>
-        <summary className="cursor-pointer text-sm font-bold text-ash">{t("job.log")}</summary>
-        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-edge bg-night p-3 font-mono text-xs">
+      {/* The technical journal stays folded: it is there for an audit, not to follow the erasure. */}
+      <details>
+        <summary className="cursor-pointer text-sm font-bold text-ash hover:text-soft">{t("job.log")}</summary>
+        <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-md border border-edge p-3 font-mono text-xs">
           {job.logs.map((log, index) => (
-            <li key={index} className={log.level === "error" ? "text-sayno" : log.level === "warning" ? "text-blocked" : "text-ash"}>
+            <li
+              key={index}
+              className={log.level === "error" ? "text-sayno" : log.level === "warning" ? "text-blocked" : "text-ash"}
+            >
               {t(`job.logCodes.${log.code}`, { ...log.params, defaultValue: log.code })}
             </li>
           ))}
         </ul>
       </details>
-
-      {finished && (
-        <div className="mt-6 flex justify-end">
-          <Button onClick={onBack}>{t("job.back")}</Button>
-        </div>
-      )}
-    </section>
+    </>
   );
 }

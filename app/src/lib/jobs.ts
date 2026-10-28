@@ -50,7 +50,3 @@ export function seedJobs(jobs: Record<string, JobView>, listed: JobSummary[]): R
   }
   return next;
 }
-
-export function emptyJob(): JobView {
-  return EMPTY;
-}

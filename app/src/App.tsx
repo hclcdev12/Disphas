@@ -6,12 +6,11 @@ import type { JobSummary } from "./bindings/JobSummary";
 import type { ListDevicesResult } from "./bindings/ListDevicesResult";
 import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
-import { JobScreen } from "./components/JobScreen";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
-import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
+import { applyEvent, seedJobs, type JobView } from "./lib/jobs";
 import { DrivesScreen, type BatchNotice, type EraseRequest } from "./components/DrivesScreen";
 import { FinishedBar } from "./components/FinishedBar";
 import { Header, type View } from "./components/Header";
@@ -266,7 +265,11 @@ export default function App() {
         serial,
         resumed: false,
         batch: into?.id ?? null,
+        batchLabel: into?.label ?? null,
         hostWrite: erase.choice.method === "HostOverwrite",
+        method: erase.choice.method,
+        category: erase.choice.category,
+        zeroPass: erase.choice.method === "HostOverwrite" && (erase.zeroPass ?? false),
       },
     }));
     // The operator stays on the list: each drive shows its own progress.
@@ -400,22 +403,19 @@ export default function App() {
           }}
           onLicense={() => setLicenseOpen(true)}
         />
+      ) : view === "jobs" ? (
+        <JobsScreen
+          jobs={jobs}
+          info={jobInfo}
+          labels={labels}
+          open={openJob}
+          onOpen={setOpenJob}
+          pdfOf={(id) => pdfs[id]}
+          onRetryPdf={(id) => void renderPdf(id)}
+        />
       ) : (
         <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
-          {view === "jobs" && openJob && jobInfo[openJob] ? (
-            <JobScreen
-              jobId={openJob}
-              model={jobInfo[openJob].model}
-              resumed={jobInfo[openJob].resumed}
-              hostWrite={jobInfo[openJob].hostWrite}
-              job={jobs[openJob] ?? emptyJob()}
-              pdf={pdfs[openJob]}
-              onRetryPdf={() => void renderPdf(openJob)}
-              onBack={() => setOpenJob(null)}
-            />
-          ) : view === "jobs" ? (
-            <JobsScreen jobs={jobs} info={jobInfo} onOpen={setOpenJob} />
-          ) : view === "history" ? (
+          {view === "history" ? (
             <HistoryScreen labels={labels} />
           ) : (
             <VerifyScreen labels={labels} />

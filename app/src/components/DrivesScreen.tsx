@@ -249,6 +249,8 @@ export function DrivesScreen(props: {
   const selectAll = () => {
     setSelection(allSelected ? erasableSerials.slice(0, 1) : erasableSerials);
     setAnchor(erasableSerials[0] ?? null);
+    // On a phone the list and the detail are two views: show the selection.
+    if (narrow()) open(true);
   };
   const unselect = (serial: string) => setSelection(selectedDrives.map(serialOf).filter((other) => other !== serial));
   const eraseSelected = () => {
@@ -363,8 +365,8 @@ export function DrivesScreen(props: {
           });
 
   return (
-    <div className="drives-screen grid min-h-0 flex-1" data-view={view}>
-      <div className="drives-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
+    <div className="split-screen grid min-h-0 flex-1" data-view={view}>
+      <div className="split-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
         <div className="flex items-start justify-between gap-2 px-2">
           <div>
             <h1 className="text-[25px] leading-tight font-bold">{t("drives.count", { count: drives.length })}</h1>
@@ -432,12 +434,12 @@ export function DrivesScreen(props: {
         {devices?.ok && drives.length === 0 && <p className="px-2 text-ash">{t("drives.empty")}</p>}
       </div>
 
-      <div className="drives-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
         <button
           type="button"
           onClick={back}
           aria-label={t("drives.backLabel")}
-          className="drives-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
+          className="split-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
         >
           <ChevronLeft size={18} aria-hidden="true" />
           {t("drives.back")}
@@ -456,7 +458,7 @@ export function DrivesScreen(props: {
                 count: selectedDrives.filter(erasable).length,
               })}
             </div>
-            <h2 ref={titleRef} tabIndex={-1} className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
+            <h2 ref={titleRef} tabIndex={-1} className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
               {t("drives.selectedCount", { count: selectedDrives.length })}
             </h2>
           </div>
@@ -464,7 +466,7 @@ export function DrivesScreen(props: {
       </div>
 
       {/* Same row as the detail below: the first drive faces the first method. */}
-      <aside className="drives-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6" aria-label={t("drives.listLabel")}>
+      <aside className="split-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6" aria-label={t("drives.listLabel")}>
         {grouped.map(({ group, drives: members }) => (
           <section key={group} aria-labelledby={`group-${group}`} className="flex flex-col gap-0.5">
             <h2
@@ -536,7 +538,7 @@ export function DrivesScreen(props: {
         )}
       </aside>
 
-      <main className="drives-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10" aria-live="polite">
+      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10" aria-live="polite">
         {many && (
           <SelectionDetail
             drives={selectedDrives}
@@ -603,7 +605,7 @@ function DetailHead({
       <h2
         ref={titleRef}
         tabIndex={-1}
-        className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words"
+        className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words"
       >
         {identity.model}
       </h2>
