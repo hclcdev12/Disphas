@@ -97,7 +97,16 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     choisie dans Paramètres est mémorisée (`settings.json` ; en démo, stockage du navigateur). Pastille d'état retirée du détail (prise pour un bouton) ; toute sélection de l'app est une case cochée,
     méthodes comprises (choix du propriétaire, écart assumé avec « rond = un seul choix » ; les méthodes restent des
     boutons radio pour le clavier et les lecteurs d'écran) ; cases dessinées à la main, car WebKitGTK les
-    dessinait au thème GTK (coche décentrée). Étape 3 : Historique, Vérifier, assistant de premier lancement ;
+    dessinait au thème GTK (coche décentrée). Étape 3 codée le 2026-10-28 : Historique avec une recherche unique (modèle, S/N, lot,
+    client, opérateur, statut, méthode, date), certificats groupés par lot, un clic sur une ligne rend et ouvre le
+    PDF, « Certificat du lot » sur la ligne du lot, suppression dans une fenêtre unique confirmée d'un clic
+    (certificats trouvés par la recherche, avant une date facultative ; pas de délai d'annulation : la suppression
+    est définitive côté helper) ; Vérifier en une seule zone (dépôt ou choix d'un PDF/.cose, texte du QR collé ou
+    scanné puis Entrée, collage n'importe où dans l'onglet) et résultat en une phrase (« Certificat authentique ·
+    CONFORME · émis le … par … »), détails repliés ; assistant de premier lancement (langue, organisation et
+    opérateur, licence, mode d'emploi en 3 points), sautable, montré une fois (`onboarded` dans `settings.json` ; en
+    démo, seulement sous Tauri). Restent de la revue : D5 (B1 par mise en veille), E4 (vue d'ensemble des
+    effacements), P2 (changement rapide d'opérateur), motifs prêts à choisir pour le forçage ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

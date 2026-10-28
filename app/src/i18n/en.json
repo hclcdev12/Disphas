@@ -296,35 +296,41 @@
     "label": "Sections"
   },
   "history": {
-    "title": "Certificate history",
-    "search": "Model, S/N, operator…",
+    "search": "Search: model, S/N, batch, customer, operator, date…",
     "loading": "Verifying certificates…",
     "empty": "No certificate yet.",
     "noMatch": "No certificate matches.",
-    "pdf": "PDF certificate",
     "check": {
       "Invalid": "Invalid signature: this certificate is not shown",
       "JournalMismatch": "Journal modified or replaced: this certificate is not shown",
       "Unreadable": "Unreadable or incomplete certificate",
       "Revoked": "License revoked at the certificate date: this certificate is not shown"
     },
-    "allBatches": "All batches",
-    "batchPdf": "Batch certificate (PDF)",
+    "batchPdf": "Batch certificate",
     "before": "Issued before",
-    "deleteShown_one": "Delete the certificate shown",
-    "deleteShown_other": "Delete the {{count}} certificates shown",
-    "deleteConfirm_one": "Permanently delete this certificate from the history? PDFs already exported are not affected.",
-    "deleteConfirm_other": "Permanently delete these {{count}} certificates from the history? PDFs already exported are not affected.",
     "deleteNow": "Delete permanently",
     "deletedCount_one": "{{count}} certificate deleted (recorded in the deletion log).",
-    "deletedCount_other": "{{count}} certificates deleted (recorded in the deletion log)."
+    "deletedCount_other": "{{count}} certificates deleted (recorded in the deletion log).",
+    "count_one": "History · {{count}}",
+    "count_other": "History · {{count}}",
+    "searchLabel": "Search the history",
+    "open": "Open the PDF certificate",
+    "batch_one": "Batch {{name}} · {{count}} certificate",
+    "batch_other": "Batch {{name}} · {{count}} certificates",
+    "delete": "Delete…",
+    "deleteTitle": "Delete certificates",
+    "deleteScopeAll": "Every certificate in the history, or only those issued before a date.",
+    "deleteScopeSearch": "The certificates found by the search, or only those issued before a date.",
+    "beforeHint": "Optional. To apply your customers' retention period.",
+    "deleteWarning": "Permanent deletion from the history, recorded in the deletion log. PDFs already saved are not touched.",
+    "deleteNow_one": "Delete {{count}} certificate",
+    "deleteNow_other": "Delete {{count}} certificates",
+    "deleteNone": "No certificate to delete"
   },
   "verify": {
     "title": "Verify a certificate",
-    "drop": "Drop a PDF certificate or a .cose file here. Verification runs fully offline.",
-    "choose": "Choose a file…",
-    "qr": "…or paste the QR code text",
-    "verifyQr": "Verify the text",
+    "drop": "Drop a PDF or .cose certificate here",
+    "qr": "Or the QR code text",
     "qrSource": "QR code text",
     "busy": "Verifying…",
     "authentic": "Authentic certificate",
@@ -395,7 +401,12 @@
     "batchDrives_one": "{{count}} drive",
     "batchDrives_other": "{{count}} drives",
     "zeroFinish": "Final pass of zeros, validated",
-    "allNamespaces": "Every namespace of the NVMe controller was erased"
+    "allNamespaces": "Every namespace of the NVMe controller was erased",
+    "dropHint": "or click to choose a file. Verification runs fully offline.",
+    "qrPlaceholder": "DSV1:… paste or scan, then Enter",
+    "issued": "issued on {{date}}",
+    "issuedBy": "issued on {{date}} by {{who}}",
+    "details": "All the details"
   },
   "batch": {
     "current": "Current batch:",
@@ -469,5 +480,31 @@
     "running_one": "{{count}} still running",
     "running_other": "{{count}} still running",
     "show": "View"
+  },
+  "welcome": {
+    "step": "Step {{current}} of {{total}}",
+    "skip": "Skip",
+    "next": "Continue",
+    "back": "Back",
+    "start": "Get started",
+    "title": "Welcome to Disphas",
+    "intro": "Three settings before the first erasure. Everything can be changed later in Settings.",
+    "signerTitle": "Who signs the certificates?",
+    "signerIntro": "The organization and the operator are written into every certificate, as typed, and can never be changed. You may leave them empty.",
+    "licenseTitle": "License",
+    "licenseValid": "License active",
+    "licenseUntil": "valid until {{date}}",
+    "licenseMissing": "Without a valid license, Disphas inspects drives but refuses to erase them.",
+    "licenseActivate": "Activate a license…",
+    "readyTitle": "You're all set",
+    "later": "Everything can be changed later in Settings, the gear at the top right.",
+    "tip": {
+      "plug": "Plug in a drive",
+      "plugHint": "Disphas detects and inspects it on its own, then sorts it: to start, to unblock, refused or protected.",
+      "erase": "Erase in one click",
+      "eraseHint": "Disphas picks the method and warns you before erasing. Tick several drives to erase them together.",
+      "certificate": "The certificate saves itself",
+      "certificateHint": "At the end of each erasure, the signed PDF is saved in Documents/disphas. Every certificate is in the History."
+    }
   }
 }

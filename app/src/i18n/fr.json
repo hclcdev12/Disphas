@@ -296,35 +296,41 @@
     "label": "Sections"
   },
   "history": {
-    "title": "Historique des certificats",
-    "search": "Modèle, S/N, opérateur…",
+    "search": "Rechercher : modèle, S/N, lot, client, opérateur, date…",
     "loading": "Vérification des certificats…",
     "empty": "Aucun certificat pour l'instant.",
     "noMatch": "Aucun certificat ne correspond.",
-    "pdf": "Certificat PDF",
     "check": {
       "Invalid": "Signature invalide : ce certificat n'est pas affiché",
       "JournalMismatch": "Journal modifié ou remplacé : ce certificat n'est pas affiché",
       "Unreadable": "Certificat illisible ou incomplet",
       "Revoked": "Licence révoquée à la date du certificat : ce certificat n'est pas affiché"
     },
-    "allBatches": "Tous les lots",
-    "batchPdf": "Certificat de lot (PDF)",
-    "before": "Antérieurs au",
-    "deleteShown_one": "Supprimer le certificat affiché",
-    "deleteShown_other": "Supprimer les {{count}} certificats affichés",
-    "deleteConfirm_one": "Supprimer définitivement ce certificat de l'historique ? Les PDF déjà exportés ne sont pas touchés.",
-    "deleteConfirm_other": "Supprimer définitivement ces {{count}} certificats de l'historique ? Les PDF déjà exportés ne sont pas touchés.",
+    "batchPdf": "Certificat du lot",
+    "before": "Émis avant le",
     "deleteNow": "Supprimer définitivement",
     "deletedCount_one": "{{count}} certificat supprimé (consigné dans le journal des suppressions).",
-    "deletedCount_other": "{{count}} certificats supprimés (consignés dans le journal des suppressions)."
+    "deletedCount_other": "{{count}} certificats supprimés (consignés dans le journal des suppressions).",
+    "count_one": "Historique · {{count}}",
+    "count_other": "Historique · {{count}}",
+    "searchLabel": "Rechercher dans l'historique",
+    "open": "Ouvrir le certificat PDF",
+    "batch_one": "Lot {{name}} · {{count}} certificat",
+    "batch_other": "Lot {{name}} · {{count}} certificats",
+    "delete": "Supprimer…",
+    "deleteTitle": "Supprimer des certificats",
+    "deleteScopeAll": "Tous les certificats de l'historique, ou seulement ceux émis avant une date.",
+    "deleteScopeSearch": "Les certificats trouvés par la recherche, ou seulement ceux émis avant une date.",
+    "beforeHint": "Facultatif. Pour appliquer la durée de conservation de vos clients.",
+    "deleteWarning": "Suppression définitive de l'historique, consignée dans le journal des suppressions. Les PDF déjà enregistrés ne sont pas touchés.",
+    "deleteNow_one": "Supprimer {{count}} certificat",
+    "deleteNow_other": "Supprimer {{count}} certificats",
+    "deleteNone": "Aucun certificat à supprimer"
   },
   "verify": {
     "title": "Vérifier un certificat",
-    "drop": "Déposez ici un certificat PDF ou un fichier .cose. La vérification se fait entièrement hors ligne.",
-    "choose": "Choisir un fichier…",
-    "qr": "…ou collez le texte du QR code",
-    "verifyQr": "Vérifier le texte",
+    "drop": "Glissez ici un certificat PDF ou .cose",
+    "qr": "Ou le texte du QR code",
     "qrSource": "Texte du QR code",
     "busy": "Vérification…",
     "authentic": "Certificat authentique",
@@ -395,7 +401,12 @@
     "batchDrives_one": "{{count}} support",
     "batchDrives_other": "{{count}} supports",
     "zeroFinish": "Passe finale de zéros, validée",
-    "allNamespaces": "Tous les namespaces du contrôleur NVMe ont été effacés"
+    "allNamespaces": "Tous les namespaces du contrôleur NVMe ont été effacés",
+    "dropHint": "ou cliquez pour choisir un fichier. La vérification se fait entièrement hors ligne.",
+    "qrPlaceholder": "DSV1:… collez ou scannez, puis Entrée",
+    "issued": "émis le {{date}}",
+    "issuedBy": "émis le {{date}} par {{who}}",
+    "details": "Tous les détails"
   },
   "batch": {
     "current": "Lot en cours :",
@@ -469,5 +480,31 @@
     "running_one": "{{count}} encore en cours",
     "running_other": "{{count}} encore en cours",
     "show": "Voir"
+  },
+  "welcome": {
+    "step": "Étape {{current}} sur {{total}}",
+    "skip": "Passer",
+    "next": "Continuer",
+    "back": "Retour",
+    "start": "Commencer",
+    "title": "Bienvenue dans Disphas",
+    "intro": "Trois réglages avant le premier effacement. Tout se change ensuite dans Paramètres.",
+    "signerTitle": "Qui signe les certificats ?",
+    "signerIntro": "L'organisation et l'opérateur sont inscrits dans chaque certificat, tels quels, et ne pourront plus être modifiés. Vous pouvez les laisser vides.",
+    "licenseTitle": "Licence",
+    "licenseValid": "Licence active",
+    "licenseUntil": "valable jusqu'au {{date}}",
+    "licenseMissing": "Sans licence valide, Disphas inspecte les disques mais refuse de les effacer.",
+    "licenseActivate": "Activer une licence…",
+    "readyTitle": "C'est prêt",
+    "later": "Tout se change ensuite dans Paramètres, la roue en haut à droite.",
+    "tip": {
+      "plug": "Branchez un disque",
+      "plugHint": "Disphas le détecte et l'inspecte tout seul, puis le classe : à lancer, à débloquer, refusé ou protégé.",
+      "erase": "Effacez d'un clic",
+      "eraseHint": "Disphas choisit la méthode et vous met en garde avant d'effacer. Cochez plusieurs disques pour les effacer ensemble.",
+      "certificate": "Le certificat s'enregistre tout seul",
+      "certificateHint": "À la fin de chaque effacement, le PDF signé est enregistré dans Documents/disphas. Tous les certificats sont dans l'Historique."
+    }
   }
 }

@@ -280,6 +280,12 @@ fn set_strict_confirmation(
     settings::set_strict_confirmation(&config_dir(&app)?, enabled)
 }
 
+/// Records that the first-launch assistant was completed or skipped.
+#[tauri::command]
+fn set_onboarded(app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::set_onboarded(&config_dir(&app)?)
+}
+
 /// Remembers the language of the interface.
 #[tauri::command]
 fn set_language(language: String, app: tauri::AppHandle) -> Result<settings::Settings, String> {
@@ -409,6 +415,7 @@ pub fn run() {
             set_strict_confirmation,
             set_notifications,
             set_language,
+            set_onboarded,
             notify
         ])
         .run(tauri::generate_context!());

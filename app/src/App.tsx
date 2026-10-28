@@ -8,6 +8,7 @@ import type { LicenseStatusResult } from "./bindings/LicenseStatusResult";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { JobScreen } from "./components/JobScreen";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { WelcomeDialog } from "./components/WelcomeDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
 import { applyEvent, emptyJob, seedJobs, type JobView } from "./lib/jobs";
@@ -49,11 +50,15 @@ export default function App() {
     strict_confirmation: false,
     notifications: false,
     language: null,
+    onboarded: true,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Read once at start: until then, the first-launch assistant waits.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   useEffect(() => {
     void api.getSettings().then((stored) => {
       setSettings(stored);
+      setSettingsLoaded(true);
       // The language chosen in the settings wins over the system's.
       if (stored.language && (LANGUAGES as readonly string[]).includes(stored.language))
         void i18n.changeLanguage(stored.language);
@@ -427,6 +432,15 @@ export default function App() {
             setOpenJob(null);
           }}
           onDismiss={() => setFinishedCount({ conforme: 0, other: 0 })}
+        />
+      )}
+      {settingsLoaded && !settings.onboarded && (
+        <WelcomeDialog
+          settings={settings}
+          license={license}
+          onLicense={() => setLicenseOpen(true)}
+          onChanged={setSettings}
+          onDone={() => setSettings((current) => ({ ...current, onboarded: true }))}
         />
       )}
       {licenseOpen && license && (

@@ -42,6 +42,9 @@ pub struct Settings {
     /// `None`: the system's.
     #[serde(default)]
     pub language: Option<String>,
+    /// The first-launch assistant was completed or skipped.
+    #[serde(default)]
+    pub onboarded: bool,
 }
 
 fn settings_file(dir: &Path) -> PathBuf {
@@ -107,6 +110,14 @@ pub fn set_strict_confirmation(dir: &Path, enabled: bool) -> Result<Settings, St
 pub fn set_notifications(dir: &Path, enabled: bool) -> Result<Settings, String> {
     let mut settings = load(dir);
     settings.notifications = enabled;
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Records that the first-launch assistant was completed or skipped.
+pub fn set_onboarded(dir: &Path) -> Result<Settings, String> {
+    let mut settings = load(dir);
+    settings.onboarded = true;
     store(dir, &settings)?;
     Ok(settings)
 }
@@ -231,6 +242,14 @@ mod tests {
         assert_eq!(load(dir.path()).language.as_deref(), Some("fr"));
         assert!(set_language(dir.path(), "xx").is_err());
         assert_eq!(load(dir.path()).language.as_deref(), Some("fr"));
+    }
+
+    #[test]
+    fn the_first_launch_assistant_shows_until_done() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        assert!(!load(dir.path()).onboarded);
+        assert!(set_onboarded(dir.path()).expect("saved").onboarded);
+        assert!(load(dir.path()).onboarded);
     }
 
     #[test]

@@ -26,6 +26,21 @@ import verification from "../dev/verification-sample.json";
 /** The demo keeps no settings file: the chosen language lives in the browser's storage. */
 const LANGUAGE_KEY = "disphas-demo-language";
 
+/**
+ * The first-launch assistant shows in the desktop demo (npm run demo), once;
+ * never on the website, where visitors come to see the drives.
+ */
+const ONBOARDED_KEY = "disphas-demo-onboarded";
+
+function demoOnboarded(): boolean {
+  if (!isTauri()) return true;
+  try {
+    return localStorage.getItem(ONBOARDED_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
 function storedLanguage(): string | null {
   try {
     return localStorage.getItem(LANGUAGE_KEY);
@@ -105,7 +120,7 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage() } as Settings,
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage(), onboarded: demoOnboarded() } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -357,7 +372,12 @@ export const demoApi: DisphasApi = {
   listReports: async () => [...state.finished.map(historyEntry), ...(history.entries as HistoryEntry[])],
   renderReport: async (id, lang) => {
     const job = state.byId.get(id);
-    return job?.status ? ok(certificate(job, lang)) : fail("UNAVAILABLE", "demo");
+    if (job?.status) return ok(certificate(job, lang));
+    // The sample certificates of the history follow the same naming.
+    const sample = (history.entries as HistoryEntry[]).find((entry) => entry.id === id)?.summary;
+    return sample?.method
+      ? ok(`${import.meta.env.BASE_URL}pdf/${sample.serial}-${sample.method}-${lang}.pdf`)
+      : fail("UNAVAILABLE", "demo");
   },
   renderBatch: async () => fail("UNAVAILABLE", "demo"),
   deleteReports: async (ids) => {
@@ -374,6 +394,15 @@ export const demoApi: DisphasApi = {
   clearLogo: async () => fail("UNAVAILABLE", "demo"),
   setStrictConfirmation: async (enabled) => {
     state.settings = { ...state.settings, strict_confirmation: enabled };
+    return { ok: true, value: state.settings };
+  },
+  setOnboarded: async () => {
+    state.settings = { ...state.settings, onboarded: true };
+    try {
+      localStorage.setItem(ONBOARDED_KEY, "1");
+    } catch {
+      // Storage refused: the assistant shows again at the next launch.
+    }
     return { ok: true, value: state.settings };
   },
   setLanguage: async (language) => {

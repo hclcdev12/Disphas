@@ -296,35 +296,41 @@
     "label": "Bereiche"
   },
   "history": {
-    "title": "Verlauf der Bescheinigungen",
-    "search": "Modell, S/N, Bediener…",
+    "search": "Suchen: Modell, S/N, Los, Kunde, Bediener, Datum…",
     "loading": "Bescheinigungen werden geprüft…",
     "empty": "Noch keine Bescheinigung.",
     "noMatch": "Keine Bescheinigung passt.",
-    "pdf": "PDF-Bescheinigung",
     "check": {
       "Invalid": "Ungültige Signatur: Diese Bescheinigung wird nicht angezeigt",
       "JournalMismatch": "Protokoll geändert oder ersetzt: Diese Bescheinigung wird nicht angezeigt",
       "Unreadable": "Unlesbare oder unvollständige Bescheinigung",
       "Revoked": "Lizenz zum Datum der Bescheinigung widerrufen: Diese Bescheinigung wird nicht angezeigt"
     },
-    "allBatches": "Alle Lose",
-    "batchPdf": "Loszertifikat (PDF)",
+    "batchPdf": "Los-Bescheinigung",
     "before": "Ausgestellt vor dem",
-    "deleteShown_one": "Angezeigte Bescheinigung löschen",
-    "deleteShown_other": "Die {{count}} angezeigten Bescheinigungen löschen",
-    "deleteConfirm_one": "Diese Bescheinigung endgültig aus dem Verlauf löschen? Bereits exportierte PDFs bleiben unberührt.",
-    "deleteConfirm_other": "Diese {{count}} Bescheinigungen endgültig aus dem Verlauf löschen? Bereits exportierte PDFs bleiben unberührt.",
     "deleteNow": "Endgültig löschen",
     "deletedCount_one": "{{count}} Bescheinigung gelöscht (im Löschprotokoll vermerkt).",
-    "deletedCount_other": "{{count}} Bescheinigungen gelöscht (im Löschprotokoll vermerkt)."
+    "deletedCount_other": "{{count}} Bescheinigungen gelöscht (im Löschprotokoll vermerkt).",
+    "count_one": "Verlauf · {{count}}",
+    "count_other": "Verlauf · {{count}}",
+    "searchLabel": "Im Verlauf suchen",
+    "open": "PDF-Bescheinigung öffnen",
+    "batch_one": "Los {{name}} · {{count}} Bescheinigung",
+    "batch_other": "Los {{name}} · {{count}} Bescheinigungen",
+    "delete": "Löschen…",
+    "deleteTitle": "Bescheinigungen löschen",
+    "deleteScopeAll": "Alle Bescheinigungen im Verlauf oder nur die vor einem Datum ausgestellten.",
+    "deleteScopeSearch": "Die von der Suche gefundenen Bescheinigungen oder nur die vor einem Datum ausgestellten.",
+    "beforeHint": "Optional. Um die Aufbewahrungsfrist Ihrer Kunden anzuwenden.",
+    "deleteWarning": "Endgültige Löschung aus dem Verlauf, im Löschprotokoll vermerkt. Bereits gespeicherte PDFs bleiben unberührt.",
+    "deleteNow_one": "{{count}} Bescheinigung löschen",
+    "deleteNow_other": "{{count}} Bescheinigungen löschen",
+    "deleteNone": "Keine Bescheinigung zu löschen"
   },
   "verify": {
     "title": "Bescheinigung prüfen",
-    "drop": "Legen Sie hier eine PDF-Bescheinigung oder eine .cose-Datei ab. Die Prüfung erfolgt vollständig offline.",
-    "choose": "Datei wählen…",
-    "qr": "…oder fügen Sie den Text des QR-Codes ein",
-    "verifyQr": "Text prüfen",
+    "drop": "PDF-Bescheinigung oder .cose-Datei hier ablegen",
+    "qr": "Oder der Text des QR-Codes",
     "qrSource": "Text des QR-Codes",
     "busy": "Wird geprüft…",
     "authentic": "Echte Bescheinigung",
@@ -395,7 +401,12 @@
     "batchDrives_one": "{{count}} Datenträger",
     "batchDrives_other": "{{count}} Datenträger",
     "zeroFinish": "Abschließender Durchgang mit Nullen, validiert",
-    "allNamespaces": "Alle Namespaces des NVMe-Controllers wurden gelöscht"
+    "allNamespaces": "Alle Namespaces des NVMe-Controllers wurden gelöscht",
+    "dropHint": "oder klicken, um eine Datei zu wählen. Die Prüfung läuft vollständig offline.",
+    "qrPlaceholder": "DSV1:… einfügen oder scannen, dann Enter",
+    "issued": "ausgestellt am {{date}}",
+    "issuedBy": "ausgestellt am {{date}} von {{who}}",
+    "details": "Alle Details"
   },
   "batch": {
     "current": "Aktuelles Los:",
@@ -469,5 +480,31 @@
     "running_one": "{{count}} läuft noch",
     "running_other": "{{count}} laufen noch",
     "show": "Anzeigen"
+  },
+  "welcome": {
+    "step": "Schritt {{current}} von {{total}}",
+    "skip": "Überspringen",
+    "next": "Weiter",
+    "back": "Zurück",
+    "start": "Loslegen",
+    "title": "Willkommen bei Disphas",
+    "intro": "Drei Einstellungen vor der ersten Löschung. Alles lässt sich später in den Einstellungen ändern.",
+    "signerTitle": "Wer unterzeichnet die Bescheinigungen?",
+    "signerIntro": "Organisation und Bediener werden unverändert in jede Bescheinigung geschrieben und können nie mehr geändert werden. Sie dürfen leer bleiben.",
+    "licenseTitle": "Lizenz",
+    "licenseValid": "Lizenz aktiv",
+    "licenseUntil": "gültig bis {{date}}",
+    "licenseMissing": "Ohne gültige Lizenz prüft Disphas die Laufwerke, löscht sie aber nicht.",
+    "licenseActivate": "Lizenz aktivieren…",
+    "readyTitle": "Alles bereit",
+    "later": "Alles lässt sich später in den Einstellungen ändern, über das Zahnrad oben rechts.",
+    "tip": {
+      "plug": "Laufwerk anschließen",
+      "plugHint": "Disphas erkennt und prüft es selbst und ordnet es ein: zu starten, zu entsperren, abgelehnt oder geschützt.",
+      "erase": "Mit einem Klick löschen",
+      "eraseHint": "Disphas wählt die Methode und warnt Sie vor dem Löschen. Kreuzen Sie mehrere Laufwerke an, um sie gemeinsam zu löschen.",
+      "certificate": "Die Bescheinigung speichert sich selbst",
+      "certificateHint": "Am Ende jeder Löschung wird das signierte PDF unter Documents/disphas gespeichert. Alle Bescheinigungen stehen im Verlauf."
+    }
   }
 }

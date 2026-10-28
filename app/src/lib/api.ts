@@ -103,6 +103,8 @@ export type Settings = {
   notifications: boolean;
   /** Language chosen by the operator; `null`: the system's. */
   language: string | null;
+  /** The first-launch assistant was completed or skipped. */
+  onboarded: boolean;
 };
 
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
@@ -147,6 +149,7 @@ export interface DisphasApi {
   setStrictConfirmation(enabled: boolean): Promise<Outcome<Settings>>;
   setNotifications(enabled: boolean): Promise<Outcome<Settings>>;
   setLanguage(language: Language): Promise<Outcome<Settings>>;
+  setOnboarded(): Promise<Outcome<Settings>>;
   /** Desktop notification, shown only when the window is in the background. The caller checks the setting. */
   notify(title: string, body: string): Promise<void>;
   /** Called when a drive is plugged in or out; returns the unsubscribe function. */
@@ -225,6 +228,7 @@ const tauriApi: DisphasApi = {
       strict_confirmation: false,
       notifications: false,
       language: null,
+      onboarded: true,
     })),
   saveSettings: (organization, operator) => settingsCall("save_settings", { organization, operator }),
   setLogo: (data) => settingsCall("set_logo", { data }),
@@ -232,6 +236,7 @@ const tauriApi: DisphasApi = {
   setStrictConfirmation: (enabled) => settingsCall("set_strict_confirmation", { enabled }),
   setNotifications: (enabled) => settingsCall("set_notifications", { enabled }),
   setLanguage: (language) => settingsCall("set_language", { language }),
+  setOnboarded: () => settingsCall("set_onboarded", {}),
   notify: (title, body) => invoke<void>("notify", { title, body }).catch(() => {}),
   onDrivesChanged: (handler) => listen("disphas://drives-changed", () => handler()),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
@@ -277,13 +282,14 @@ const previewApi: DisphasApi = {
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
   deleteReports: async () => unavailable,
-  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: null }),
+  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: null, onboarded: true }),
   saveSettings: async () => unavailable,
   setLogo: async () => unavailable,
   clearLogo: async () => unavailable,
   setStrictConfirmation: async () => unavailable,
   setNotifications: async () => unavailable,
   setLanguage: async () => unavailable,
+  setOnboarded: async () => unavailable,
   notify: async () => {},
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: shows a fictional verified report, for layout only.
