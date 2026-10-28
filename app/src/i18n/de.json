@@ -45,14 +45,6 @@
       "pending": "Noch ohne Entscheidung · {{count}}"
     },
     "row": {
-      "erase": "{{model}} löschen · {{category}}",
-      "unlock": "{{model}} entsperren",
-      "reinspect": "{{model}} erneut prüfen",
-      "force": "Löschung von {{model}} erzwingen",
-      "whyRefused": "Warum {{model}} abgelehnt ist",
-      "whyProtected": "Warum {{model}} geschützt ist",
-      "viewJob": "Löschung von {{model}} anzeigen",
-      "inspecting": "{{model}} wird geprüft",
       "running": "Löschung läuft"
     },
     "back": "Laufwerke",
@@ -62,13 +54,20 @@
     "withoutReserves": "Zertifikat ohne Vorbehalt",
     "reinspect": "Erneut prüfen",
     "licenseUntil": "{{offer}} · bis {{until}}",
-    "ticked_one": "{{count}} Laufwerk ausgewählt",
-    "ticked_other": "{{count}} Laufwerke ausgewählt",
     "eraseTicked_one": "{{count}} Laufwerk löschen",
     "eraseTicked_other": "{{count}} Laufwerke löschen",
-    "untick": "Auswahl aufheben",
-    "tickAll": "Alle auswählen",
-    "tickOne": "{{model}} auswählen"
+    "selectAll": "Alle auswählen",
+    "unselectAll": "Nur ein Laufwerk behalten",
+    "selectedCount_one": "{{count}} Laufwerk ausgewählt",
+    "selectedCount_other": "{{count}} Laufwerke ausgewählt",
+    "multiReady_one": "{{count}} bereit zum Löschen",
+    "multiReady_other": "{{count}} bereit zum Löschen",
+    "multiHint": "Strg + Klick, um mehrere Laufwerke auszuwählen, Umschalt + Klick für einen Bereich.",
+    "methodEach": "Methode je Laufwerk",
+    "methodFor": "Methode für {{model}}",
+    "unselect": "{{model}} aus der Auswahl entfernen",
+    "multiSkipped_one": "{{count}} ausgewähltes Laufwerk ist nicht bereit: Es wird nicht gelöscht.",
+    "multiSkipped_other": "{{count}} ausgewählte Laufwerke sind nicht bereit: Sie werden nicht gelöscht."
   },
   "kind": {
     "Nvme": "NVMe",

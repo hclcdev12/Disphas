@@ -107,22 +107,19 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
    - Refusés (`refus`) ;
    - Protégés (`protected`).
    - Titre du groupe : point de 8 px + « Libellé · {n} », dans la couleur de l'état.
-3. **Ligne de disque** : hauteur minimale 64 px. Elle contient **deux boutons frères**, jamais imbriqués.
-   - **Bouton d'action** : 44 × 44 px, contour de 2 px et icône dans la couleur de l'état, fond transparent, centré verticalement sur le texte.
-
-     | État | Icône | Action | `aria-label` |
-     |---|---|---|---|
-     | Prêt | ▶ flèche pleine | lancer l'effacement avec la méthode retenue | « Effacer {modèle} · {Purge/Clear} » |
-     | Bloqué | cadenas | Inspecter à nouveau (B1) / Déverrouiller… (B2) | « {action} {modèle} » |
-     | Refus | ✕ croix | Forcer l'effacement si possible (N1), sinon afficher le détail | « Forcer l'effacement de {modèle} » ou « Voir pourquoi {modèle} est refusé » |
-     | Protégé | bouclier | afficher le détail | « Voir pourquoi {modèle} est protégé » |
-
-     Le bouton d'action Protégé a un contour de 1 px en `--ctrl` et une icône en `--fg-2`.
-   - **Bouton de sélection** : occupe le reste de la ligne et porte `aria-pressed`.
-     - Ligne 1 : le modèle en 16 px (tronqué par une ellipse si trop long) et, à droite, le type en mono 14 px `--fg-2`.
-     - Ligne 2 en 14 px `--fg-2` :
-       - pour un disque prêt, « {Purge/Clear} · {nom de la méthode retenue} » ;
-       - sinon, le motif avec son code, par exemple « Sécurité ATA gelée (B1) ».
+3. **Ligne de disque** (révisé le 2026-10-28, première version à affiner) : hauteur minimale 64 px, **un seul bouton**
+   qui occupe toute la ligne et porte `aria-pressed`. Plus de case à cocher ni de bouton d'action : les actions
+   (Effacer, Déverrouiller, Forcer, Inspecter à nouveau, Voir l'effacement) sont dans le détail.
+   - Ligne 1 : le modèle en 16 px (tronqué par une ellipse si trop long), en gras quand il est sélectionné, et, à
+     droite, le type en mono 14 px `--fg-2`. Un disque en cours d'effacement a une petite roue qui tourne devant.
+   - Ligne 2 en 14 px `--fg-2` :
+     - pour un disque prêt, « {Purge/Clear} · {nom de la méthode retenue} » ;
+     - sinon, le motif avec son code, par exemple « Sécurité ATA gelée (B1) ».
+   - **Sélection multiple**, comme dans un gestionnaire de fichiers : clic = ce disque seul ; **Ctrl + clic**
+     (Cmd sur Mac) = l'ajouter ou le retirer ; **Maj + clic** = la suite depuis le dernier cliqué. Le dernier disque
+     sélectionné ne peut pas être retiré par Ctrl + clic. Une phrase sous le titre de la liste le rappelle.
+   - **« Tout sélectionner »**, bouton texte à droite du titre « À lancer » : sélectionne les disques prêts qui ne sont
+     pas en cours d'effacement ; une fois tous sélectionnés, il devient « Ne garder qu'un disque ».
    - **Ligne sélectionnée** : fond `--surface` et contour 1 px `--ctrl`. **Pas** de barre colorée à gauche.
 4. **Crédits**, en pied de colonne, collés en bas avec un filet `--line` au-dessus : « Crédits » à gauche (15 px / 600, `--fg-2`) et le solde à droite en mono 14 px. Le contenu exact est à définir ; la maquette affiche « [N] effacements restants ».
 
@@ -135,13 +132,22 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 - Pas de pastille d'état : l'état se lit dans la liste, et la pastille était prise pour un bouton.
 
 **Sélection : une case avec une coche, partout** (décidé par le propriétaire le 2026-10-28)
-- Disques, méthode d'effacement, mot de passe ATA, réglages : toute sélection est la même case, pour la cohérence entre la liste et le détail.
+- Méthode d'effacement, mot de passe ATA, réglages : toute case à cocher ou choix unique est la même case. Les disques, eux, se sélectionnent par surbrillance (voir la ligne de disque).
 - Écart assumé avec la convention classique (case carrée = plusieurs choix, rond = un seul choix ; NN/g, Carbon). Un choix unique reste un bouton radio dans le code : un seul à la fois, flèches du clavier pour changer, annoncé « bouton radio » par les lecteurs d'écran.
 - Dessinée à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
 - 20 × 20 px, rayon 4 px, contour 2 px `--ctrl`, `--fg-2` au survol. Choisie : fond os `--fg` et coche `--bg` centrée (SVG). Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
-- « Tout sélectionner » : dans la colonne des cases des disques, juste au-dessus d'elles ; un tiret quand une partie seulement est cochée.
 - Le `label` qui entoure chaque contrôle est la zone de clic (au moins 24 × 24 px, WCAG 2.2 critère 2.5.8).
 - Focus clavier : le contour de 3 px suit la forme du contrôle.
+
+**Plusieurs disques sélectionnés** (2026-10-28, première version)
+- En-tête : « {n} prêts à effacer » en mono 14 px `--fg-2`, puis « {n} disques sélectionnés » (H2, 40 px / 700).
+- « Méthode de chaque disque », titre comme celui d'un groupe, à la hauteur du premier groupe de la liste.
+- Une ligne encadrée par disque : modèle et n° de série à gauche ; à droite, la liste déroulante des méthodes
+  (recommandée en premier) pour un disque prêt, sinon son état dans la couleur de l'état ; puis ✕ pour le retirer
+  de la sélection.
+- « ▶ Effacer {n} disques » ne prend que les disques prêts ; une phrase dit combien sont laissés de côté. La fenêtre
+  de confirmation est celle de l'effacement de plusieurs disques.
+- Listes déroulantes dessinées à la main (`appearance: none`, chevron SVG), pour la même raison que les cases.
 
 **Disque prêt**
 1. **Bloc « Décision de Disphas »**, **sans cadre** (révisé le 2026-10-27) : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste ; la première méthode est à la hauteur du premier disque.
@@ -175,7 +181,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 |---|---|
 | > 1100 px | Grille à deux colonnes : liste de `minmax(340px, 420px)` et détail de `1fr`. Le détail a un padding de 40 × 48 px et une largeur maximale de 960 px. |
 | 761 à 1100 px | Liste de `minmax(300px, 360px)`, détail avec 32 px de padding, nom du disque en 32 px. L'état du poste peut passer à la ligne sous les onglets. |
-| ≤ 760 px | **Une seule vue à la fois.** La liste occupe tout l'écran ; toucher un disque, ou son bouton d'action, ouvre le détail. Un bouton « ‹ Disques » ramène à la liste. |
+| ≤ 760 px | **Une seule vue à la fois.** La liste occupe tout l'écran ; toucher un disque ouvre le détail. Un bouton « ‹ Disques » ramène à la liste. |
 
 Détails du mobile (≤ 760 px) :
 - **En-tête** sur deux rangées :
@@ -192,7 +198,7 @@ Détails du mobile (≤ 760 px) :
 ## 5. Accessibilité (obligatoire)
 
 - Contrastes : texte ≥ 4.5:1 ; texte secondaire et couleurs d'état ≥ 7:1 sur `--bg`.
-- Cibles tactiles ≥ 44 × 44 px : boutons-icônes, boutons d'action de ligne, lignes de méthode.
+- Cibles tactiles ≥ 44 × 44 px : boutons-icônes, lignes de disque, lignes de méthode.
 - Les boutons-icônes ont tous un `aria-label` et un `title`.
 - Les SVG ont `aria-hidden="true"`.
 - La liste est dans un `aside` étiqueté « Disques connectés ». Chaque groupe est une `section` avec un `h2`. La sélection est exposée par `aria-pressed` sur le bouton de sélection.
@@ -242,7 +248,7 @@ interface Drive {
 - Pas de contour autour des boutons-icônes Actualiser, Nouveau lot et Paramètres.
 - Pas de chemin `/dev/...` pour identifier un disque.
 - Pas de petites capitales espacées pour les libellés : écrire en minuscules normales.
-- Pas de boutons imbriqués : le bouton d'action et le bouton de sélection d'une ligne sont frères.
+- Pas de boutons imbriqués : une ligne de disque est un seul bouton.
 
 ---
 

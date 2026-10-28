@@ -45,14 +45,6 @@
       "pending": "No decision yet · {{count}}"
     },
     "row": {
-      "erase": "Erase {{model}} · {{category}}",
-      "unlock": "Unlock {{model}}",
-      "reinspect": "Inspect {{model}} again",
-      "force": "Force the erasure of {{model}}",
-      "whyRefused": "See why {{model}} is refused",
-      "whyProtected": "See why {{model}} is protected",
-      "viewJob": "View the erasure of {{model}}",
-      "inspecting": "Inspecting {{model}}",
       "running": "Erasure in progress"
     },
     "back": "Drives",
@@ -62,13 +54,20 @@
     "withoutReserves": "certificate without reservations",
     "reinspect": "Inspect again",
     "licenseUntil": "{{offer}} · until {{until}}",
-    "ticked_one": "{{count}} drive selected",
-    "ticked_other": "{{count}} drives selected",
     "eraseTicked_one": "Erase {{count}} drive",
     "eraseTicked_other": "Erase {{count}} drives",
-    "untick": "Clear the selection",
-    "tickAll": "Select all",
-    "tickOne": "Select {{model}}"
+    "selectAll": "Select all",
+    "unselectAll": "Keep one drive",
+    "selectedCount_one": "{{count}} drive selected",
+    "selectedCount_other": "{{count}} drives selected",
+    "multiReady_one": "{{count}} ready to erase",
+    "multiReady_other": "{{count}} ready to erase",
+    "multiHint": "Ctrl + click to select several drives, Shift + click for a range.",
+    "methodEach": "Method of each drive",
+    "methodFor": "Method for {{model}}",
+    "unselect": "Remove {{model}} from the selection",
+    "multiSkipped_one": "{{count}} selected drive is not ready: it will not be erased.",
+    "multiSkipped_other": "{{count}} selected drives are not ready: they will not be erased."
   },
   "kind": {
     "Nvme": "NVMe",

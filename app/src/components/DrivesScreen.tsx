@@ -5,11 +5,9 @@ import {
   ChevronLeft,
   KeyRound,
   LoaderCircle,
-  Lock,
   Play,
   Plus,
   RefreshCw,
-  Shield,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -136,16 +134,17 @@ export function DrivesScreen(props: {
   const { t, i18n } = useTranslation();
   const { devices, inspections, labels } = props;
   const drives = devices?.ok ? devices.value.devices : [];
-  const [picked, setPicked] = useState<string | null>(null);
+  // Selected drives, by serial number: one click selects a drive, Ctrl + click
+  // adds or removes one, Shift + click a range. Empty: the first drive.
+  const [selection, setSelection] = useState<string[]>([]);
+  const [anchor, setAnchor] = useState<string | null>(null);
   // Method chosen per verdict: a new inspection starts again from the recommended one.
   const [methods, setMethods] = useState<Record<string, number>>({});
   const [zeroPass, setZeroPass] = useState<Record<string, boolean>>({});
-  // Drives ticked for "Erase N drives"; only ready drives not being erased count.
-  const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [view, setView] = useState<"list" | "detail">("list");
   const [editingBatch, setEditingBatch] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  // Bumped when the drive title must take the focus: on a phone, or after a row's action button.
+  // Bumped when the drive title must take the focus: on a phone.
   const [focusTick, setFocusTick] = useState(0);
 
   const serialOf = (drive: DeviceSummary) => drive.device.identity.serial;
@@ -154,22 +153,52 @@ export function DrivesScreen(props: {
     drives: drives.filter((drive) => groupOf(inspections[serialOf(drive)]) === group),
   })).filter((entry) => entry.drives.length > 0);
   const ordered = grouped.flatMap((entry) => entry.drives);
-  const selected = ordered.find((drive) => serialOf(drive) === picked) ?? ordered[0] ?? null;
-  const tickable = (drive: DeviceSummary) =>
+  const selectedDrives = ordered.filter((drive) => selection.includes(serialOf(drive)));
+  const many = selectedDrives.length > 1;
+  // One drive in detail; several: the list of the selection instead.
+  const selected = many ? null : (selectedDrives[0] ?? ordered[0] ?? null);
+  /** Ready and not being erased: what "Erase N drives" takes. */
+  const erasable = (drive: DeviceSummary) =>
     groupOf(inspections[serialOf(drive)]) === "ready" && props.runningOn(serialOf(drive)) === null;
-  const tickableSerials = drives.filter(tickable).map(serialOf);
-  const tickedSerials = tickableSerials.filter((serial) => ticked.has(serial));
-  const toggle = (serial: string) =>
-    setTicked((current) => {
-      const next = new Set(current);
-      if (next.has(serial)) next.delete(serial);
-      else next.add(serial);
-      return next;
-    });
-  const eraseTicked = () => {
+  const erasableSerials = ordered.filter(erasable).map(serialOf);
+  const allSelected =
+    erasableSerials.length > 0 && erasableSerials.every((serial) => selectedDrives.some((d) => serialOf(d) === serial));
+
+  /** Click: this drive alone. Ctrl (or Cmd) + click: add or remove it. Shift + click: the range from the last one. */
+  const pick = (serial: string, event: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) => {
+    const current = selectedDrives.length > 0 ? selectedDrives.map(serialOf) : selected ? [serialOf(selected)] : [];
+    if (event.ctrlKey || event.metaKey) {
+      // The last selected drive stays: the detail always shows something.
+      if (current.includes(serial)) {
+        if (current.length > 1) setSelection(current.filter((other) => other !== serial));
+      } else {
+        setSelection([...current, serial]);
+      }
+      setAnchor(serial);
+      return;
+    }
+    if (event.shiftKey && anchor !== null) {
+      const from = ordered.findIndex((drive) => serialOf(drive) === anchor);
+      const to = ordered.findIndex((drive) => serialOf(drive) === serial);
+      if (from >= 0 && to >= 0) {
+        const [low, high] = from < to ? [from, to] : [to, from];
+        setSelection(ordered.slice(low, high + 1).map(serialOf));
+        return;
+      }
+    }
+    setSelection([serial]);
+    setAnchor(serial);
+    open(false);
+  };
+  const selectAll = () => {
+    setSelection(allSelected ? erasableSerials.slice(0, 1) : erasableSerials);
+    setAnchor(erasableSerials[0] ?? null);
+  };
+  const unselect = (serial: string) => setSelection(selectedDrives.map(serialOf).filter((other) => other !== serial));
+  const eraseSelected = () => {
     const requests: EraseRequest[] = [];
-    for (const serial of tickedSerials) {
-      const inspection = inspections[serial];
+    for (const drive of selectedDrives.filter(erasable)) {
+      const inspection = inspections[serialOf(drive)];
       if (!inspection?.ok) continue;
       const choice = chosen(inspection.value);
       if (choice)
@@ -205,67 +234,14 @@ export function DrivesScreen(props: {
     }
   };
 
-  const open = (serial: string, focusDetail: boolean) => {
-    setPicked(serial);
+  const open = (focusDetail: boolean) => {
     setView("detail");
     if (focusDetail || narrow()) setFocusTick((tick) => tick + 1);
   };
   const back = () => {
     setView("list");
-    const serial = selected ? serialOf(selected) : null;
+    const serial = selected ? serialOf(selected) : (selectedDrives[0] ? serialOf(selectedDrives[0]) : null);
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-pick="${serial}"]`)?.focus());
-  };
-
-  /** What the action button of a row does. */
-  const act = (drive: DeviceSummary) => {
-    const serial = serialOf(drive);
-    const running = props.runningOn(serial);
-    if (running) return props.onOpenJob(running.id);
-    const inspection = inspections[serial];
-    if (!inspection?.ok) return inspection ? props.onReinspect(serial) : open(serial, true);
-    const value = inspection.value;
-    const verdict = value.verdict;
-    // The launched drive is shown: its progress, then its certificate.
-    if (verdict.state === "READY" || (verdict.state === "SAY_NO" && verdict.forcible)) setPicked(serial);
-    switch (verdict.state) {
-      case "READY": {
-        const choice = chosen(value);
-        if (choice)
-          props.onErase({ inspection: value, choice, forced: false, zeroPass: zeroPass[value.verdict_id] ?? false });
-        return;
-      }
-      case "BLOCKED":
-        // B6: attempts exhausted, only a power cycle helps, then a new inspection.
-        if (verdict.reasons.includes("B2") && !verdict.reasons.includes("B6")) return props.onUnlock(value);
-        return props.onReinspect(serial);
-      case "SAY_NO":
-        if (verdict.forcible) return props.onErase({ inspection: value, choice: verdict.forcible, forced: true });
-        return open(serial, true);
-      case "PROTECTED":
-        return open(serial, true);
-    }
-  };
-
-  const actionLabel = (drive: DeviceSummary): string => {
-    const serial = serialOf(drive);
-    const model = drive.device.identity.model;
-    if (props.runningOn(serial)) return t("drives.row.viewJob", { model });
-    const inspection = inspections[serial];
-    if (!inspection) return t("drives.row.inspecting", { model });
-    if (!inspection.ok) return t("drives.row.reinspect", { model });
-    const verdict = inspection.value.verdict;
-    switch (verdict.state) {
-      case "READY":
-        return t("drives.row.erase", { model, category: chosen(inspection.value)?.category ?? "" });
-      case "BLOCKED":
-        return verdict.reasons.includes("B2") && !verdict.reasons.includes("B6")
-          ? t("drives.row.unlock", { model })
-          : t("drives.row.reinspect", { model });
-      case "SAY_NO":
-        return verdict.forcible ? t("drives.row.force", { model }) : t("drives.row.whyRefused", { model });
-      case "PROTECTED":
-        return t("drives.row.whyProtected", { model });
-    }
   };
 
   /** Second line of a row: the method, or the reason with its codes. */
@@ -288,30 +264,6 @@ export function DrivesScreen(props: {
     return codes.length > 0 ? `${reasonText(value, codes[0])} (${codes.join(", ")})` : "";
   };
 
-  const rowIcon = (drive: DeviceSummary, group: Group): ReactNode => {
-    if (props.runningOn(serialOf(drive))) return <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />;
-    switch (group) {
-      case "ready":
-        return <Play size={16} fill="currentColor" aria-hidden="true" />;
-      case "blocked":
-        return <Lock size={20} aria-hidden="true" />;
-      case "refus":
-        return <X size={18} strokeWidth={2.4} aria-hidden="true" />;
-      case "protected":
-        return <Shield size={20} aria-hidden="true" />;
-      case "pending":
-        return <RefreshCw size={18} aria-hidden="true" />;
-    }
-  };
-
-  const actionTone: Record<Group, string> = {
-    ready: "border-2 border-current text-ready",
-    blocked: "border-2 border-current text-blocked",
-    refus: "border-2 border-current text-sayno",
-    protected: "border border-ctrl text-ash",
-    pending: "border border-ctrl text-ash",
-  };
-
   const parallel =
     props.maxParallel === undefined
       ? null
@@ -331,6 +283,7 @@ export function DrivesScreen(props: {
               closing={props.closingBatch}
               onClose={props.onCloseBatch}
             />
+            {erasableSerials.length > 1 && <p className="drives-multi-hint mt-1 text-[13px] text-ash">{t("drives.multiHint")}</p>}
           </div>
           <div className="flex gap-1">
             <IconButton
@@ -345,23 +298,6 @@ export function DrivesScreen(props: {
             </IconButton>
           </div>
         </div>
-        {tickedSerials.length > 0 && (
-          <div className="flex items-center gap-2 rounded-md border border-ctrl px-3 py-2">
-            <span className="flex-1 text-sm">{t("drives.ticked", { count: tickedSerials.length })}</span>
-            <button
-              type="button"
-              disabled={!props.connected}
-              onClick={eraseTicked}
-              className="inline-flex min-h-11 items-center gap-2 rounded border-2 border-current px-4 font-bold text-ready disabled:opacity-40"
-            >
-              <Play size={14} fill="currentColor" aria-hidden="true" />
-              {t("drives.eraseTicked", { count: tickedSerials.length })}
-            </button>
-            <IconButton label={t("drives.untick")} onClick={() => setTicked(new Set())}>
-              <X size={16} aria-hidden="true" />
-            </IconButton>
-          </div>
-        )}
         <p className="drives-station px-2 font-mono text-[13px] text-ash">
           <Station
             hello={props.hello?.ok ? props.hello.value : null}
@@ -422,6 +358,16 @@ export function DrivesScreen(props: {
             language={i18n.language}
           />
         )}
+        {many && (
+          <div className="min-w-0">
+            <div className="font-mono text-sm text-ash">
+              {t("drives.multiReady", { count: selectedDrives.filter(erasable).length })}
+            </div>
+            <h2 ref={titleRef} tabIndex={-1} className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
+              {t("drives.selectedCount", { count: selectedDrives.length })}
+            </h2>
+          </div>
+        )}
       </div>
 
       {/* Same row as the detail below: the first drive faces the first method. */}
@@ -432,78 +378,52 @@ export function DrivesScreen(props: {
               id={`group-${group}`}
               className={`mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold ${groupText[group]}`}
             >
-              {/* Select all sits in the column of the row checkboxes, right above them. */}
-              {group === "ready" && tickableSerials.length > 1 && (
-                <label
-                  className="-my-2 ml-[5px] flex w-8 shrink-0 cursor-pointer items-center justify-center self-stretch"
-                  title={t("drives.tickAll")}
-                >
-                  <input
-                    type="checkbox"
-                    className="ctl-check"
-                    aria-label={t("drives.tickAll")}
-                    checked={tickedSerials.length === tickableSerials.length}
-                    // Some ticked, not all: a dash rather than an empty box.
-                    ref={(box) => {
-                      if (box)
-                        box.indeterminate = tickedSerials.length > 0 && tickedSerials.length < tickableSerials.length;
-                    }}
-                    onChange={(event) => setTicked(event.target.checked ? new Set(tickableSerials) : new Set())}
-                  />
-                </label>
-              )}
               <span className="size-2 rounded-full bg-current" aria-hidden="true" />
               {t(`drives.group.${group}`, { count: members.length })}
+              {group === "ready" && erasableSerials.length > 1 && (
+                <button
+                  type="button"
+                  onClick={selectAll}
+                  className="-my-2 ml-auto min-h-11 rounded px-2 text-sm font-normal text-ash hover:bg-card hover:text-soft"
+                >
+                  {allSelected ? t("drives.unselectAll") : t("drives.selectAll")}
+                </button>
+              )}
             </h2>
             {members.map((drive) => {
               const serial = serialOf(drive);
-              const isSelected = selected !== null && serialOf(selected) === serial;
-              const actionText = actionLabel(drive);
+              const isSelected = many
+                ? selectedDrives.some((other) => serialOf(other) === serial)
+                : selected !== null && serialOf(selected) === serial;
+              const running = props.runningOn(serial) !== null;
               return (
-                <div
+                <button
                   key={serial}
-                  className={`flex min-h-16 items-center gap-3 rounded-md border px-3 py-1 ${
-                    isSelected ? "border-ctrl bg-card" : "border-transparent"
+                  type="button"
+                  data-pick={serial}
+                  aria-pressed={isSelected}
+                  // Shift + click selects a range, not the text of the rows.
+                  onMouseDown={(event) => {
+                    if (event.shiftKey) event.preventDefault();
+                  }}
+                  onClick={(event) => pick(serial, event)}
+                  className={`flex min-h-16 min-w-0 flex-col justify-center rounded-md border px-3 py-2 text-left ${
+                    isSelected ? "border-ctrl bg-card" : "border-transparent hover:bg-card/50"
                   }`}
                 >
-                  {/* Same column on every row, ticked or not, so the rows stay aligned. */}
-                  <label className="-my-1 flex w-8 shrink-0 cursor-pointer items-center justify-center self-stretch">
-                    {tickable(drive) && (
-                      <input
-                        type="checkbox"
-                        className="ctl-check"
-                        aria-label={t("drives.tickOne", { model: drive.device.identity.model })}
-                        checked={ticked.has(serial)}
-                        onChange={() => toggle(serial)}
-                      />
-                    )}
-                  </label>
-                  <button
-                    type="button"
-                    aria-label={actionText}
-                    title={actionText}
-                    disabled={group === "ready" && !props.connected}
-                    onClick={() => act(drive)}
-                    className={`inline-flex size-11 shrink-0 items-center justify-center rounded-md disabled:opacity-40 ${actionTone[group]}`}
-                  >
-                    {rowIcon(drive, group)}
-                  </button>
-                  <button
-                    type="button"
-                    data-pick={serial}
-                    aria-pressed={isSelected}
-                    onClick={() => open(serial, false)}
-                    className="flex min-h-14 min-w-0 flex-1 flex-col justify-center px-1 py-2 text-left"
-                  >
-                    <span className="flex justify-between gap-2">
-                      <span className="truncate text-base">{drive.device.identity.model}</span>
-                      <span className="font-mono text-sm whitespace-nowrap text-ash">
-                        {t(`kind.${drive.kind ?? "unknown"}`)}
+                  <span className="flex justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2">
+                      {running && <LoaderCircle size={14} className="shrink-0 animate-spin" aria-hidden="true" />}
+                      <span className={`truncate text-base ${isSelected ? "font-bold" : ""}`}>
+                        {drive.device.identity.model}
                       </span>
                     </span>
-                    <span className="text-sm text-ash">{rowLine(drive)}</span>
-                  </button>
-                </div>
+                    <span className="font-mono text-sm whitespace-nowrap text-ash">
+                      {t(`kind.${drive.kind ?? "unknown"}`)}
+                    </span>
+                  </span>
+                  <span className="text-sm text-ash">{rowLine(drive)}</span>
+                </button>
               );
             })}
           </section>
@@ -522,6 +442,20 @@ export function DrivesScreen(props: {
       </aside>
 
       <main className="drives-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10" aria-live="polite">
+        {many && (
+          <SelectionDetail
+            drives={selectedDrives}
+            inspections={inspections}
+            connected={props.connected}
+            erasable={erasable}
+            choiceIndex={(id) => methods[id] ?? 0}
+            onChoose={(id, index) => setMethods((current) => ({ ...current, [id]: index }))}
+            name={name}
+            rowLine={rowLine}
+            onUnselect={unselect}
+            onErase={eraseSelected}
+          />
+        )}
         {selected && (
           <Detail
             drive={selected}
@@ -860,6 +794,97 @@ function Verdict({
         />
       );
   }
+}
+
+/**
+ * Several drives selected: one line per drive, with its method for the ready
+ * ones, then one button for all of them. A drive that is not ready stays in
+ * the list with its state, and is left out of the erasure.
+ */
+function SelectionDetail({
+  drives,
+  inspections,
+  connected,
+  erasable,
+  choiceIndex,
+  onChoose,
+  name,
+  rowLine,
+  onUnselect,
+  onErase,
+}: {
+  drives: DeviceSummary[];
+  inspections: Record<string, Outcome<InspectResult>>;
+  connected: boolean;
+  erasable: (drive: DeviceSummary) => boolean;
+  choiceIndex: (verdictId: string) => number;
+  onChoose: (verdictId: string, index: number) => void;
+  name: (code: string) => string;
+  rowLine: (drive: DeviceSummary) => string;
+  onUnselect: (serial: string) => void;
+  onErase: () => void;
+}) {
+  const { t } = useTranslation();
+  const ready = drives.filter(erasable);
+  return (
+    <>
+      {/* Same rhythm as the drive list: the first selected drive faces the first drive. */}
+      <div role="group" aria-labelledby="selection-methods" className="flex min-w-0 flex-col gap-0.5">
+        <h3 id="selection-methods" className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash">
+          {t("drives.methodEach")}
+        </h3>
+        {drives.map((drive) => {
+          const { model, serial } = drive.device.identity;
+          const inspection = inspections[serial];
+          const value = inspection?.ok ? inspection.value : null;
+          const choices = value ? choicesOf(value) : [];
+          const group = groupOf(inspection);
+          return (
+            <div key={serial} className="flex min-h-16 items-center gap-4 rounded-md border border-ctrl px-3 py-1.5">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-bold">{model}</span>
+                <span className="truncate font-mono text-sm text-ash">s/n {serial}</span>
+              </div>
+              {erasable(drive) && value && choices.length > 0 ? (
+                <select
+                  aria-label={t("drives.methodFor", { model })}
+                  className="ctl-select min-h-11 w-[27rem] max-w-[60%] rounded border border-ctrl bg-night pr-9 pl-3 text-[15px]"
+                  value={choiceIndex(value.verdict_id)}
+                  onChange={(event) => onChoose(value.verdict_id, Number(event.target.value))}
+                >
+                  {choices.map((choice, position) => (
+                    <option key={choice.method} value={position}>
+                      {choice.category} · {name(choice.method)}
+                      {position === 0 ? ` · ${t("verdict.recommendedShort")}` : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className={`max-w-[55%] text-sm ${groupText[group]}`}>{rowLine(drive)}</span>
+              )}
+              <IconButton label={t("drives.unselect", { model })} onClick={() => onUnselect(serial)}>
+                <X size={16} aria-hidden="true" />
+              </IconButton>
+            </div>
+          );
+        })}
+      </div>
+      <Actions>
+        <button
+          type="button"
+          disabled={!connected || ready.length === 0}
+          onClick={onErase}
+          className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
+        >
+          <Play size={16} fill="currentColor" aria-hidden="true" />
+          {t("drives.eraseTicked", { count: ready.length })}
+        </button>
+        {ready.length < drives.length && (
+          <span className="text-[15px] text-ash">{t("drives.multiSkipped", { count: drives.length - ready.length })}</span>
+        )}
+      </Actions>
+    </>
+  );
 }
 
 /** Opens the certificate saved when the erasure ended, or says why there is none. */

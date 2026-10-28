@@ -45,14 +45,6 @@
       "pending": "Sans décision · {{count}}"
     },
     "row": {
-      "erase": "Effacer {{model}} · {{category}}",
-      "unlock": "Déverrouiller {{model}}",
-      "reinspect": "Inspecter à nouveau {{model}}",
-      "force": "Forcer l’effacement de {{model}}",
-      "whyRefused": "Voir pourquoi {{model}} est refusé",
-      "whyProtected": "Voir pourquoi {{model}} est protégé",
-      "viewJob": "Voir l’effacement de {{model}}",
-      "inspecting": "Inspection de {{model}} en cours",
       "running": "Effacement en cours"
     },
     "back": "Disques",
@@ -62,13 +54,20 @@
     "withoutReserves": "certificat sans réserve",
     "reinspect": "Inspecter à nouveau",
     "licenseUntil": "{{offer}} · jusqu’au {{until}}",
-    "ticked_one": "{{count}} disque sélectionné",
-    "ticked_other": "{{count}} disques sélectionnés",
     "eraseTicked_one": "Effacer {{count}} disque",
     "eraseTicked_other": "Effacer {{count}} disques",
-    "untick": "Tout désélectionner",
-    "tickAll": "Tout sélectionner",
-    "tickOne": "Sélectionner {{model}}"
+    "selectAll": "Tout sélectionner",
+    "unselectAll": "Ne garder qu'un disque",
+    "selectedCount_one": "{{count}} disque sélectionné",
+    "selectedCount_other": "{{count}} disques sélectionnés",
+    "multiReady_one": "{{count}} prêt à effacer",
+    "multiReady_other": "{{count}} prêts à effacer",
+    "multiHint": "Ctrl + clic pour sélectionner plusieurs disques, Maj + clic pour une suite.",
+    "methodEach": "Méthode de chaque disque",
+    "methodFor": "Méthode pour {{model}}",
+    "unselect": "Retirer {{model}} de la sélection",
+    "multiSkipped_one": "{{count}} disque sélectionné n'est pas prêt : il ne sera pas effacé.",
+    "multiSkipped_other": "{{count}} disques sélectionnés ne sont pas prêts : ils ne seront pas effacés."
   },
   "kind": {
     "Nvme": "NVMe",

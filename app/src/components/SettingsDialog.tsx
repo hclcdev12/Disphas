@@ -96,7 +96,7 @@ export function SettingsDialog({
       <label className="mt-4 block text-sm font-bold">
         {t("settings.language")}
         <select
-          className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-2 pr-8 font-normal"
+          className="ctl-select mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night pr-9 pl-3 font-normal"
           value={i18n.language}
           onChange={async (event) => {
             const language = event.target.value as Language;
