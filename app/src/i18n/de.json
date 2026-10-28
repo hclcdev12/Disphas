@@ -44,13 +44,6 @@
       "protected": "Geschützt · {{count}}",
       "pending": "Noch ohne Entscheidung · {{count}}"
     },
-    "chip": {
-      "ready": "Bereit",
-      "blocked": "Blockiert",
-      "refus": "Abgelehnt",
-      "protected": "Geschützt",
-      "pending": "Prüfung"
-    },
     "row": {
       "erase": "{{model}} löschen · {{category}}",
       "unlock": "{{model}} entsperren",
@@ -74,7 +67,7 @@
     "eraseTicked_one": "{{count}} Laufwerk löschen",
     "eraseTicked_other": "{{count}} Laufwerke löschen",
     "untick": "Auswahl aufheben",
-    "tickAll": "Alle",
+    "tickAll": "Alle auswählen",
     "tickOne": "{{model}} auswählen"
   },
   "kind": {

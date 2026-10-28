@@ -139,7 +139,7 @@ export function SettingsDialog({
       <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm">
         <input
           type="checkbox"
-          className="mt-1 size-4 accent-soft"
+          className="ctl-check mt-0.5"
           checked={settings.strict_confirmation}
           onChange={async (event) => {
             const result = await api.setStrictConfirmation(event.target.checked);

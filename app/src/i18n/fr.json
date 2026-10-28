@@ -44,13 +44,6 @@
       "protected": "Protégés · {{count}}",
       "pending": "Sans décision · {{count}}"
     },
-    "chip": {
-      "ready": "Prêt",
-      "blocked": "Bloqué",
-      "refus": "Refus",
-      "protected": "Protégé",
-      "pending": "Inspection"
-    },
     "row": {
       "erase": "Effacer {{model}} · {{category}}",
       "unlock": "Déverrouiller {{model}}",
@@ -74,7 +67,7 @@
     "eraseTicked_one": "Effacer {{count}} disque",
     "eraseTicked_other": "Effacer {{count}} disques",
     "untick": "Tout désélectionner",
-    "tickAll": "Tout",
+    "tickAll": "Tout sélectionner",
     "tickOne": "Sélectionner {{model}}"
   },
   "kind": {

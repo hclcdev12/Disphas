@@ -44,13 +44,6 @@
       "protected": "Protected · {{count}}",
       "pending": "No decision yet · {{count}}"
     },
-    "chip": {
-      "ready": "Ready",
-      "blocked": "Blocked",
-      "refus": "Refused",
-      "protected": "Protected",
-      "pending": "Inspecting"
-    },
     "row": {
       "erase": "Erase {{model}} · {{category}}",
       "unlock": "Unlock {{model}}",
@@ -74,7 +67,7 @@
     "eraseTicked_one": "Erase {{count}} drive",
     "eraseTicked_other": "Erase {{count}} drives",
     "untick": "Clear the selection",
-    "tickAll": "All",
+    "tickAll": "Select all",
     "tickOne": "Select {{model}}"
   },
   "kind": {

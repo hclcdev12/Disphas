@@ -418,7 +418,6 @@ export function DrivesScreen(props: {
         {selected && (
           <DetailHead
             drive={selected}
-            inspection={inspections[serialOf(selected)]}
             titleRef={titleRef}
             language={i18n.language}
           />
@@ -433,19 +432,28 @@ export function DrivesScreen(props: {
               id={`group-${group}`}
               className={`mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold ${groupText[group]}`}
             >
-              <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-              {t(`drives.group.${group}`, { count: members.length })}
+              {/* Select all sits in the column of the row checkboxes, right above them. */}
               {group === "ready" && tickableSerials.length > 1 && (
-                <label className="ml-auto flex cursor-pointer items-center gap-2 text-sm font-normal text-ash">
-                  {t("drives.tickAll")}
+                <label
+                  className="-my-2 ml-[5px] flex w-8 shrink-0 cursor-pointer items-center justify-center self-stretch"
+                  title={t("drives.tickAll")}
+                >
                   <input
                     type="checkbox"
-                    className="size-4 accent-soft"
+                    className="ctl-check"
+                    aria-label={t("drives.tickAll")}
                     checked={tickedSerials.length === tickableSerials.length}
+                    // Some ticked, not all: a dash rather than an empty box.
+                    ref={(box) => {
+                      if (box)
+                        box.indeterminate = tickedSerials.length > 0 && tickedSerials.length < tickableSerials.length;
+                    }}
                     onChange={(event) => setTicked(event.target.checked ? new Set(tickableSerials) : new Set())}
                   />
                 </label>
               )}
+              <span className="size-2 rounded-full bg-current" aria-hidden="true" />
+              {t(`drives.group.${group}`, { count: members.length })}
             </h2>
             {members.map((drive) => {
               const serial = serialOf(drive);
@@ -463,7 +471,7 @@ export function DrivesScreen(props: {
                     {tickable(drive) && (
                       <input
                         type="checkbox"
-                        className="size-4 cursor-pointer accent-soft"
+                        className="ctl-check"
                         aria-label={t("drives.tickOne", { model: drive.device.identity.model })}
                         checked={ticked.has(serial)}
                         onChange={() => toggle(serial)}
@@ -540,49 +548,39 @@ export function DrivesScreen(props: {
   );
 }
 
-/** The selected drive: type and capacity, model, serial number and WWN / EUI-64, state chip. */
+/**
+ * The selected drive: type and capacity, model, serial number and WWN / EUI-64.
+ * No state chip: the list already shows the state, and a coloured pill read as a button.
+ */
 function DetailHead({
   drive,
-  inspection,
   titleRef,
   language,
 }: {
   drive: DeviceSummary;
-  inspection: Outcome<InspectResult> | undefined;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
   language: string;
 }) {
   const { t } = useTranslation();
   const { identity } = drive.device;
-  const group = groupOf(inspection);
   const id = identity.eui64 ? `EUI-64 ${identity.eui64}` : identity.wwn ? `WWN ${identity.wwn}` : null;
-  const chip: Record<Group, ReactNode> = {
-    ready: <Badge tone="ready">▶ {t("drives.chip.ready")}</Badge>,
-    blocked: <Badge tone="blocked">{t("drives.chip.blocked")}</Badge>,
-    refus: <Badge tone="sayno">✕ {t("drives.chip.refus")}</Badge>,
-    protected: <Badge tone="protected">{t("drives.chip.protected")}</Badge>,
-    pending: <Badge tone="neutral">{t("drives.chip.pending")}</Badge>,
-  };
   return (
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="font-mono text-sm break-words text-ash">
-            {t(`kind.${drive.kind ?? "unknown"}`)} · {capacity(drive.capacity_bytes, language, t("drives.unknownSize"))}
-          </div>
-          <h2
-            ref={titleRef}
-            tabIndex={-1}
-            className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words"
-          >
-            {identity.model}
-          </h2>
-          <div className="font-mono text-sm break-all text-ash">
-            s/n {identity.serial}
-            {id && ` · ${id}`}
-          </div>
-        </div>
-        {chip[group]}
+    <div className="min-w-0">
+      <div className="font-mono text-sm break-words text-ash">
+        {t(`kind.${drive.kind ?? "unknown"}`)} · {capacity(drive.capacity_bytes, language, t("drives.unknownSize"))}
       </div>
+      <h2
+        ref={titleRef}
+        tabIndex={-1}
+        className="drives-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words"
+      >
+        {identity.model}
+      </h2>
+      <div className="font-mono text-sm break-all text-ash">
+        s/n {identity.serial}
+        {id && ` · ${id}`}
+      </div>
+    </div>
   );
 }
 
@@ -746,7 +744,7 @@ function Verdict({
                   name={`method-${inspection.verdict_id}`}
                   checked={position === index}
                   onChange={() => onChoose(position)}
-                  className="method-radio"
+                  className="ctl-radio"
                 />
                 <span
                   className={`w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${
@@ -774,7 +772,7 @@ function Verdict({
             <label className="flex cursor-pointer items-start gap-3 px-1 text-ash">
               <input
                 type="checkbox"
-                className="mt-1.5 size-4 accent-soft"
+                className="ctl-check mt-0.5"
                 checked={zeroPass}
                 onChange={(event) => onZeroPass(event.target.checked)}
               />

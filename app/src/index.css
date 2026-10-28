@@ -169,22 +169,60 @@ body {
   display: none;
 }
 
-/* Method radio drawn by hand: green ring and dot when checked. */
-.method-radio {
+/*
+ * Checkboxes and radios drawn by hand: the native ones follow the GTK theme in
+ * WebKitGTK (dark grey box, tick off centre). One family: 20 px, 2 px outline,
+ * bone when chosen; square to tick several, round to choose one. The label
+ * around each control is the click target.
+ */
+.ctl-check,
+.ctl-radio {
   appearance: none;
-  margin: 0;
+  -webkit-appearance: none;
   flex: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  margin: 0;
   border: 2px solid var(--color-ctrl);
-  background: transparent;
+  background: transparent no-repeat center / 14px 14px;
   cursor: pointer;
+  transition:
+    border-color 0.1s,
+    background-color 0.1s;
 }
-.method-radio:checked {
-  border-color: var(--color-ready);
-  background: var(--color-ready);
-  box-shadow: inset 0 0 0 3px var(--color-card);
+.ctl-check {
+  border-radius: 4px;
+}
+.ctl-radio {
+  border-radius: 50%;
+}
+.ctl-check:hover,
+.ctl-radio:hover,
+label:hover > .ctl-check,
+label:hover > .ctl-radio {
+  border-color: var(--color-ash);
+}
+.ctl-check:checked,
+.ctl-check:indeterminate {
+  border-color: var(--color-soft);
+  background-color: var(--color-soft);
+}
+.ctl-check:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.2l3 3 6-6.4' fill='none' stroke='%231b1f21' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.ctl-check:indeterminate {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7h8' fill='none' stroke='%231b1f21' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+.ctl-radio:checked {
+  border-color: var(--color-soft);
+  background-image: radial-gradient(circle, var(--color-soft) 0 4px, transparent 4.5px);
+  background-size: 100% 100%;
+}
+.ctl-check:disabled,
+.ctl-radio:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 @media (max-width: 1100px) {

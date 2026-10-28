@@ -21,7 +21,7 @@ Règles de la charte appliquées (Gestalt) :
 |---|---|
 | Proximité | Le disque, son état et son action sont sur une même ligne ; les groupes sont séparés par 20 px. |
 | Région commune | La décision, les avertissements et l'explication sont chacun dans un cadre ; la ligne sélectionnée prend un fond. |
-| Similarité | Une couleur et une icône par état, identiques dans la liste (titre de groupe, bouton) et dans le détail (pastille, bouton). |
+| Similarité | Une couleur et une icône par état, identiques dans la liste (titre de groupe, bouton) et dans le détail (bouton). Les cases à cocher et les boutons radio forment une seule famille : même taille, même contour, même couleur quand ils sont choisis. |
 | Figure / fond | Seuls la ligne sélectionnée et les cadres de détail utilisent la surface `--surface`. |
 
 Un disque s'identifie **toujours** par modèle, numéro de série et WWN / EUI-64, **jamais** par un chemin `/dev/...`.
@@ -56,7 +56,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 
 **Règle de couleur.**
 - Les **boutons** ne sont jamais remplis de couleur : ils ont un contour de 2 px et une icône ou un texte de la couleur de l'état.
-- Les **pastilles** d'état (en haut à droite du détail) sont **remplies**.
+- Les **pastilles** d'état (onglet Effacements, statut d'un certificat) sont **remplies**. Le détail d'un disque n'en a pas : la liste montre déjà l'état, et une pastille colorée au-dessus des méthodes ressemblait à un bouton (retirée le 2026-10-28).
 - Aucune information ne repose sur la couleur seule : il y a toujours une icône ou un libellé.
 
 ### Typographie
@@ -131,18 +131,24 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 **En-tête du disque**
 - « {type} · {capacité} » en mono 14 px `--fg-2` ;
 - le **modèle** (H2, 40 px / 700) ;
-- « s/n {sn} · {WWN|EUI-64} {valeur} » en mono 14 px `--fg-2` ;
-- la **pastille d'état**, remplie, alignée en haut à droite : « ▶ Prêt », « Bloqué », « ✕ Refus », « Protégé ».
+- « s/n {sn} · {WWN|EUI-64} {valeur} » en mono 14 px `--fg-2`.
+- Pas de pastille d'état : l'état se lit dans la liste, et la pastille était prise pour un bouton.
+
+**Cases et boutons radio** (révisé le 2026-10-28)
+- Tous dessinés à la main (`appearance: none`) : sous WebKitGTK, le moteur de l'app sous Linux, les contrôles natifs suivent le thème GTK (case gris foncé, coche décentrée).
+- Une seule famille : 20 × 20 px, contour 2 px `--ctrl`, `--fg-2` au survol. Case : rayon 4 px. Radio : rond.
+- Choisi : couleur os `--fg`. Case : fond `--fg` et coche `--bg` centrée (SVG). Radio : contour `--fg` et point `--fg` de 8 px centré. Le vert reste réservé à l'état « prêt », il ne marque pas une sélection.
+- « Tout sélectionner » : dans la colonne des cases des disques, juste au-dessus d'elles ; un tiret quand une partie seulement est cochée.
+- Le `label` qui entoure chaque contrôle est la zone de clic (au moins 24 × 24 px, WCAG 2.2 critère 2.5.8).
+- Focus clavier : le contour de 3 px suit la forme du contrôle.
 
 **Disque prêt**
-1. **Cadre « Décision de Disphas »** : `fieldset`, fond `--surface`, contour 1 px `--ctrl`, rayon 8 px, **sans liseré coloré**. La légende est en 15 px / 600 `--fg-2`.
-2. **Une ligne par méthode** : un `label` cliquable de 56 px minimum, qui contient :
-   - un **bouton radio** de 18 px, dessiné à la main (`appearance: none`) :
-     - non coché : contour 2 px `--ctrl` ;
-     - coché : contour et point **vert** `--ready`, avec un anneau intérieur de 3 px couleur `--surface` qui fait ressortir le point ;
+1. **Bloc « Décision de Disphas »**, **sans cadre** (révisé le 2026-10-27) : titre 15 px / 700 `--fg-2`, comme un titre de groupe de la liste ; la première méthode est à la hauteur du premier disque.
+2. **Une ligne par méthode** : un `label` cliquable de 64 px minimum, comme une ligne de disque, qui contient :
+   - un **bouton radio** de 20 px, dessiné à la main (`appearance: none`), voir « Cases et boutons radio » ci-dessous ;
    - la **catégorie** dans une étiquette de 52 px en mono 13 px : `Purge` remplie (`--fg` sur `--bg`), `Clear` en contour 1 px `--ctrl` ;
    - le **nom de la méthode** en 17 px ;
-     - la méthode cochée est **en gras** ; la ligne cochée n'a **ni fond ni contour** ;
+     - la méthode cochée est **en gras** ; la ligne cochée est encadrée comme le disque sélectionné (contour 1 px `--ctrl`, fond `--surface`) ;
      - la première méthode porte « · **recommandée** », ce dernier mot en vert `--ready` et en gras ;
    - sous le nom, l'**identifiant technique** en mono 14 px `--fg-2` (par exemple `AtaSanitizeOverwrite`).
 3. **Avertissements**, s'il y en a : un cadre par note, contour 1 px `--ctrl`, icône triangle, le texte, puis le code (D4, R6…) en mono `--fg-2`. Ils restent neutres pour l'instant, sans couleur.
@@ -176,7 +182,6 @@ Détails du mobile (≤ 760 px) :
   - puis les onglets sur toute la largeur, avec un défilement horizontal sans barre visible.
 - L'état du poste quitte l'en-tête et s'affiche sous l'en-tête de la liste.
 - Dans le détail, les boutons d'action prennent toute la largeur.
-- La pastille d'état passe sous le titre, par retour à la ligne naturel.
 - Changer de vue renvoie en haut de page et met le focus sur le titre du disque.
 - Revenir à la liste remet le focus sur la ligne du disque.
 - Aucun défilement horizontal de page à aucune largeur (vérifié à 1440, 900 et 390 px).
@@ -223,7 +228,6 @@ interface Drive {
 ```
 
 - Libellés des groupes : À lancer, À débloquer, Refusés, Protégés.
-- Libellés des pastilles : ▶ Prêt, Bloqué, ✕ Refus, Protégé.
 - Les données de démonstration de la maquette sont celles du mode démo de l'application.
 
 ---

@@ -208,7 +208,7 @@ export function ConfirmDialog({
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-1.5 size-4 accent-soft"
+              className="ctl-check mt-0.5"
               checked={grouped}
               onChange={(event) => setGrouped(event.target.checked)}
             />
