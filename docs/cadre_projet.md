@@ -146,6 +146,10 @@ séparément une recommandation de devenir « Destruction physique » (voir mote
    - Crypto Erase / Block Erase → comparaison d'échantillons hachés avant/après.
 3. **Forçage d'un disque Say NO** : justification obligatoire, niveau plafonné à *Clear*,
    certificat marqué **« NON CONFORME — Destruction physique requise »** avec la justification.
+   L'application propose quatre motifs courants en un clic (demande du client, avant destruction, inspection
+   impossible, responsable sécurité ; revue UX, 2026-10-29) : ils préremplissent le texte dans la langue de
+   l'application, que l'opérateur peut compléter. Le texte reste libre et signé tel quel ; aucun code n'est ajouté
+   à l'attestation.
    Ne peut jamais afficher *Purge* ni *Clear conforme*.
 4. **Confirmation d'un effacement** (révisé le 2026-10-26, décision du propriétaire, revue UX) : une fenêtre
    met en garde (irréversible, disque, n° de série, méthode, avertissements) et se valide **d'un clic** ; plus de

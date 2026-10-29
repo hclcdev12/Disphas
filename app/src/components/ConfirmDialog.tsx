@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, TriangleAlert } from "lucide-react";
 import type { BatchArgs } from "../bindings/BatchArgs";
@@ -13,6 +13,9 @@ const REUSE: Disposition = { kind: "Reuse" };
 
 /** Shortest justification of a forced erasure, as the helper requires. */
 const MIN_JUSTIFICATION = 20;
+
+/** Ready-made reasons for forcing (UX review), longer than the minimum in every language. */
+const REASONS = ["customer", "destruction", "inspection", "security"] as const;
 
 /** Largest batch label, as in the attestation. */
 const MAX_LABEL = 128;
@@ -55,6 +58,7 @@ export function ConfirmDialog({
   }) => Promise<Record<string, HelperError>>;
 }) {
   const { t } = useTranslation();
+  const justificationId = useId();
   const [scan, setScan] = useState("");
   const [scanned, setScanned] = useState<Record<string, string>>({});
   const [scanMiss, setScanMiss] = useState(false);
@@ -248,10 +252,34 @@ export function ConfirmDialog({
         )}
 
         {forced && (
-          <label className="mt-4 block font-bold">
-            {t("confirm.justification")}
+          <div className="mt-4">
+            <label htmlFor={justificationId} className="block font-bold">
+              {t("confirm.justification")}
+            </label>
+            {/* Common reasons in one click, in the language of the app; the text stays free to complete. */}
+            <div role="group" aria-label={t("confirm.reasonsLabel")} className="mt-1.5 flex flex-wrap gap-1.5">
+              {REASONS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => {
+                    const text = t(`confirm.reason.${reason}`);
+                    setJustification(text);
+                    requestAnimationFrame(() => {
+                      const field = document.getElementById(justificationId) as HTMLTextAreaElement | null;
+                      field?.focus();
+                      field?.setSelectionRange(text.length, text.length);
+                    });
+                  }}
+                  className="min-h-9 rounded border border-ctrl px-2.5 text-left text-sm hover:bg-night"
+                >
+                  {t(`confirm.reasonShort.${reason}`)}
+                </button>
+              ))}
+            </div>
             <textarea
-              className="mt-1.5 block h-24 w-full rounded border border-ctrl bg-night p-2 font-normal"
+              id={justificationId}
+              className="mt-2 block h-24 w-full rounded border border-ctrl bg-night p-2 font-normal"
               maxLength={500}
               value={justification}
               onChange={(event) => setJustification(event.target.value)}
@@ -261,7 +289,7 @@ export function ConfirmDialog({
               {t("confirm.justificationCount", { count: justification.trim().length })}
             </span>
             <span className="block text-sm font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
-          </label>
+          </div>
         )}
 
         {strict && !sent && (

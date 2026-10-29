@@ -165,7 +165,20 @@
     "groupInBatch": "Diese Laufwerke in einem Los zusammenfassen",
     "groupInBatchHint": "Beim Abschluss des Loses entsteht ein Los-Zertifikat, zusätzlich zum Zertifikat jedes Laufwerks.",
     "inBatch": "Diese Löschungen kommen in das offene Los: {{batch}}.",
-    "scanEach": "Jedes Laufwerk scannen (oder die letzten 4 Zeichen eingeben, dann Enter)"
+    "scanEach": "Jedes Laufwerk scannen (oder die letzten 4 Zeichen eingeben, dann Enter)",
+    "reason": {
+      "customer": "Der Kunde verlangt eine Löschung vor der physischen Zerstörung des Datenträgers.",
+      "destruction": "Datenträger zur Vernichtung bestimmt: Löschung vorsorglich, ohne Wiederverwendung.",
+      "inspection": "Prüfung unmöglich: Löschung nach bestem Vermögen, ohne vollständigen Nachweis.",
+      "security": "Löschung vom Sicherheitsbeauftragten trotz Ablehnung verlangt."
+    },
+    "reasonShort": {
+      "customer": "Kundenwunsch",
+      "destruction": "Vor der Vernichtung",
+      "inspection": "Prüfung unmöglich",
+      "security": "Sicherheitsbeauftragter"
+    },
+    "reasonsLabel": "Häufige Gründe"
   },
   "scope": {
     "NS_ALL": "Alle Namespaces des NVMe-Controllers werden gelöscht"

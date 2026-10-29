@@ -165,7 +165,20 @@
     "groupInBatch": "File these drives in a batch",
     "groupInBatchHint": "A batch certificate is produced when the batch is closed, besides the certificate of each drive.",
     "inBatch": "These erasures join the open batch: {{batch}}.",
-    "scanEach": "Scan each drive (or type the last 4 characters, then Enter)"
+    "scanEach": "Scan each drive (or type the last 4 characters, then Enter)",
+    "reason": {
+      "customer": "The customer asks for an erasure before the physical destruction of the drive.",
+      "destruction": "Drive bound for destruction: erased as a precaution, not for reuse.",
+      "inspection": "Inspection impossible: best-effort erasure, without full proof.",
+      "security": "Erasure requested by the security officer despite the refusal."
+    },
+    "reasonShort": {
+      "customer": "Customer request",
+      "destruction": "Before destruction",
+      "inspection": "Inspection impossible",
+      "security": "Security officer"
+    },
+    "reasonsLabel": "Common reasons"
   },
   "scope": {
     "NS_ALL": "Every namespace of the NVMe controller will be erased"

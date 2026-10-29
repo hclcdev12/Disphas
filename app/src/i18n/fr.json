@@ -165,7 +165,20 @@
     "groupInBatch": "Regrouper ces disques dans un lot",
     "groupInBatchHint": "Un certificat de lot sera produit à la clôture du lot, en plus du certificat de chaque disque.",
     "inBatch": "Ces effacements rejoindront le lot ouvert : {{batch}}.",
-    "scanEach": "Scannez chaque disque (ou tapez les 4 derniers caractères, puis Entrée)"
+    "scanEach": "Scannez chaque disque (ou tapez les 4 derniers caractères, puis Entrée)",
+    "reason": {
+      "customer": "Le client demande un effacement avant la destruction physique du disque.",
+      "destruction": "Disque destiné à la destruction : effacement par précaution, sans réemploi.",
+      "inspection": "Inspection impossible : effacement au mieux, sans preuve complète.",
+      "security": "Effacement demandé par le responsable de la sécurité malgré le refus."
+    },
+    "reasonShort": {
+      "customer": "Demande du client",
+      "destruction": "Avant destruction",
+      "inspection": "Inspection impossible",
+      "security": "Responsable sécurité"
+    },
+    "reasonsLabel": "Motifs courants"
   },
   "scope": {
     "NS_ALL": "Tous les namespaces du contrôleur NVMe seront effacés"
