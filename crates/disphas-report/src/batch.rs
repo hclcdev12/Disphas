@@ -14,7 +14,7 @@ use disphas_attestation::{Revocation, Verified, verify};
 use typst::foundations::{Array, Bytes, Dict, IntoValue, Value};
 
 use crate::i18n::Translator;
-use crate::{Logo, LogoFormat, RenderOptions, ReportError, STAMP, WORDMARK, compile_pdf};
+use crate::{Logo, LogoFormat, RenderOptions, ReportError, WORDMARK, compile_pdf};
 
 const TEMPLATE: &str = include_str!("batch.typ");
 
@@ -405,7 +405,6 @@ fn inputs(
         }
         .into_value(),
     );
-    set("stamp", Bytes::new(STAMP.to_vec()).into_value());
     set("verify_hint", t.text("batch-verify-hint")?.into_value());
     set("legal", t.text("legal")?.into_value());
     Ok(inputs)

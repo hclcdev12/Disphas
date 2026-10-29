@@ -7,12 +7,15 @@
 
 #let d = sys.inputs
 
-#let ink = rgb("#111827")
-#let muted = rgb("#6B7280")
-#let rule = rgb("#D1D5DB")
-#let green = rgb("#10B981")
-#let red = rgb("#EF4444")
-#let indigo = rgb("#6366F1")
+#let paper = rgb("#FBFAF6")
+#let ink = rgb("#111110")
+#let muted = rgb("#4E575B")
+#let rule = rgb("#C9C7BE")
+#let green = rgb("#2F7D4F")
+#let red = rgb("#B3261E")
+
+#let margin = 1.5cm
+#let band = 1.25cm
 
 #set document(
   title: d.title + " — " + d.batch_id,
@@ -21,16 +24,36 @@
     hour: d.hour, minute: d.minute, second: d.second,
   ),
 )
+
+// Same charter as the certificate of one drive: paper and ink, the totals in
+// a band across the top of the first page, Klaudia for text, mono for data.
+#let sans = ("Klaudia", "Inter")
+#let mono(body, size: 7.5pt, fill: ink) = text(font: "JetBrains Mono", size: size, fill: fill, body)
+#let tag(body, fill: muted) = text(font: "JetBrains Mono", size: 7pt, tracking: 0.08em, fill: fill, upper(body))
+
 #set page(
   paper: "a4",
-  margin: (x: 1.5cm, top: 1.6cm, bottom: 1.8cm),
-  footer: context text(size: 7.5pt, fill: muted)[
+  fill: paper,
+  margin: (x: margin, top: band + 1.1cm, bottom: 1.8cm),
+  background: context if counter(page).get().first() == 1 {
+    place(top + left, block(
+      width: 100%,
+      height: band,
+      fill: if d.all_compliant { green } else { red },
+      inset: (x: margin),
+      align(horizon, grid(
+        columns: (auto, 1fr),
+        align: (left, right),
+        text(font: "JetBrains Mono", size: 11pt, tracking: 0.06em, fill: white, d.summary),
+        text(font: sans, size: 12pt, fill: white, d.summary_title),
+      )),
+    ))
+  },
+  footer: context mono(size: 7pt, fill: muted)[
     #d.title · #d.batch_id #h(1fr) #counter(page).display("1 / 1", both: true)
   ],
 )
-#set text(font: "Inter", size: 9pt, fill: ink, lang: d.lang)
-
-#let mono(body) = text(font: "JetBrains Mono", size: 7.5pt, body)
+#set text(font: sans, size: 9.5pt, fill: ink, lang: d.lang)
 
 #for file in d.files {
   pdf.attach(
@@ -42,75 +65,63 @@
   )
 }
 
-// --- Header.
+// --- Header: the batch and its period, the logo on the right.
 #grid(
   columns: (1fr, auto),
-  align: (left + horizon, right + horizon),
-  image(d.logo, height: 0.95cm, format: d.logo_format),
+  align: (left + bottom, right + bottom),
   [
-    #text(size: 15pt, weight: "bold", d.title) \
-    #text(fill: muted, d.batch_label_label) #mono(d.batch_id) \
+    #tag(d.title) \
+    #mono(size: 10pt, d.batch_id) \
     #if d.batch_label != none [#d.batch_label \ ]
-    #text(fill: muted, d.period_label) #d.period
+    #text(size: 9pt, fill: muted)[#d.period_label #d.period]
   ],
+  image(d.logo, height: 0.9cm, format: d.logo_format),
 )
-#v(4mm)
+#v(-1mm)
+#line(length: 100%, stroke: 0.8pt + ink)
 
-// --- Totals.
-#block(
-  width: 100%,
-  fill: if d.all_compliant { green } else { red },
-  inset: (x: 12pt, y: 9pt),
-  radius: 6pt,
-  text(fill: white)[
-    #text(size: 12.5pt, weight: "bold", d.summary_title) \
-    #d.summary
-  ],
-)
-#v(2mm)
 #table(
-  columns: (32%, 1fr),
+  columns: (5.2cm, 1fr),
   stroke: (x, y) => (bottom: 0.4pt + rule),
   inset: (x: 0pt, y: 5pt),
-  ..d.facts.map(fact => (text(fill: muted, fact.label), fact.value)).flatten(),
+  ..d.facts.map(fact => (mono(size: 8pt, fill: muted, fact.label), mono(size: 8.5pt, fact.value))).flatten(),
 )
 
 // --- One row per drive.
-#v(4mm)
-#text(size: 10.5pt, weight: "bold", fill: indigo, d.drives_title)
-#v(-2mm)
-#line(length: 100%, stroke: 0.6pt + indigo)
+#v(5mm)
+#tag(d.drives_title)
+#v(-1mm)
 #table(
-  columns: (auto, auto, 1fr, auto, 1.25fr, auto, auto, auto),
+  // The report identifier takes two lines: the model and the method get the room.
+  columns: (auto, auto, 1fr, auto, 1.5fr, auto, auto, 2.4cm),
   stroke: (x, y) => (bottom: 0.4pt + rule),
   inset: (x: 3pt, y: 4pt),
   align: (x, y) => if x == 3 { right } else { left },
-  table.header(..d.headers.map(h => text(size: 8pt, weight: "bold", fill: muted, h))),
+  table.header(..d.headers.map(h => mono(size: 6.5pt, fill: muted, upper(h)))),
   ..d.rows
     .map(r => (
-      text(size: 8pt, r.index),
+      mono(r.index),
       if r.hardware == none { mono(r.serial) } else [
         #mono(r.serial) \
-        #text(font: "JetBrains Mono", size: 6.5pt, fill: muted, r.hardware)
+        #mono(size: 6.5pt, fill: muted, r.hardware)
       ],
-      text(size: 8pt, r.model),
-      text(size: 8pt, r.capacity),
-      text(size: 8pt, r.method),
-      text(size: 8pt, r.category),
-      text(size: 8pt, weight: "bold", fill: if r.compliant { green } else { red }, r.status),
-      text(font: "JetBrains Mono", size: 6.5pt, r.report),
+      mono(r.model),
+      mono(r.capacity),
+      mono(r.method),
+      mono(r.category),
+      mono(fill: if r.compliant { green } else { red }, r.status),
+      // A UUID on two lines, cut after its third group.
+      {
+        let parts = r.report.split("-")
+        if parts.len() > 3 {
+          mono(size: 6.5pt)[#parts.slice(0, 3).join("-")- \ #parts.slice(3).join("-")]
+        } else { mono(size: 6.5pt, r.report) }
+      },
     ))
     .flatten(),
 )
 
-#v(4mm)
-#grid(
-  columns: (1fr, 3cm),
-  column-gutter: 6mm,
-  [
-    #text(size: 8pt, fill: muted, d.verify_hint)
-    #v(2mm)
-    #text(size: 8pt, fill: muted, d.legal)
-  ],
-  align(center + bottom, image(d.stamp, width: 3cm, format: "svg")),
-)
+#v(5mm)
+#text(size: 8.5pt, fill: muted, d.verify_hint)
+#v(2mm)
+#text(size: 8pt, fill: muted, d.legal)

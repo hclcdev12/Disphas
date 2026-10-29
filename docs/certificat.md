@@ -112,9 +112,9 @@ L'attestation ne contient **aucun texte traduit**, uniquement des codes : la lan
 
 | Statut | Quand | Rendu PDF |
 |---|---|---|
-| **CONFORME** | Verdict PRÊT, opération exécutée, vérification **et** validation OK | Bandeau vert. Si `dis = DestroyRecommended` : second bandeau rouge « Devenir recommandé : destruction physique » |
-| **NON CONFORME** | Opération **forcée** sur un disque SAY NO | Bandeau rouge. Catégorie plafonnée à Clear. Justification affichée en tête |
-| **REFUS** | SAY NO sans forçage, ou SAY NO après opération (N8, N10) | Bandeau rouge « Effacement non prouvable — destruction physique requise ». Raisons détaillées |
+| **CONFORME** | Verdict PRÊT, opération exécutée, vérification **et** validation OK | Bandeau vert. Si `dis = DestroyRecommended` : « Devenir recommandé : destruction physique », bordé de rouge |
+| **NON CONFORME** | Opération **forcée** sur un disque SAY NO | Bandeau rouge, puis « Devenir : destruction physique requise » bordé de rouge. Catégorie plafonnée à Clear. Justification affichée en tête |
+| **REFUS** | SAY NO sans forçage, ou SAY NO après opération (N8, N10) | Bandeau rouge « REFUS · destruction physique requise ». Raisons détaillées |
 
 Un disque PROTÉGÉ ou BLOQUÉ ne produit **aucun** document : il n'y a eu ni tentative ni refus.
 
@@ -246,13 +246,24 @@ Un même certificat peut être régénéré dans une autre langue à partir de l
 sans nouvelle signature. Les termes normatifs (*Clear*, *Purge*…) restent en anglais.
 
 
-**Page 1 — Synthèse** (fond blanc, structures `#111827`, accents de la charte) :
+**Charte** (dossier de marque, `IDENTITE.md` §5.3 et §6.4 ; appliquée le 2026-10-29) : toujours papier `#FBFAF6`
+et encre `#111110`, quel que soit le thème de l'application ; texte secondaire ardoise `#4E575B`, filets `#C9C7BE`.
+Le statut est un **bandeau plein en haut de la page 1**, d'un bord à l'autre : vert `#2F7D4F` pour CONFORME, rouge
+`#B3261E` pour NON CONFORME et REFUS, texte blanc ; à gauche le statut en JetBrains Mono capitales, à droite sa phrase
+en Klaudia (« effacé, vérifié, validé », « disque refusé, effacement forcé », « destruction physique requise »). Les
+autres avertissements (destruction recommandée, destruction requise après un forçage, justification du forçage) sont
+**bordés de rouge, sans fond**. Klaudia pour les phrases ; **toutes les valeurs des tableaux en JetBrains Mono**, comme
+la maquette de la charte : les chiffres de Klaudia (1 et I, 0 et O) sont trop proches pour un n° de série, un modèle
+ou une capacité. Étiquettes en JetBrains Mono, intertitres en capitales espacées de 8 %. Logo : le wordmark à l'état 0
+en encre (ou le logo du client), sans hermine ni tampon.
+
+**Page 1 — Synthèse** :
 1. En-tête : logo (personnalisable en offre Atelier), titre « Certificat d'effacement », identifiant, date.
 2. Bandeau(x) de statut (§3).
 3. Bloc support : modèle, S/N, firmware, capacité, type.
 4. Bloc sanitisation : catégorie, méthode, référentiels, vérification, validation.
 5. Bloc devenir et réserves, en langage clair.
-6. Pied : organisation, opérateur, outil, licence, **QR code**, empreinte courte de l'attestation.
+6. Pied : organisation, opérateur, outil, licence, « signature Ed25519 », empreinte courte de l'attestation, **QR code**.
 
 **Pages suivantes — Annexe technique** : profil S.M.A.R.T., chronologie horodatée, paramètres d'échantillonnage, mentions légales.
 
@@ -267,7 +278,8 @@ Coût accepté : ~40 Mo de binaire contre ~4 Mo, côté application utilisateur 
   journal qui ne correspond pas à `jh`, ne produit aucun PDF.
 - PDF/A-3b, **déterministe** (identifiant et date dérivés de l'attestation : mêmes entrées, mêmes octets).
 - Fichiers joints : `attestation.cose` (relation *Source*) et `journal.json` (relation *Supplement*).
-- Polices embarquées : Inter et JetBrains Mono (OFL), sous-ensembles latin et latin-ext (`assets/fonts/`).
+- Polices embarquées (OFL) : Klaudia Book et Bold (`assets/fonts/klaudia/`), JetBrains Mono, et Inter en secours pour un
+  caractère que Klaudia n'a pas (sous-ensembles latin et latin-ext, `assets/fonts/`).
 - Le gabarit ne reçoit que des **données** déjà traduites : un texte libre (organisation, justification)
   n'est jamais interprété comme du code typst. Téléchargement de paquets typst désactivé (aucun réseau).
 - Annexe : graine de validation, version des règles, empreintes SHA-256 (binaire, journal, attestation).

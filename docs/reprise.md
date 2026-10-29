@@ -68,8 +68,10 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
 - Points ouverts de l'identité, à soumettre au propriétaire :
   - **wordmark du certificat** (état 0, encre, sans hermine) non livré : composé en Klaudia Bold au lot 3
     (`assets/logo/src/generate_certificate.py`), avec le tampon refait en encre ; à valider ;
-  - **certificat** : polices (Inter → Klaudia, à tester) et couleurs (papier, encre, bandeaux de `IDENTITE.md`
-    §5.2) pas encore passées à la nouvelle charte ;
+  - **certificat** : passé à la charte le 2026-10-29 (papier, encre, bandeau de statut en haut, Klaudia pour les
+    phrases, JetBrains Mono pour toutes les valeurs, `certificat.md` §6) ; le tampon près du QR code est retiré, comme
+    sur la maquette de la charte (`disphas-stamp.svg` reste dans `assets/logo/`, inutilisé) ; les PDF de la démo du
+    site restent à régénérer avec la démo ;
   - **application** : refonte de l'onglet Disques codée le 2026-10-26 d'après la maquette du propriétaire
     (`docs/maquettes/disphas-ecran-disques.md` et `.html`, déplacés depuis `rework_ui/`) : liste et détail, thème Schiste, Atkinson Hyperlegible
     Next pour l'interface, Klaudia pour le seul mot « Disphas », JetBrains Mono pour les données. Palette et

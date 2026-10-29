@@ -1,7 +1,7 @@
 # Fonts
 
-Inter and JetBrains Mono are embedded in `disphas-report` so that certificates render offline and identically
-everywhere. The application embeds Atkinson Hyperlegible Next (interface), JetBrains Mono (technical data) and
+Klaudia (text), JetBrains Mono (data) and Inter (only for a character Klaudia lacks) are embedded in
+`disphas-report` so that certificates render offline and identically everywhere. The application embeds Atkinson Hyperlegible Next (interface), JetBrains Mono (technical data) and
 Klaudia Bold (the word « Disphas » only, `klaudia/`): it never loads a font from the network.
 
 | File | Family | Subset | Source |
