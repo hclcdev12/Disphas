@@ -36,10 +36,14 @@ manual or on a `v*` tag) on **Ubuntu 22.04**, so the binaries need **glibc 2.35*
 | `.deb` | Ubuntu 22.04+, Debian 12+, Linux Mint 21+, Pop!_OS 22.04+ | Ubuntu 22.04, 24.04, Debian 12, 13 |
 | `.rpm` | Fedora, openSUSE (and RHEL-like with glibc 2.35+ and WebKitGTK 4.1) | Fedora (latest), openSUSE Tumbleweed |
 
-Not supported (checked on 2026-10-29 by installing the `.rpm` in containers): **Rocky Linux 9 / RHEL 9**
-ships WebKitGTK 4.0 only (`webkit2gtk3`, even with EPEL and CRB) and glibc 2.34, while Tauri v2 needs
-WebKitGTK 4.1. **Rocky Linux 10 / RHEL 10** require an x86-64-v3 processor (AVX2): its glibc stops on older
-ones before anything runs.
+Rocky Linux and RHEL (checked on 2026-10-29):
+
+- **Rocky 9 / RHEL 9: not supported.** WebKitGTK 4.0 only (`webkit2gtk3`, even with EPEL and CRB) and glibc
+  2.34, while Tauri v2 needs WebKitGTK 4.1 (installing the `.rpm` in a `rockylinux:9` container fails).
+- **Rocky 10 / RHEL 10: needs EPEL 10**, which provides `webkit2gtk4.1` (absent from BaseOS, AppStream and
+  CRB); glibc is 2.39. Read from the official repository metadata, not installed: Rocky 10 requires an
+  x86-64-v3 processor (AVX2) and does not start on the development machine. The desktop is Wayland only
+  (no Xorg server, Xwayland only).
 
 Each run checks, per system: installation from a clean image, every library of both
 programs resolved (`ldd`), polkit policy and notices in place, `/var/lib/disphas` and its
