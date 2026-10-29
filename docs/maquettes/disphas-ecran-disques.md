@@ -108,8 +108,10 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
    - À gauche :
      - « Disques · {n} » (H1) ;
      - dessous, « {en cours} en cours · {max} simultanés permis » en mono 14 px `--fg-2` ;
-     - dessous, « Hors lot : chaque effacement reçoit son propre certificat. » en 13 px, italique, `--fg-2`.
-   - À droite, deux boutons-icônes sans contour : **+** (« Nouveau lot ») puis **↻** (« Actualiser »).
+     - dessous, seulement quand un lot est ouvert : « Lot {id} · {libellé} Clore le lot » en 13 px `--fg-2`. Hors
+       lot, rien (revue UX C1, 2026-10-29 ; la fenêtre de confirmation rappelle déjà le lot).
+   - À droite, trois boutons-icônes sans contour : **+** (« Nouveau lot »), **↻** (« Actualiser ») et **clavier**
+     (« Raccourcis clavier »), qui affiche ou masque la phrase des raccourcis sous l'en-tête (revue UX C1).
    - Le bouton **+** est le seul point d'entrée pour créer un lot ; il ouvre une petite fenêtre « Nouveau lot »
      (libellé facultatif), sur la recette des fenêtres (§3.6), pour ne pas pousser le détail vers le bas.
    - Les avis passagers (lot clos et son certificat, effacement interrompu, erreurs) sont en tête de la liste, au-dessus
@@ -132,7 +134,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
      - sinon, le motif avec son code, par exemple « Sécurité ATA gelée (B1) ».
    - **Sélection multiple**, comme dans un gestionnaire de fichiers : clic = ce disque seul ; **Ctrl + clic**
      (Cmd sur Mac) = l'ajouter ou le retirer ; **Maj + clic** = la suite depuis le dernier cliqué. Le dernier disque
-     sélectionné ne peut pas être retiré par Ctrl + clic. Une phrase sous le titre de la liste le rappelle.
+     sélectionné ne peut pas être retiré par Ctrl + clic. Le bouton « Raccourcis clavier » de l'en-tête le rappelle.
    - **« Tout sélectionner »**, bouton texte à droite du titre « À lancer » : sélectionne les disques prêts qui ne sont
      pas en cours d'effacement ; une fois tous sélectionnés, il devient « Ne garder qu'un disque ».
    - **Ligne sélectionnée** : fond `--surface` et contour 1 px `--ctrl`. **Pas** de barre colorée à gauche.
@@ -231,7 +233,11 @@ Même grille que Disques et Effacements : les quatre onglets ont leur titre au m
 la liste face au premier titre du détail.
 - **Historique, en-tête de liste** : « Historique · {n} », puis « {n} certificats signés » en mono, suivi de
   « · {n} non affichés » s'il y en a ; à droite, une icône corbeille ouvre la fenêtre de suppression ; dessous, la
-  recherche unique.
+  recherche unique, dont le texte d'exemple est « Rechercher » ; la liste des champs cherchés (modèle, S/N, lot,
+  client, opérateur, date) est dans son infobulle (revue UX C2, 2026-10-29).
+- **Supprimer des certificats** (2026-10-29) : pas de calendrier. Une **ancienneté** au choix : Tous, Plus de 3 mois,
+  6 mois, 1 an, 3 ans, 5 ans, 10 ans, ou « Autre… » avec un nombre de mois (1 à 1200). Dessous, la date limite
+  calculée (« Certificats émis avant le {date}. ») ; le bouton rouge donne le nombre de certificats supprimés.
 - **Historique, liste** : groupée par jour (« Aujourd'hui », « Hier », puis la date complète), les plus récents en
   premier. Ligne : le modèle et, à droite, le statut en mono dans sa couleur ; ligne 2 : l'heure, « s/n {sn} » et
   « lot {libellé} ». Un clic choisit, un **double clic ouvre le PDF**, Haut et Bas changent de certificat. Un rapport

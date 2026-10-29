@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, FileText, LoaderCircle, Search, ShieldAlert, Trash2, XCircle } from "lucide-react";
 import { api, type HelperError, type HistoryEntry } from "../lib/api";
 import { capacity } from "../lib/format";
 import type { Language } from "../i18n";
-import { BackButton, Badge, Button, Callout, Dialog, Fact, fieldClass, IconButton, Mono } from "./ui";
+import { BackButton, Badge, Button, Callout, Dialog, Fact, IconButton, Mono } from "./ui";
 
 /**
  * Sort key of the history, newest first by the date shown: the end of the
@@ -256,7 +256,8 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
               type="search"
               className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ash"
               aria-label={t("history.searchLabel")}
-              placeholder={t("history.search")}
+              placeholder={t("history.searchShort")}
+              title={t("history.search")}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -510,9 +511,15 @@ function Problem({ opening }: { opening: Opening | undefined }) {
   );
 }
 
+/** Retention presets of the delete dialog, in months; `null` keeps no date. */
+const AGES = [null, 3, 6, 12, 36, 60, 120] as const;
+const MAX_MONTHS = 1200;
+
 /**
  * Deletes certificates from the history (customer's retention, GDPR): those
- * shown by the search, optionally only those issued before a day. One
+ * shown by the search, optionally only those older than a retention period.
+ * The period is picked among common ones or typed in months, never on a
+ * calendar: the cut-off day and the count are shown before deleting. One
  * warning, confirmed with one click; the helper logs every deletion.
  */
 function DeleteDialog({
@@ -526,21 +533,41 @@ function DeleteDialog({
   onCancel: () => void;
   onDeleted: (result: { count: number } | { error: HelperError }) => void;
 }) {
-  const { t } = useTranslation();
-  const [before, setBefore] = useState("");
+  const { t, i18n } = useTranslation();
+  // A preset (months, or null for all), or "other" with the months typed.
+  const [age, setAge] = useState<number | null | "other">(null);
+  const [other, setOther] = useState("");
   const [busy, setBusy] = useState(false);
+  const [now] = useState(() => new Date());
+  const otherId = useId();
 
-  // "Before" is a calendar day: certificates issued before that day, UTC.
-  const limit = before === "" ? null : Date.parse(`${before}T00:00:00Z`) / 1000;
-  const targets = shown.filter(
-    (entry) => limit === null || (entry.summary !== null && entry.summary.issued_at < limit),
-  );
+  const months = age === "other" ? (/^\d+$/.test(other) ? Number(other) : NaN) : age;
+  const valid = months === null || (Number.isInteger(months) && months >= 1 && months <= MAX_MONTHS);
+  // Certificates issued before the same day, `months` ago, at local midnight.
+  const cutoff = (() => {
+    if (months === null || !valid) return null;
+    return new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+  })();
+  const limit = cutoff === null ? null : cutoff.getTime() / 1000;
+  const targets = !valid
+    ? []
+    : shown.filter((entry) => limit === null || (entry.summary !== null && entry.summary.issued_at < limit));
 
   const remove = async () => {
     setBusy(true);
     const result = await api.deleteReports(targets.map((entry) => entry.id));
     onDeleted(result.ok ? { count: result.value.deleted } : { error: result.error });
   };
+
+  const label = (preset: number | null) =>
+    preset === null
+      ? t("history.age.all")
+      : preset % 12 === 0
+        ? t("history.age.years", { count: preset / 12 })
+        : t("history.age.months", { count: preset });
+  const chip = (selected: boolean) =>
+    `min-h-10 rounded border px-3 text-sm ${selected ? "border-soft font-bold text-soft" : "border-ctrl text-ash hover:text-soft"}`;
+  const longDate = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
   return (
     <Dialog
@@ -556,11 +583,51 @@ function DeleteDialog({
       }
     >
       <p className="text-sm text-ash">{t(searching ? "history.deleteScopeSearch" : "history.deleteScopeAll")}</p>
-      <label className="block text-sm font-bold">
-        {t("history.before")}
-        <input type="date" className={fieldClass} value={before} onChange={(event) => setBefore(event.target.value)} />
-        <span className="text-xs font-normal text-ash">{t("history.beforeHint")}</span>
-      </label>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-bold">{t("history.age.label")}</legend>
+        <div className="flex flex-wrap gap-2">
+          {AGES.map((preset) => (
+            <button
+              key={preset ?? "all"}
+              type="button"
+              aria-pressed={age === preset}
+              className={chip(age === preset)}
+              onClick={() => setAge(preset)}
+            >
+              {label(preset)}
+            </button>
+          ))}
+          <button
+            type="button"
+            aria-pressed={age === "other"}
+            className={chip(age === "other")}
+            onClick={() => setAge("other")}
+          >
+            {t("history.age.other")}
+          </button>
+        </div>
+        {age === "other" && (
+          <div className="flex items-center gap-2 text-sm">
+            <label htmlFor={otherId}>{t("history.age.olderThan")}</label>
+            <input
+              id={otherId}
+              autoFocus
+              inputMode="numeric"
+              className="block min-h-10 w-20 rounded border border-ctrl bg-night px-2.5 text-right font-mono"
+              value={other}
+              onChange={(event) => setOther(event.target.value.trim())}
+            />
+            <span>{t("history.age.monthsUnit")}</span>
+          </div>
+        )}
+        <p className="text-sm text-ash" aria-live="polite">
+          {!valid
+            ? t("history.age.invalid", { max: MAX_MONTHS })
+            : cutoff === null
+              ? t("history.beforeHint")
+              : t("history.age.cutoff", { date: longDate.format(cutoff) })}
+        </p>
+      </fieldset>
       <Callout tone="sayno">{t("history.deleteWarning")}</Callout>
     </Dialog>
   );

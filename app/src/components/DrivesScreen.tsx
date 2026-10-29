@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
+  Keyboard,
   KeyRound,
   Moon,
   LoaderCircle,
@@ -183,6 +184,7 @@ export function DrivesScreen(props: {
   const [methods, setMethods] = useState<Record<string, number>>({});
   const [zeroPass, setZeroPass] = useState<Record<string, boolean>>({});
   const [view, setView] = useState<"list" | "detail">("list");
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [editingBatch, setEditingBatch] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   // Bumped when the drive title must take the focus: in a narrow window.
@@ -392,17 +394,8 @@ export function DrivesScreen(props: {
     <div className="split-screen grid min-h-0 flex-1" data-view={view}>
       <div className="split-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
         <div className="flex items-start justify-between gap-2 px-2">
-          <div>
-            <h1 className="text-[25px] leading-tight font-bold">{t("drives.count", { count: drives.length })}</h1>
-            {parallel && <p className="mt-0.5 font-mono text-sm text-ash">{parallel}</p>}
-            <BatchHint
-              batch={props.batch}
-              closing={props.closingBatch}
-              onClose={props.onCloseBatch}
-            />
-            {erasableSerials.length > 1 && <p className="drives-multi-hint mt-1 text-[13px] text-ash">{t("drives.multiHint")}</p>}
-          </div>
-          <div className="flex gap-1">
+          <h1 className="text-[25px] leading-tight font-bold">{t("drives.count", { count: drives.length })}</h1>
+          <div className="-mb-2 flex gap-1">
             <IconButton
               label={props.batch ? t("batch.alreadyOpen") : t("batch.new")}
               disabled={props.batch !== null}
@@ -413,7 +406,17 @@ export function DrivesScreen(props: {
             <IconButton label={t("drives.refresh")} disabled={!props.connected} onClick={props.onRefresh}>
               <RefreshCw size={18} aria-hidden="true" />
             </IconButton>
+            {/* The keyboard shortcuts stay one click away instead of always on screen (UX review C1). */}
+            <IconButton label={t("drives.shortcuts")} expanded={showShortcuts} onClick={() => setShowShortcuts(!showShortcuts)}>
+              <Keyboard size={18} aria-hidden="true" />
+            </IconButton>
           </div>
+        </div>
+        {/* Under the title, across the column: the icons keep the title row to itself. */}
+        <div className="-mt-4 px-2">
+          {parallel && <p className="mt-0.5 font-mono text-sm text-ash">{parallel}</p>}
+          <BatchHint batch={props.batch} closing={props.closingBatch} onClose={props.onCloseBatch} />
+          {showShortcuts && <p className="mt-1 text-[13px] text-ash">{t("drives.multiHint")}</p>}
         </div>
         <p className="drives-station px-2 font-mono text-[13px] text-ash">
           <Station
@@ -1314,10 +1317,10 @@ function Actions({ children }: { children: ReactNode }) {
   );
 }
 
-/** Under the title: outside a batch, or the open batch and how to close it. */
+/** Under the title, the open batch and how to close it; nothing outside a batch (UX review C1). */
 function BatchHint({ batch, closing, onClose }: { batch: BatchArgs | null; closing: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  if (!batch) return <p className="mt-1 text-[13px] text-ash italic">{t("drives.outsideBatch")}</p>;
+  if (!batch) return null;
   return (
     <p className="mt-1 text-[13px] text-ash">
       {t("batch.current")} <Mono>{batch.id}</Mono>

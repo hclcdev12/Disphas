@@ -80,11 +80,14 @@ export function Bar({ percent, className = "h-1" }: { percent: number; className
 export function IconButton({
   label,
   disabled,
+  expanded,
   onClick,
   children,
 }: {
   label: string;
   disabled?: boolean;
+  /** For a button that shows or hides a part of the page. */
+  expanded?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -94,8 +97,11 @@ export function IconButton({
       aria-label={label}
       title={label}
       disabled={disabled}
+      aria-expanded={expanded}
       onClick={onClick}
-      className="inline-flex size-11 shrink-0 items-center justify-center rounded text-soft hover:bg-card disabled:opacity-40"
+      className={`inline-flex size-11 shrink-0 items-center justify-center rounded text-soft hover:bg-card disabled:opacity-40 ${
+        expanded ? "bg-card" : ""
+      }`}
     >
       {children}
     </button>

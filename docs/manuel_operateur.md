@@ -192,10 +192,11 @@ régénéré plus tard depuis l'**Historique**.
 L'onglet **Historique** liste tous les certificats du poste, du plus récent au plus ancien. Chacun est
 **revérifié** à l'affichage : un certificat altéré apparaît en rouge, sans son contenu.
 
-- **Rechercher** par modèle, S/N, opérateur ; filtrer par **lot** ou par date (**Antérieurs au**).
+- **Rechercher** par modèle, S/N, lot, client, opérateur ou date (une seule recherche).
 - **Certificat PDF** : régénère le PDF dans la langue de l'interface.
 - **Certificat de lot (PDF)** : quand un lot est sélectionné.
-- **Supprimer les certificats affichés** : pour appliquer votre durée de conservation. Suppression
+- **Supprimer les certificats affichés** : pour appliquer votre durée de conservation, choisissez une
+  ancienneté (plus de 3 mois, 1 an, 5 ans… ou un nombre de mois). Suppression
   définitive, inscrite dans un journal des suppressions ; les PDF déjà exportés ne sont pas touchés.
 
 ### 6.2 Vérifier un certificat

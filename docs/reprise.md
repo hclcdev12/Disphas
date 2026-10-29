@@ -129,7 +129,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     **Revue complète du 2026-10-29** (19 écrans) : A1 à A7 corrigés le jour même (sélection en cours d'effacement,
     groupe « En cours », lot en fenêtre, défilement séparé de la liste et du détail, barre « terminés » en bas,
     textes) ; B1 (même structure pour tous les verdicts), B2 (réserves en un bloc) et B3 (pastille pleine
-    réservée au statut d'un certificat) faits le 2026-10-29 ; restent C1 (aides de l'en-tête de liste), C2 (recherche) ;
+    réservée au statut d'un certificat), C1 (aides de l'en-tête de liste) et C2 (recherche) faits le 2026-10-29 ;
+    la suppression de l'historique choisit une ancienneté au lieu d'un calendrier (demande du propriétaire) ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

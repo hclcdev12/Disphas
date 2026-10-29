@@ -35,7 +35,6 @@
       "unlimited_one": "{{count}} en cours · sans limite",
       "unlimited_other": "{{count}} en cours · sans limite"
     },
-    "outsideBatch": "Hors lot : chaque effacement reçoit son propre certificat.",
     "listLabel": "Disques connectés",
     "group": {
       "ready": "À lancer · {{count}}",
@@ -74,7 +73,8 @@
     "followJobs": "Suivre les effacements",
     "multiBeingErased_one": "{{count}} disque sélectionné est en cours d'effacement.",
     "multiBeingErased_other": "{{count}} disques sélectionnés sont en cours d'effacement.",
-    "selectionRunning": "Disques sélectionnés"
+    "selectionRunning": "Disques sélectionnés",
+    "shortcuts": "Raccourcis clavier"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -342,7 +342,6 @@
       "Revoked": "Licence révoquée à la date du certificat : ce certificat n'est pas affiché"
     },
     "batchPdf": "Certificat du lot",
-    "before": "Émis avant le",
     "deleteNow": "Supprimer définitivement",
     "deletedCount_one": "{{count}} certificat supprimé (consigné dans le journal des suppressions).",
     "deletedCount_other": "{{count}} certificats supprimés (consignés dans le journal des suppressions).",
@@ -354,9 +353,9 @@
     "batch_other": "Lot {{name}} · {{count}} certificats",
     "delete": "Supprimer…",
     "deleteTitle": "Supprimer des certificats",
-    "deleteScopeAll": "Tous les certificats de l'historique, ou seulement ceux émis avant une date.",
-    "deleteScopeSearch": "Les certificats trouvés par la recherche, ou seulement ceux émis avant une date.",
-    "beforeHint": "Facultatif. Pour appliquer la durée de conservation de vos clients.",
+    "deleteScopeAll": "Tous les certificats de l'historique, ou seulement ceux plus anciens qu'une durée.",
+    "deleteScopeSearch": "Les certificats trouvés par la recherche, ou seulement ceux plus anciens qu'une durée.",
+    "beforeHint": "Choisissez une ancienneté pour appliquer la durée de conservation de vos clients.",
     "deleteWarning": "Suppression définitive de l'historique, consignée dans le journal des suppressions. Les PDF déjà enregistrés ne sont pas touchés.",
     "deleteNow_one": "Supprimer {{count}} certificat",
     "deleteNow_other": "Supprimer {{count}} certificats",
@@ -373,7 +372,21 @@
     "certificate": "Certificat",
     "openHint": "Ou double-cliquez sur le certificat dans la liste.",
     "hiddenCount_one": "{{count}} non affiché",
-    "hiddenCount_other": "{{count}} non affichés"
+    "hiddenCount_other": "{{count}} non affichés",
+    "age": {
+      "label": "Ancienneté",
+      "all": "Tous",
+      "months_one": "Plus de {{count}} mois",
+      "months_other": "Plus de {{count}} mois",
+      "years_one": "Plus d'un an",
+      "years_other": "Plus de {{count}} ans",
+      "other": "Autre…",
+      "olderThan": "Plus de",
+      "monthsUnit": "mois",
+      "invalid": "Saisissez un nombre de mois entre 1 et {{max}}.",
+      "cutoff": "Certificats émis avant le {{date}}."
+    },
+    "searchShort": "Rechercher"
   },
   "verify": {
     "title": "Vérifier un certificat",

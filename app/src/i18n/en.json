@@ -35,7 +35,6 @@
       "unlimited_one": "{{count}} running · no limit",
       "unlimited_other": "{{count}} running · no limit"
     },
-    "outsideBatch": "No batch: each erasure gets its own certificate.",
     "listLabel": "Connected drives",
     "group": {
       "ready": "To start · {{count}}",
@@ -74,7 +73,8 @@
     "followJobs": "Follow the erasures",
     "multiBeingErased_one": "{{count}} selected drive is being erased.",
     "multiBeingErased_other": "{{count}} selected drives are being erased.",
-    "selectionRunning": "Selected drives"
+    "selectionRunning": "Selected drives",
+    "shortcuts": "Keyboard shortcuts"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -342,7 +342,6 @@
       "Revoked": "License revoked at the certificate date: this certificate is not shown"
     },
     "batchPdf": "Batch certificate",
-    "before": "Issued before",
     "deleteNow": "Delete permanently",
     "deletedCount_one": "{{count}} certificate deleted (recorded in the deletion log).",
     "deletedCount_other": "{{count}} certificates deleted (recorded in the deletion log).",
@@ -354,9 +353,9 @@
     "batch_other": "Batch {{name}} · {{count}} certificates",
     "delete": "Delete…",
     "deleteTitle": "Delete certificates",
-    "deleteScopeAll": "Every certificate in the history, or only those issued before a date.",
-    "deleteScopeSearch": "The certificates found by the search, or only those issued before a date.",
-    "beforeHint": "Optional. To apply your customers' retention period.",
+    "deleteScopeAll": "Every certificate in the history, or only those older than a period.",
+    "deleteScopeSearch": "The certificates found by the search, or only those older than a period.",
+    "beforeHint": "Pick an age to apply your customers' retention period.",
     "deleteWarning": "Permanent deletion from the history, recorded in the deletion log. PDFs already saved are not touched.",
     "deleteNow_one": "Delete {{count}} certificate",
     "deleteNow_other": "Delete {{count}} certificates",
@@ -373,7 +372,21 @@
     "certificate": "Certificate",
     "openHint": "Or double-click the certificate in the list.",
     "hiddenCount_one": "{{count}} hidden",
-    "hiddenCount_other": "{{count}} hidden"
+    "hiddenCount_other": "{{count}} hidden",
+    "age": {
+      "label": "Age",
+      "all": "All",
+      "months_one": "Over {{count}} month",
+      "months_other": "Over {{count}} months",
+      "years_one": "Over a year",
+      "years_other": "Over {{count}} years",
+      "other": "Other…",
+      "olderThan": "Over",
+      "monthsUnit": "months",
+      "invalid": "Enter a number of months between 1 and {{max}}.",
+      "cutoff": "Certificates issued before {{date}}."
+    },
+    "searchShort": "Search"
   },
   "verify": {
     "title": "Verify a certificate",

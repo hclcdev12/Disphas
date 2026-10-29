@@ -35,7 +35,6 @@
       "unlimited_one": "{{count}} laufend · ohne Begrenzung",
       "unlimited_other": "{{count}} laufend · ohne Begrenzung"
     },
-    "outsideBatch": "Kein Los: Jede Löschung erhält ihr eigenes Zertifikat.",
     "listLabel": "Angeschlossene Laufwerke",
     "group": {
       "ready": "Zu starten · {{count}}",
@@ -74,7 +73,8 @@
     "followJobs": "Löschungen verfolgen",
     "multiBeingErased_one": "{{count}} ausgewählter Datenträger wird gelöscht.",
     "multiBeingErased_other": "{{count}} ausgewählte Datenträger werden gelöscht.",
-    "selectionRunning": "Ausgewählte Datenträger"
+    "selectionRunning": "Ausgewählte Datenträger",
+    "shortcuts": "Tastenkürzel"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -342,7 +342,6 @@
       "Revoked": "Lizenz zum Datum der Bescheinigung widerrufen: Diese Bescheinigung wird nicht angezeigt"
     },
     "batchPdf": "Los-Bescheinigung",
-    "before": "Ausgestellt vor dem",
     "deleteNow": "Endgültig löschen",
     "deletedCount_one": "{{count}} Bescheinigung gelöscht (im Löschprotokoll vermerkt).",
     "deletedCount_other": "{{count}} Bescheinigungen gelöscht (im Löschprotokoll vermerkt).",
@@ -354,9 +353,9 @@
     "batch_other": "Los {{name}} · {{count}} Bescheinigungen",
     "delete": "Löschen…",
     "deleteTitle": "Bescheinigungen löschen",
-    "deleteScopeAll": "Alle Bescheinigungen im Verlauf oder nur die vor einem Datum ausgestellten.",
-    "deleteScopeSearch": "Die von der Suche gefundenen Bescheinigungen oder nur die vor einem Datum ausgestellten.",
-    "beforeHint": "Optional. Um die Aufbewahrungsfrist Ihrer Kunden anzuwenden.",
+    "deleteScopeAll": "Alle Bescheinigungen im Verlauf oder nur die älter als ein Zeitraum.",
+    "deleteScopeSearch": "Die von der Suche gefundenen Bescheinigungen oder nur die älter als ein Zeitraum.",
+    "beforeHint": "Wählen Sie ein Alter, um die Aufbewahrungsfrist Ihrer Kunden anzuwenden.",
     "deleteWarning": "Endgültige Löschung aus dem Verlauf, im Löschprotokoll vermerkt. Bereits gespeicherte PDFs bleiben unberührt.",
     "deleteNow_one": "{{count}} Bescheinigung löschen",
     "deleteNow_other": "{{count}} Bescheinigungen löschen",
@@ -373,7 +372,21 @@
     "certificate": "Bescheinigung",
     "openHint": "Oder doppelklicken Sie in der Liste auf die Bescheinigung.",
     "hiddenCount_one": "{{count}} nicht angezeigt",
-    "hiddenCount_other": "{{count}} nicht angezeigt"
+    "hiddenCount_other": "{{count}} nicht angezeigt",
+    "age": {
+      "label": "Alter",
+      "all": "Alle",
+      "months_one": "Älter als {{count}} Monat",
+      "months_other": "Älter als {{count}} Monate",
+      "years_one": "Älter als ein Jahr",
+      "years_other": "Älter als {{count}} Jahre",
+      "other": "Andere…",
+      "olderThan": "Älter als",
+      "monthsUnit": "Monate",
+      "invalid": "Geben Sie eine Anzahl Monate zwischen 1 und {{max}} ein.",
+      "cutoff": "Zertifikate, ausgestellt vor dem {{date}}."
+    },
+    "searchShort": "Suchen"
   },
   "verify": {
     "title": "Bescheinigung prüfen",
