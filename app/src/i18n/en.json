@@ -544,5 +544,14 @@
       "certificate": "The certificate saves itself",
       "certificateHint": "At the end of each erasure, the signed PDF is saved in Documents/disphas. Every certificate is in the History."
     }
+  },
+  "operator": {
+    "switchLabel": "Switch operator",
+    "none": "No operator",
+    "hint": "The next certificates are signed with this name. Running erasures keep theirs.",
+    "other": "Another operator",
+    "otherPlaceholder": "Name or identifier, then Enter",
+    "forget": "Remove {{name}} from the list",
+    "tooLong": "64 characters at most."
   }
 }

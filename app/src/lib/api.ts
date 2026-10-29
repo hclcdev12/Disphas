@@ -105,6 +105,8 @@ export type Settings = {
   language: string | null;
   /** The first-launch assistant was completed or skipped. */
   onboarded: boolean;
+  /** Operators who signed on this account, most recent first (quick switch). */
+  recent_operators: string[];
 };
 
 /** An error from the helper, or `UNAVAILABLE` when it cannot be reached. */
@@ -150,6 +152,10 @@ export interface DisphasApi {
   setNotifications(enabled: boolean): Promise<Outcome<Settings>>;
   setLanguage(language: Language): Promise<Outcome<Settings>>;
   setOnboarded(): Promise<Outcome<Settings>>;
+  /** Changes the operator only, from the header; the organization stays. */
+  setOperator(operator: string): Promise<Outcome<Settings>>;
+  /** Removes an operator from the quick switch. */
+  forgetOperator(operator: string): Promise<Outcome<Settings>>;
   /** Desktop notification, shown only when the window is in the background. The caller checks the setting. */
   notify(title: string, body: string): Promise<void>;
   /** Called when a drive is plugged in or out; returns the unsubscribe function. */
@@ -229,6 +235,7 @@ const tauriApi: DisphasApi = {
       notifications: false,
       language: null,
       onboarded: true,
+      recent_operators: [],
     })),
   saveSettings: (organization, operator) => settingsCall("save_settings", { organization, operator }),
   setLogo: (data) => settingsCall("set_logo", { data }),
@@ -237,6 +244,8 @@ const tauriApi: DisphasApi = {
   setNotifications: (enabled) => settingsCall("set_notifications", { enabled }),
   setLanguage: (language) => settingsCall("set_language", { language }),
   setOnboarded: () => settingsCall("set_onboarded", {}),
+  setOperator: (operator) => settingsCall("set_operator", { operator }),
+  forgetOperator: (operator) => settingsCall("forget_operator", { operator }),
   notify: (title, body) => invoke<void>("notify", { title, body }).catch(() => {}),
   onDrivesChanged: (handler) => listen("disphas://drives-changed", () => handler()),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
@@ -282,7 +291,7 @@ const previewApi: DisphasApi = {
   renderReport: async () => unavailable,
   renderBatch: async () => unavailable,
   deleteReports: async () => unavailable,
-  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: null, onboarded: true }),
+  getSettings: async () => ({ organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: null, onboarded: true, recent_operators: ["OP-042", "OP-017"] }),
   saveSettings: async () => unavailable,
   setLogo: async () => unavailable,
   clearLogo: async () => unavailable,
@@ -290,6 +299,8 @@ const previewApi: DisphasApi = {
   setNotifications: async () => unavailable,
   setLanguage: async () => unavailable,
   setOnboarded: async () => unavailable,
+  setOperator: async () => unavailable,
+  forgetOperator: async () => unavailable,
   notify: async () => {},
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: shows a fictional verified report, for layout only.

@@ -45,6 +45,23 @@ pub struct Settings {
     /// The first-launch assistant was completed or skipped.
     #[serde(default)]
     pub onboarded: bool,
+    /// Operators who signed on this account, most recent first, so the
+    /// header can switch between them in one click (UX review P2).
+    #[serde(default)]
+    pub recent_operators: Vec<String>,
+}
+
+/// Operators kept for the quick switch.
+pub const MAX_RECENT_OPERATORS: usize = 8;
+
+/// Puts `operator` first among the recent ones, without duplicates.
+fn remember(settings: &mut Settings) {
+    let Some(operator) = settings.operator.clone() else {
+        return;
+    };
+    settings.recent_operators.retain(|other| *other != operator);
+    settings.recent_operators.insert(0, operator);
+    settings.recent_operators.truncate(MAX_RECENT_OPERATORS);
 }
 
 fn settings_file(dir: &Path) -> PathBuf {
@@ -94,6 +111,24 @@ pub fn save(
     let mut settings = load(dir);
     settings.organization = field(organization, MAX_ORGANIZATION_CHARS, "organization")?;
     settings.operator = field(operator, MAX_OPERATOR_CHARS, "operator")?;
+    remember(&mut settings);
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Changes the operator only, from the header: the organization stays.
+pub fn set_operator(dir: &Path, operator: Option<String>) -> Result<Settings, String> {
+    let mut settings = load(dir);
+    settings.operator = field(operator, MAX_OPERATOR_CHARS, "operator")?;
+    remember(&mut settings);
+    store(dir, &settings)?;
+    Ok(settings)
+}
+
+/// Forgets an operator of the quick switch (the current one stays signed).
+pub fn forget_operator(dir: &Path, operator: &str) -> Result<Settings, String> {
+    let mut settings = load(dir);
+    settings.recent_operators.retain(|other| other != operator);
     store(dir, &settings)?;
     Ok(settings)
 }
@@ -250,6 +285,48 @@ mod tests {
         assert!(!load(dir.path()).onboarded);
         assert!(set_onboarded(dir.path()).expect("saved").onboarded);
         assert!(load(dir.path()).onboarded);
+    }
+
+    #[test]
+    fn recent_operators_are_kept_for_the_quick_switch() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        save(
+            dir.path(),
+            Some("Atelier".to_owned()),
+            Some("OP-1".to_owned()),
+        )
+        .expect("saved");
+        set_operator(dir.path(), Some(" OP-2 ".to_owned())).expect("switched");
+        let back = set_operator(dir.path(), Some("OP-1".to_owned())).expect("switched back");
+        assert_eq!(back.operator.as_deref(), Some("OP-1"));
+        assert_eq!(
+            back.organization.as_deref(),
+            Some("Atelier"),
+            "organization kept"
+        );
+        assert_eq!(
+            back.recent_operators,
+            ["OP-1", "OP-2"],
+            "most recent first, no duplicate"
+        );
+        for n in 0..20 {
+            set_operator(dir.path(), Some(format!("OP-{n}"))).expect("switched");
+        }
+        assert_eq!(
+            load(dir.path()).recent_operators.len(),
+            MAX_RECENT_OPERATORS
+        );
+        assert!(set_operator(dir.path(), Some("x".repeat(65))).is_err());
+        let forgotten = forget_operator(dir.path(), "OP-19").expect("forgotten");
+        assert!(!forgotten.recent_operators.contains(&"OP-19".to_owned()));
+        assert_eq!(
+            forgotten.operator.as_deref(),
+            Some("OP-19"),
+            "still the one signing"
+        );
+        // No operator at all: nothing is remembered.
+        let none = set_operator(dir.path(), Some("  ".to_owned())).expect("cleared");
+        assert_eq!(none.operator, None);
     }
 
     #[test]

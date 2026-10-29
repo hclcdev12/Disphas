@@ -544,5 +544,14 @@
       "certificate": "Le certificat s'enregistre tout seul",
       "certificateHint": "À la fin de chaque effacement, le PDF signé est enregistré dans Documents/disphas. Tous les certificats sont dans l'Historique."
     }
+  },
+  "operator": {
+    "switchLabel": "Changer d'opérateur",
+    "none": "Aucun opérateur",
+    "hint": "Les prochains certificats sont signés à ce nom. Les effacements en cours gardent le leur.",
+    "other": "Autre opérateur",
+    "otherPlaceholder": "Nom ou identifiant, puis Entrée",
+    "forget": "Retirer {{name}} de la liste",
+    "tooLong": "64 caractères au plus."
   }
 }

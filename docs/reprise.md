@@ -121,7 +121,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     double clic ouvre le PDF ; Vérifier avec le dépôt à gauche et le résultat à droite) ; une recette unique pour
     toutes les fenêtres (`Dialog`, maquette §3.6). Pas de version téléphone : hors périmètre (propriétaire,
     2026-10-29) ; « responsive » veut dire tout écran de PC et toute résolution. Restent de la revue : D5 (B1 par
-    mise en veille), P2 (changement rapide d'opérateur), motifs prêts à choisir pour le forçage ;
+    mise en veille), motifs prêts à choisir pour le forçage ; P2 (opérateur changé en un clic depuis l'en-tête,
+    les 8 derniers retenus dans `settings.json`) codé le 2026-10-29 ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

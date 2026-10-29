@@ -89,6 +89,14 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
   - L'onglet actif est en gras, avec un soulignement de 2 px de couleur `--fg` et `aria-current="page"`. Les autres onglets sont en `--fg-2`.
 - **À droite :**
   - l'état du poste en mono 14 px `--fg-2` : « hors ligne · assistant connecté · licence active · règles 1.0.0 » (valeurs dynamiques) ;
+    sous 1440 px de large, « règles 1.0.0 » quitte la ligne (il reste dans l'infobulle) pour que l'en-tête tienne sur
+    une ligne avec l'opérateur ;
+  - l'**opérateur** (revue UX, P2, 2026-10-29) : icône personne, le nom de l'opérateur qui signe les prochains
+    certificats et une flèche ; « Aucun opérateur » en ambre s'il n'y en a pas. Un clic ouvre un menu comme celui
+    des méthodes : « Les prochains certificats sont signés à ce nom. Les effacements en cours gardent le leur. », les
+    opérateurs déjà venus sur ce poste (8 au plus, le plus récent en premier, l'actuel coché ; une croix au survol ou
+    Suppr en retire un), puis « Autre opérateur » : un champ, validé par Entrée. Flèches, Échap et clic à côté
+    comme le menu des méthodes. L'organisation ne change pas ; elle reste dans Paramètres ;
   - le bouton **Paramètres** : roue seule, sans contour ni texte, 44 px, avec `aria-label` et `title` « Paramètres ».
 - Pas de bouton de langue ni de thème dans l'en-tête : ces réglages vont dans Paramètres.
 

@@ -544,5 +544,14 @@
       "certificate": "Die Bescheinigung speichert sich selbst",
       "certificateHint": "Am Ende jeder Löschung wird das signierte PDF unter Documents/disphas gespeichert. Alle Bescheinigungen stehen im Verlauf."
     }
+  },
+  "operator": {
+    "switchLabel": "Bediener wechseln",
+    "none": "Kein Bediener",
+    "hint": "Die nächsten Bescheinigungen werden mit diesem Namen signiert. Laufende Löschungen behalten ihren.",
+    "other": "Anderer Bediener",
+    "otherPlaceholder": "Name oder Kennung, dann Eingabe",
+    "forget": "{{name}} aus der Liste entfernen",
+    "tooLong": "Höchstens 64 Zeichen."
   }
 }

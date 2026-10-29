@@ -120,7 +120,7 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage(), onboarded: demoOnboarded() } as Settings,
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage(), onboarded: demoOnboarded(), recent_operators: ["OP-042", "OP-017", "M. Kervella"] } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -387,7 +387,20 @@ export const demoApi: DisphasApi = {
   },
   getSettings: async () => state.settings,
   saveSettings: async (organization, operator) => {
-    state.settings = { ...state.settings, organization: organization || null, operator: operator || null };
+    const name = operator.trim();
+    const recent = name === "" ? state.settings.recent_operators : [name, ...state.settings.recent_operators.filter((other) => other !== name)].slice(0, 8);
+    state.settings = { ...state.settings, organization: organization || null, operator: name || null, recent_operators: recent };
+    return ok(state.settings);
+  },
+  setOperator: async (operator) => {
+    const name = operator.trim();
+    if ([...name].length > 64) return fail("INVALID", "operator: 64 characters at most");
+    const recent = name === "" ? state.settings.recent_operators : [name, ...state.settings.recent_operators.filter((other) => other !== name)].slice(0, 8);
+    state.settings = { ...state.settings, operator: name || null, recent_operators: recent };
+    return ok(state.settings);
+  },
+  forgetOperator: async (operator) => {
+    state.settings = { ...state.settings, recent_operators: state.settings.recent_operators.filter((other) => other !== operator) };
     return ok(state.settings);
   },
   setLogo: async () => fail("UNAVAILABLE", "demo"),

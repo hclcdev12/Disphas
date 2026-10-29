@@ -258,6 +258,21 @@ fn save_settings(
     settings::save(&config_dir(&app)?, organization, operator)
 }
 
+/// Changes the operator only (quick switch in the header).
+#[tauri::command]
+fn set_operator(
+    operator: Option<String>,
+    app: tauri::AppHandle,
+) -> Result<settings::Settings, String> {
+    settings::set_operator(&config_dir(&app)?, operator)
+}
+
+/// Removes an operator from the quick switch.
+#[tauri::command]
+fn forget_operator(operator: String, app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::forget_operator(&config_dir(&app)?, &operator)
+}
+
 /// Stores the customer's logo (PNG or SVG, base64).
 #[tauri::command]
 fn set_logo(data: String, app: tauri::AppHandle) -> Result<settings::Settings, String> {
@@ -416,6 +431,8 @@ pub fn run() {
             set_notifications,
             set_language,
             set_onboarded,
+            set_operator,
+            forget_operator,
             notify
         ])
         .run(tauri::generate_context!());

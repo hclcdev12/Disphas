@@ -195,6 +195,11 @@ export function DrivesScreen(props: {
     erasableSerials.length > 0 && erasableSerials.every((serial) => selectedDrives.some((d) => serialOf(d) === serial));
 
   /** Click: this drive alone. Ctrl (or Cmd) + click: add or remove it. Shift + click: the range from the last one. */
+  /** Shows the detail; in a narrow window it replaces the list. */
+  const open = (focusDetail: boolean) => {
+    setView("detail");
+    if (focusDetail || narrow()) setFocusTick((tick) => tick + 1);
+  };
   const pick = (serial: string, event: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) => {
     const current = selectedDrives.length > 0 ? selectedDrives.map(serialOf) : selected ? [serialOf(selected)] : [];
     if (event.ctrlKey || event.metaKey) {
@@ -323,10 +328,6 @@ export function DrivesScreen(props: {
     }
   };
 
-  const open = (focusDetail: boolean) => {
-    setView("detail");
-    if (focusDetail || narrow()) setFocusTick((tick) => tick + 1);
-  };
   const back = () => {
     setView("list");
     const serial = selected ? serialOf(selected) : (selectedDrives[0] ? serialOf(selectedDrives[0]) : null);

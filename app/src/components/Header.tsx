@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Settings } from "lucide-react";
 import type { HelloResult } from "../bindings/HelloResult";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
+import type { Settings as OperatorSettings } from "../lib/api";
+import { OperatorMenu } from "./OperatorMenu";
 
 export type View = "drives" | "jobs" | "history" | "verify";
 
@@ -20,6 +22,8 @@ export function Header({
   view,
   onView,
   onSettings,
+  settings,
+  onSettingsChanged,
 }: {
   hello: HelloResult | null;
   mode: "tauri" | "preview" | "demo";
@@ -28,6 +32,9 @@ export function Header({
   view: View;
   onView: (view: View) => void;
   onSettings: () => void;
+  /** The operator signing the next certificates, switched from the header. */
+  settings: OperatorSettings;
+  onSettingsChanged: (settings: OperatorSettings) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -54,6 +61,7 @@ export function Header({
         <span className="topbar-status font-mono text-sm text-ash">
           <Station hello={hello} mode={mode} connected={connected} license={license} />
         </span>
+        <OperatorMenu settings={settings} onChanged={onSettingsChanged} />
         <button
           type="button"
           aria-label={t("settings.title")}
@@ -84,6 +92,12 @@ export function Station({
   const helper = mode === "tauri" ? (connected ? "connected" : "disconnected") : mode;
   const parts = [t("station.offline"), t(`station.helper.${helper}`)];
   if (license) parts.push(t(`station.license.${license.state}`));
-  if (hello) parts.push(t("station.rules", { version: hello.rules_version }));
-  return <>{parts.join(" · ")}</>;
+  const rules = hello ? t("station.rules", { version: hello.rules_version }) : null;
+  // The rules version is the first to go when the header is short (index.css).
+  return (
+    <span title={[...parts, ...(rules ? [rules] : [])].join(" · ")}>
+      {parts.join(" · ")}
+      {rules && <span className="station-rules"> · {rules}</span>}
+    </span>
+  );
 }

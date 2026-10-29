@@ -50,6 +50,7 @@ export default function App() {
     notifications: false,
     language: null,
     onboarded: true,
+    recent_operators: [],
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Read once at start: until then, the first-launch assistant waits.
@@ -366,6 +367,8 @@ export default function App() {
           setOpenJob(null);
         }}
         onSettings={() => setSettingsOpen(true)}
+        settings={settings}
+        onSettingsChanged={setSettings}
       />
       {view === "drives" ? (
         <DrivesScreen
