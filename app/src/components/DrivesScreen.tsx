@@ -434,7 +434,7 @@ export function DrivesScreen(props: {
         {devices?.ok && drives.length === 0 && <p className="px-2 text-ash">{t("drives.empty")}</p>}
       </div>
 
-      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+      <div className="split-dhead flex min-w-0 flex-col gap-4 px-12 pt-10 pb-5">
         <button
           type="button"
           onClick={back}
@@ -538,7 +538,7 @@ export function DrivesScreen(props: {
         )}
       </aside>
 
-      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10" aria-live="polite">
+      <main className="split-dbody flex min-w-0 flex-col gap-7 px-12 pb-10" aria-live="polite">
         {many && (
           <SelectionDetail
             drives={selectedDrives}

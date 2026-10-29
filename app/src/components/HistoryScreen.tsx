@@ -275,7 +275,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
         )}
       </div>
 
-      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+      <div className="split-dhead flex min-w-0 flex-col gap-4 px-12 pt-10 pb-5">
         <BackButton label={t("history.backLabel")} onClick={() => setView("list")}>
           {t("nav.history")}
         </BackButton>
@@ -302,7 +302,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
         ))}
       </aside>
 
-      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10">
+      <main className="split-dbody flex min-w-0 flex-col gap-7 px-12 pb-10">
         {selected === null && entries !== null && <p className="pt-1 text-ash">{t("history.emptyHint")}</p>}
         {selected && (
           <Detail

@@ -254,7 +254,7 @@ mise à l'échelle de l'affichage, et dans une fenêtre réduite (moitié d'écr
 | Largeur de fenêtre | Comportement |
 |---|---| | Comportement |
 |---|---|
-| > 1100 px | Grille à deux colonnes : liste de `minmax(340px, 420px)` et détail de `1fr`. Le détail a un padding de 40 × 48 px et une largeur maximale de 960 px. |
+| > 1100 px | Grille à deux colonnes : liste de `minmax(340px, 420px)` et détail de `1fr`. Le détail a un padding de 40 × 48 px et occupe toute la largeur restante, sans maximum (propriétaire, 2026-10-29 : pas de vide à droite sur grand écran). |
 | 761 à 1100 px | Liste de `minmax(300px, 360px)`, détail avec 32 px de padding, nom du disque en 32 px. L'état du poste peut passer à la ligne sous les onglets. |
 | ≤ 760 px | Fenêtre étroite (moitié d'un écran 1366 px, par exemple). **Une seule vue à la fois.** La liste occupe toute la fenêtre ; choisir un disque ouvre le détail. Un bouton « ‹ Disques » ramène à la liste. |
 

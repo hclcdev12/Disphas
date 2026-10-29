@@ -104,7 +104,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
         </div>
       </div>
 
-      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+      <div className="split-dhead flex min-w-0 flex-col gap-4 px-12 pt-10 pb-5">
         <BackButton label={t("verify.backLabel")} onClick={() => setView("list")}>
           {t("nav.verify")}
         </BackButton>
@@ -173,7 +173,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
         </div>
       </aside>
 
-      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-0.5 px-12 pb-10" aria-live="polite">
+      <main className="split-dbody flex min-w-0 flex-col gap-0.5 px-12 pb-10" aria-live="polite">
         <h3 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("verify.result")}</h3>
         {!busy && !report && <p className="px-2 text-ash">{t("verify.emptyHint")}</p>}
         {busy && <p className="px-2 text-ash">{t("verify.busy")}</p>}
