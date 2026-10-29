@@ -1,6 +1,6 @@
 #!/bin/sh
 # disphas test bench ONLY: the amnesic live system booted over PXE
-# (oblivio-bench, 192.168.1.6). NEVER run this on a real workstation: it
+# (oblivio-bench, 192.168.1.234). NEVER run this on a real workstation: it
 # gives the bench account root without a password (CLAUDE.md §2).
 #
 # Run by the owner after each boot, or built into the PXE image:

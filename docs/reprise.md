@@ -227,9 +227,12 @@ CGV/EULA, relecture de l'allemand, site.
 
 ## 4. Le banc de test
 
-Machine : Dell Precision T3500 (SATA ICH10 en AHCI, PCIe 2.0), **live PXE amnésique** (squashfs sur NFS
-192.168.1.49, écriture en RAM), utilisateur `goupil`, 192.168.1.6, sur le même réseau que le poste de
-développement. Disques déclarés sacrifiables : voir CLAUDE.md §2 (seuls ceux-là).
+Machine : Dell Precision T3500 (SATA ICH10 en AHCI, PCIe 2.0), **Linux Mint 22.2 live amnésique** (écriture en
+RAM ; avant le 2026-10-29, live PXE sur NFS 192.168.1.49), utilisateur `goupil`, **192.168.1.234** (adresse plus fixe
+depuis le 2026-10-29 : la vérifier si la connexion échoue), sur le même réseau que le poste de développement. Les
+lettres `sd*` des disques changent d'un démarrage à l'autre : seuls les n° de série comptent.
+Session live : `openssh-server` et la clé publique du poste (`~/.ssh/authorized_keys`) sont à réinstaller par le
+propriétaire à chaque démarrage, avant `setup.sh`. Disques déclarés sacrifiables : voir CLAUDE.md §2 (seuls ceux-là).
 
 **Après chaque démarrage du banc** (tout est perdu à l'arrêt) :
 
@@ -278,7 +281,7 @@ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
   - clé de déploiement GitHub (accès en écriture) avec l'alias SSH `github-disphas` (le dépôt pointe sur
     `git@github-oblivio:hclcdev12/Oblivio.git`) ;
   - jeton `gh` *fine-grained* sur le dépôt : Actions lecture/écriture, Contents lecture ;
-  - clé du banc et alias `oblivio-bench` (`HostName 192.168.1.6`, `User goupil`), installée avec `ssh-copy-id`.
+  - clé du banc et alias `oblivio-bench` (`HostName 192.168.1.234`, `User goupil`), installée avec `ssh-copy-id`.
 - **Clé racine** (`root.key`) et `issued-licenses.csv` : jamais dans le dépôt ; ne les placer sur un poste que si les
   licences y sont signées, transférés par le propriétaire lui-même.
 - Constaté sur Fedora 44 (2026-10-07) : `wget` est fourni par `wget2-wget` ; le poste n'a besoin d'aucun droit root

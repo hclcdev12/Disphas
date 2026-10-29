@@ -39,10 +39,11 @@ Ce projet écrit du code capable de détruire des données. **Tu travailles sur 
 - Les tests matériels réels sont derrière la feature `hw-tests` **et** la variable `DISPHAS_TEST_DEVICE`,
   qui doit désigner explicitement un disque de test ; ils ne tournent jamais par défaut ni en CI.
 - `disphas-device` doit refuser par construction un disque PROTÉGÉ, même en test.
-- **Exception : le banc de test** (`oblivio-bench`, 192.168.1.6, système amnésique démarré en PXE ; autorisé par le
+- **Exception : le banc de test** (`oblivio-bench`, 192.168.1.234, Linux Mint live amnésique ; autorisé par le
   propriétaire le 2026-10-06). Lancements root, tests destructifs et effacements y sont autorisés **sans accord au cas
   par cas**, **uniquement** sur les disques de test déclarés sacrifiables par le propriétaire, identifiés par leur
-  n° de série : sda `EI53N01701160366G`, sdb `E38345631J6UDN`, sdc `X9AHTNIET`. Le n° de série est vérifié avant
+  n° de série : `EI53N01701160366G` (SK hynix 128 Go), `E38345631J6UDN` (Hitachi 320 Go), `X9AHTNIET` (Toshiba
+  160 Go) ; leurs lettres `sd*` changent d'un démarrage à l'autre. Le n° de série est vérifié avant
   toute écriture. Tout autre disque, et toute autre machine (dont le poste de développement), restent soumis aux
   règles ci-dessus. Chaque opération est rapportée au propriétaire. Pas de test de coupure pendant un Security Erase
   tant que `/var/lib/disphas` n'est pas persistant. Les mots de passe et la clé racine restent au propriétaire :

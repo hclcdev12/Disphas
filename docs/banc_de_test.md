@@ -11,7 +11,8 @@
 
 **Banc actuel (2026-10-06)** : Dell Precision T3500 (SATA Intel ICH10 en AHCI, PCIe 2.0, pas de M.2), démarré en
 **live PXE** (squashfs sur NFS, couche d'écriture en RAM) ; SSD SK hynix SC210 128 Go (sda), HDD Hitachi
-HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir sur carte PCIe → M.2 passive
+HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc) ; ces lettres sont celles des essais ci-dessous.
+Depuis le 2026-10-29 (Linux Mint 22.2 live, 192.168.1.234), le Toshiba est sda et le SK hynix sdc. NVMe à venir sur carte PCIe → M.2 passive
 (un pont USB RTL9210B ne laisse passer qu'Identify et Get Log Page : inutilisable, cf. smartmontools).
 - **NVMe émulé (2026-10-09)**, en attendant un vrai NVMe : VM QEMU 8.2.2 + KVM **sur le banc**, lancée par `goupil`
   **sans root** (hors du groupe `disk` : aucun accès aux vrais disques). L'invité démarre le noyau du banc sur une racine
