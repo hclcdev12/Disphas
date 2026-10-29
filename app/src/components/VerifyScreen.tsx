@@ -41,7 +41,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
     setReport(next);
     if (window.matchMedia("(max-width: 760px)").matches) {
       setView("detail");
-      window.scrollTo(0, 0);
+      document.querySelector(".split-dbody")?.scrollTo(0, 0);
     }
   };
 

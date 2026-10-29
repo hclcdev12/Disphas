@@ -152,7 +152,8 @@ body {
  */
 .split-screen {
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  /* The header row stays put; the list and the detail scroll each on their own. */
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     "lhead dhead"
     "lbody dbody";
@@ -164,12 +165,15 @@ body {
 .split-lbody {
   grid-area: lbody;
   min-width: 0;
+  overflow-y: auto;
 }
 .split-dhead {
   grid-area: dhead;
 }
 .split-dbody {
   grid-area: dbody;
+  min-height: 0;
+  overflow-y: auto;
 }
 .split-back,
 .drives-station {

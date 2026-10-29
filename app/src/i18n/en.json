@@ -42,7 +42,8 @@
       "blocked": "To unblock · {{count}}",
       "refus": "Refused · {{count}}",
       "protected": "Protected · {{count}}",
-      "pending": "No decision yet · {{count}}"
+      "pending": "No decision yet · {{count}}",
+      "running": "Running · {{count}}"
     },
     "row": {
       "running": "Erasure in progress"
@@ -68,7 +69,12 @@
     "unselect": "Remove {{model}} from the selection",
     "multiSkipped_one": "{{count}} selected drive is not ready: it will not be erased.",
     "multiSkipped_other": "{{count}} selected drives are not ready: they will not be erased.",
-    "thenZeros": "+ zero pass"
+    "thenZeros": "+ zero pass",
+    "multiRunning": "{{running}} running · {{ready}} to launch",
+    "followJobs": "Follow the erasures",
+    "multiBeingErased_one": "{{count}} selected drive is being erased.",
+    "multiBeingErased_other": "{{count}} selected drives are being erased.",
+    "selectionRunning": "Selected drives"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -148,7 +154,7 @@
     "zeroPass": "Finish with a pass of zeros",
     "zeroPassHint": "The drive will look blank. Doubles the duration; both passes are validated and the certificate says so.",
     "justificationPrivacy": "This text is signed as typed into the certificate, which can no longer be changed: do not enter personal data (an employee's name, the drive's contents…).",
-    "signedAs": "Signed on behalf of: operator {{operator}} · organization {{organization}} (change in Settings)",
+    "signedAs": "Signed on behalf of: operator {{operator}} · organization {{organization}} (operator: top right; organization: Settings)",
     "notSet": "not set",
     "scan": "Serial number of the drive",
     "scanPlaceholder": "Scan the label, or type the last 4 characters",
@@ -302,7 +308,7 @@
     "inProgress": "Erasure in progress",
     "view": "View erasure",
     "lastErasure": "Last erasure in this session",
-    "lastErasureHint": "The decision below comes from a new inspection, made after this erasure.",
+    "lastErasureHint": "The decision above comes from a new inspection, made after this erasure.",
     "count_one": "Erasures · {{count}}",
     "count_other": "Erasures · {{count}}",
     "meta": "{{running}} running · {{done}} finished",
@@ -471,7 +477,8 @@
     "closedEmpty": "Batch {{batch}} closed without any erasure: no batch certificate.",
     "pdfFailed": "The certificate of batch {{batch}} could not be produced; the batch stays open.",
     "empty": "No verified certificate in this batch.",
-    "alreadyOpen": "A batch is already open"
+    "alreadyOpen": "A batch is already open",
+    "label": "Batch label"
   },
   "settings": {
     "title": "Settings",

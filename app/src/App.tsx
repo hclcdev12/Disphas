@@ -371,7 +371,7 @@ export default function App() {
 
   const connected = hello?.ok ?? false;
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       <Header
         hello={hello?.ok ? hello.value : null}
         mode={api.mode}

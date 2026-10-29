@@ -10,7 +10,7 @@
 
 Disposition **maître / détail** :
 
-- **À gauche, la liste** des disques détectés, groupés par ce que l'opérateur doit faire : À lancer, À débloquer, Refusés, Protégés.
+- **À gauche, la liste** des disques détectés, groupés par ce que l'opérateur doit faire : En cours, À lancer, À débloquer, Refusés, Protégés.
 - **À droite, le détail** du disque sélectionné :
   - pour un disque prêt, la décision de Disphas (méthode d'effacement) et le bouton **Effacer** ;
   - pour les autres états, l'explication et l'action possible.
@@ -108,8 +108,13 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
      - dessous, « {en cours} en cours · {max} simultanés permis » en mono 14 px `--fg-2` ;
      - dessous, « Hors lot : chaque effacement reçoit son propre certificat. » en 13 px, italique, `--fg-2`.
    - À droite, deux boutons-icônes sans contour : **+** (« Nouveau lot ») puis **↻** (« Actualiser »).
-   - Le bouton **+** est le seul point d'entrée pour créer un lot.
+   - Le bouton **+** est le seul point d'entrée pour créer un lot ; il ouvre une petite fenêtre « Nouveau lot »
+     (libellé facultatif), sur la recette des fenêtres (§3.6), pour ne pas pousser le détail vers le bas.
+   - Les avis passagers (lot clos et son certificat, effacement interrompu, erreurs) sont en tête de la liste, au-dessus
+     des groupes, jamais dans l'en-tête de liste : la hauteur de cet en-tête fixe celle du détail (revue du 2026-10-29).
 2. **Groupes**, dans cet ordre, en masquant un groupe vide :
+   - En cours (`running`, `--fg`), depuis la revue du 2026-10-29 : les disques en cours d'effacement, quel que soit
+     leur verdict, en tête de liste comme dans l'onglet Effacements ;
    - À lancer (`ready`) ;
    - À débloquer (`blocked`) ;
    - Refusés (`refus`) ;
@@ -288,6 +293,12 @@ Détails de la fenêtre étroite (≤ 760 px) :
 - Changer de vue renvoie en haut de page et met le focus sur le titre du disque.
 - Revenir à la liste remet le focus sur la ligne du disque.
 - Aucun défilement horizontal de page à aucune largeur.
+- La page ne défile jamais en entier : l'en-tête de l'application et la rangée des titres (liste, disque) restent en
+  place, la liste et le détail défilent chacun de leur côté (revue du 2026-10-29).
+- « N effacements terminés · N CONFORMES » est une barre en bas de la fenêtre, dans la mise en page : elle réduit la
+  zone de contenu au lieu de la recouvrir (revue du 2026-10-29).
+- Plusieurs disques sélectionnés tous en cours d'effacement : le détail montre leur progression et « Suivre les
+  effacements » à la place de « Effacer N disques ».
 
 Passe multi-résolutions du 2026-10-29 (les quatre onglets, plusieurs disques, un lot en cours, Paramètres) : 1280 × 720,
 1366 × 768, 1920 × 1080 à 125 %, 2560 × 1440 à 150 %, 1920 × 1080, 2560 × 1440, et les moitiés d'écrans 1920 et 1366.
@@ -335,7 +346,7 @@ interface Drive {
 }
 ```
 
-- Libellés des groupes : À lancer, À débloquer, Refusés, Protégés.
+- Libellés des groupes : En cours, À lancer, À débloquer, Refusés, Protégés.
 - Les données de démonstration de la maquette sont celles du mode démo de l'application.
 
 ---

@@ -4,7 +4,8 @@ import { Button } from "./ui";
 
 /**
  * Summary of the erasures that ended since the operator last looked:
- * "3 erasures finished · 3 CONFORME", while the others go on.
+ * "3 erasures finished · 3 CONFORME", while the others go on. A bar along
+ * the bottom of the window, in the layout: it never covers the content.
  */
 export function FinishedBar({
   conforme,
@@ -24,17 +25,18 @@ export function FinishedBar({
   return (
     <div
       role="status"
-      className="fixed right-4 bottom-4 z-10 flex max-w-md items-center gap-3 rounded-lg border border-ctrl bg-card p-4 shadow-lg"
+      className="flex shrink-0 items-center gap-3 border-t border-ctrl bg-card px-6 py-1.5"
     >
       <CheckCircle2 size={20} className={`shrink-0 ${other === 0 ? "text-ready" : "text-sayno"}`} aria-hidden="true" />
-      <div className="min-w-0 flex-1 text-sm">
-        <p className="font-bold">{t("finished.title", { count: total })}</p>
-        <p className="text-ash">
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="font-bold">{t("finished.title", { count: total })}</span>
+        <span className="text-ash">
+          {" · "}
           {t("finished.conforme", { count: conforme })}
           {other > 0 && <> · {t("finished.other", { count: other })}</>}
           {running > 0 && <> · {t("finished.running", { count: running })}</>}
-        </p>
-      </div>
+        </span>
+      </p>
       <Button onClick={onShow}>{t("finished.show")}</Button>
       <button
         type="button"

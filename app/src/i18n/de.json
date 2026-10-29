@@ -42,7 +42,8 @@
       "blocked": "Zu entsperren · {{count}}",
       "refus": "Abgelehnt · {{count}}",
       "protected": "Geschützt · {{count}}",
-      "pending": "Noch ohne Entscheidung · {{count}}"
+      "pending": "Noch ohne Entscheidung · {{count}}",
+      "running": "Laufend · {{count}}"
     },
     "row": {
       "running": "Löschung läuft"
@@ -68,7 +69,12 @@
     "unselect": "{{model}} aus der Auswahl entfernen",
     "multiSkipped_one": "{{count}} ausgewähltes Laufwerk ist nicht bereit: Es wird nicht gelöscht.",
     "multiSkipped_other": "{{count}} ausgewählte Laufwerke sind nicht bereit: Sie werden nicht gelöscht.",
-    "thenZeros": "+ Nulldurchgang"
+    "thenZeros": "+ Nulldurchgang",
+    "multiRunning": "{{running}} laufend · {{ready}} zu starten",
+    "followJobs": "Löschungen verfolgen",
+    "multiBeingErased_one": "{{count}} ausgewählter Datenträger wird gelöscht.",
+    "multiBeingErased_other": "{{count}} ausgewählte Datenträger werden gelöscht.",
+    "selectionRunning": "Ausgewählte Datenträger"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -148,7 +154,7 @@
     "zeroPass": "Mit einem Durchgang mit Nullen abschließen",
     "zeroPassHint": "Das Laufwerk erscheint leer. Verdoppelt die Dauer; beide Durchgänge werden validiert, die Bescheinigung vermerkt es.",
     "justificationPrivacy": "Dieser Text wird unverändert in die Bescheinigung signiert, die danach nicht mehr geändert werden kann: Geben Sie keine personenbezogenen Daten ein (Name eines Mitarbeiters, Inhalt des Laufwerks…).",
-    "signedAs": "Signiert im Namen von: Bediener {{operator}} · Organisation {{organization}} (änderbar in den Einstellungen)",
+    "signedAs": "Signiert im Namen von: Bediener {{operator}} · Organisation {{organization}} (Bediener: oben rechts; Organisation: Einstellungen)",
     "notSet": "nicht angegeben",
     "scan": "Seriennummer des Laufwerks",
     "scanPlaceholder": "Etikett scannen oder die letzten 4 Zeichen eingeben",
@@ -302,7 +308,7 @@
     "inProgress": "Löschung läuft",
     "view": "Löschung anzeigen",
     "lastErasure": "Letzte Löschung in dieser Sitzung",
-    "lastErasureHint": "Die Entscheidung unten stammt aus einer neuen Prüfung nach dieser Löschung.",
+    "lastErasureHint": "Die Entscheidung oben stammt aus einer neuen Prüfung nach dieser Löschung.",
     "count_one": "Löschungen · {{count}}",
     "count_other": "Löschungen · {{count}}",
     "meta": "{{running}} laufend · {{done}} beendet",
@@ -471,7 +477,8 @@
     "closedEmpty": "Los {{batch}} ohne Löschung geschlossen: kein Loszertifikat.",
     "pdfFailed": "Das Zertifikat des Loses {{batch}} konnte nicht erstellt werden; das Los bleibt offen.",
     "empty": "Keine geprüfte Bescheinigung in diesem Los.",
-    "alreadyOpen": "Ein Los ist bereits geöffnet"
+    "alreadyOpen": "Ein Los ist bereits geöffnet",
+    "label": "Bezeichnung des Loses"
   },
   "settings": {
     "title": "Einstellungen",

@@ -30,7 +30,7 @@ import type { JobView } from "../lib/jobs";
 import type { PdfState } from "../lib/pdf";
 import { Station } from "./Header";
 import { JobProgress } from "./JobsScreen";
-import { Badge, Button, Category, IconButton, Mono } from "./ui";
+import { Badge, Bar, Button, Category, Dialog, fieldClass, IconButton, Mono } from "./ui";
 
 /** An erasure the operator asked for, before the confirmation dialog. */
 /** Sleeping to thaw frozen drives (B1, UX review D5). */
@@ -58,11 +58,13 @@ export type BatchNotice =
   | { kind: "error"; batch: string; error: HelperError };
 
 /** What the operator has to do with a drive, in display order (docs/maquettes/disphas-ecran-disques.md §3.2). */
-type Group = "ready" | "blocked" | "refus" | "protected" | "pending";
+type Group = "running" | "ready" | "blocked" | "refus" | "protected" | "pending";
 
-const GROUPS: Group[] = ["ready", "blocked", "refus", "protected", "pending"];
+/** Drives being erased come first: they are what the operator follows. */
+const GROUPS: Group[] = ["running", "ready", "blocked", "refus", "protected", "pending"];
 
 const groupText: Record<Group, string> = {
+  running: "text-soft",
   ready: "text-ready",
   blocked: "text-blocked",
   refus: "text-sayno",
@@ -187,9 +189,12 @@ export function DrivesScreen(props: {
   const [focusTick, setFocusTick] = useState(0);
 
   const serialOf = (drive: DeviceSummary) => drive.device.identity.serial;
+  /** Being erased first, whatever the verdict that allowed it. */
+  const groupFor = (drive: DeviceSummary): Group =>
+    props.runningOn(serialOf(drive)) !== null ? "running" : groupOf(inspections[serialOf(drive)]);
   const grouped = GROUPS.map((group) => ({
     group,
-    drives: drives.filter((drive) => groupOf(inspections[serialOf(drive)]) === group),
+    drives: drives.filter((drive) => groupFor(drive) === group),
   })).filter((entry) => entry.drives.length > 0);
   const ordered = grouped.flatMap((entry) => entry.drives);
   const selectedDrives = ordered.filter((drive) => selection.includes(serialOf(drive)));
@@ -325,7 +330,7 @@ export function DrivesScreen(props: {
 
   useEffect(() => {
     if (focusTick === 0) return;
-    if (narrow()) window.scrollTo(0, 0);
+    if (narrow()) document.querySelector(".split-dbody")?.scrollTo(0, 0);
     titleRef.current?.focus();
   }, [focusTick]);
 
@@ -420,7 +425,7 @@ export function DrivesScreen(props: {
         </p>
 
         {editingBatch && props.batch === null && (
-          <BatchForm
+          <BatchDialog
             onCancel={() => setEditingBatch(false)}
             onOpen={(batch) => {
               props.onOpenBatch(batch);
@@ -428,6 +433,46 @@ export function DrivesScreen(props: {
             }}
           />
         )}
+      </div>
+
+      <div className="split-dhead flex min-w-0 flex-col gap-4 px-12 pt-10 pb-5">
+        <button
+          type="button"
+          onClick={back}
+          aria-label={t("drives.backLabel")}
+          className="split-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
+        >
+          <ChevronLeft size={18} aria-hidden="true" />
+          {t("drives.back")}
+        </button>
+        {selected && (
+          <DetailHead
+            drive={selected}
+            titleRef={titleRef}
+            language={i18n.language}
+          />
+        )}
+        {many && (
+          <div className="min-w-0">
+            <div className="font-mono text-sm text-ash">
+              {selectedDrives.some((drive) => props.runningOn(serialOf(drive)) !== null)
+                ? t("drives.multiRunning", {
+                    ready: selectedDrives.filter(erasable).length,
+                    running: selectedDrives.filter((drive) => props.runningOn(serialOf(drive)) !== null).length,
+                  })
+                : t("drives.multiReady", { count: selectedDrives.filter(erasable).length })}
+            </div>
+            <h2 ref={titleRef} tabIndex={-1} className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
+              {t("drives.selectedCount", { count: selectedDrives.length })}
+            </h2>
+          </div>
+        )}
+      </div>
+
+      {/* Same row as the detail below: the first drive faces the first method. */}
+      <aside className="split-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6" aria-label={t("drives.listLabel")}>
+        {/* Passing notices sit above the groups, not in the header: the header row
+            sets where the detail starts, and must not grow with them. */}
         {props.batchNotice && <BatchNoticeLine notice={props.batchNotice} onOpenPdf={props.onOpenPdf} />}
 
         {props.interrupted.map((job) => (
@@ -451,41 +496,6 @@ export function DrivesScreen(props: {
         )}
         {devices && !devices.ok && <p className="px-2 text-sayno">{t(`errors.${devices.error.code}`)}</p>}
         {devices?.ok && drives.length === 0 && <p className="px-2 text-ash">{t("drives.empty")}</p>}
-      </div>
-
-      <div className="split-dhead flex min-w-0 flex-col gap-4 px-12 pt-10 pb-5">
-        <button
-          type="button"
-          onClick={back}
-          aria-label={t("drives.backLabel")}
-          className="split-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
-        >
-          <ChevronLeft size={18} aria-hidden="true" />
-          {t("drives.back")}
-        </button>
-        {selected && (
-          <DetailHead
-            drive={selected}
-            titleRef={titleRef}
-            language={i18n.language}
-          />
-        )}
-        {many && (
-          <div className="min-w-0">
-            <div className="font-mono text-sm text-ash">
-              {t("drives.multiReady", {
-                count: selectedDrives.filter(erasable).length,
-              })}
-            </div>
-            <h2 ref={titleRef} tabIndex={-1} className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold">
-              {t("drives.selectedCount", { count: selectedDrives.length })}
-            </h2>
-          </div>
-        )}
-      </div>
-
-      {/* Same row as the detail below: the first drive faces the first method. */}
-      <aside className="split-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6" aria-label={t("drives.listLabel")}>
         {grouped.map(({ group, drives: members }) => (
           <section key={group} aria-labelledby={`group-${group}`} className="flex flex-col gap-0.5">
             <h2
@@ -584,6 +594,9 @@ export function DrivesScreen(props: {
             onZeroPass={(id, value) => setZeroPass((current) => ({ ...current, [id]: value }))}
             name={name}
             rowLine={rowLine}
+            groupFor={groupFor}
+            runningOn={props.runningOn}
+            onOpenJob={props.onOpenJob}
             onUnselect={unselect}
             onErase={eraseSelected}
           />
@@ -933,6 +946,9 @@ function SelectionDetail({
   onZeroPass,
   name,
   rowLine,
+  groupFor,
+  runningOn,
+  onOpenJob,
   onUnselect,
   onErase,
 }: {
@@ -946,24 +962,30 @@ function SelectionDetail({
   onZeroPass: (verdictId: string, value: boolean) => void;
   name: (code: string) => string;
   rowLine: (drive: DeviceSummary) => string;
+  groupFor: (drive: DeviceSummary) => Group;
+  runningOn: (serial: string) => Running;
+  onOpenJob: (id: string) => void;
   onUnselect: (serial: string) => void;
   onErase: () => void;
 }) {
   const { t } = useTranslation();
   const ready = drives.filter(erasable);
+  const running = drives.map((drive) => runningOn(drive.device.identity.serial)).filter((job) => job !== null);
+  const skipped = drives.length - ready.length - running.length;
   return (
     <>
       {/* Same rhythm as the drive list: the first selected drive faces the first drive. */}
       <div role="group" aria-labelledby="selection-methods" className="flex min-w-0 flex-col gap-0.5">
         <h3 id="selection-methods" className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash">
-          {t("drives.methodEach")}
+          {ready.length === 0 && running.length > 0 ? t("drives.selectionRunning") : t("drives.methodEach")}
         </h3>
         {drives.map((drive) => {
           const { model, serial } = drive.device.identity;
           const inspection = inspections[serial];
           const value = inspection?.ok ? inspection.value : null;
           const choices = value ? choicesOf(value) : [];
-          const group = groupOf(inspection);
+          const group = groupFor(drive);
+          const job = runningOn(serial);
           return (
             <div key={serial} className="flex min-h-16 items-center gap-3 rounded-md px-3 py-1">
               {/* At most 24 rem: on a wide screen the method stays next to its drive. */}
@@ -983,6 +1005,12 @@ function SelectionDetail({
                     onZeroPass(value.verdict_id, zero);
                   }}
                 />
+              ) : job ? (
+                // Being erased: its progress, as in the Effacements tab.
+                <div className="flex w-[26rem] max-w-[55%] flex-col gap-1.5">
+                  <span className="text-sm">{rowLine(drive)}</span>
+                  <Bar percent={job.job.progress?.percent ?? 0} className="h-1" />
+                </div>
               ) : (
                 <span className={`max-w-[55%] text-sm ${groupText[group]}`}>{rowLine(drive)}</span>
               )}
@@ -994,18 +1022,26 @@ function SelectionDetail({
         })}
       </div>
       <Actions>
-        <button
-          type="button"
-          disabled={!connected || ready.length === 0}
-          onClick={onErase}
-          className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
-        >
-          <Play size={16} fill="currentColor" aria-hidden="true" />
-          {t("drives.eraseTicked", { count: ready.length })}
-        </button>
-        {ready.length < drives.length && (
-          <span className="text-[15px] text-ash">{t("drives.multiSkipped", { count: drives.length - ready.length })}</span>
+        {ready.length > 0 || running.length === 0 ? (
+          <button
+            type="button"
+            disabled={!connected || ready.length === 0}
+            onClick={onErase}
+            className="inline-flex min-h-13 items-center gap-2.5 rounded border-2 border-current px-7 text-lg font-bold text-ready disabled:opacity-40"
+          >
+            <Play size={16} fill="currentColor" aria-hidden="true" />
+            {t("drives.eraseTicked", { count: ready.length })}
+          </button>
+        ) : (
+          // Everything selected is being erased: follow it, nothing to launch.
+          <Button className="min-h-12 px-5" onClick={() => onOpenJob(running[0].id)}>
+            {t("drives.followJobs")}
+          </Button>
         )}
+        {running.length > 0 && (
+          <span className="text-[15px] text-ash">{t("drives.multiBeingErased", { count: running.length })}</span>
+        )}
+        {skipped > 0 && <span className="text-[15px] text-ash">{t("drives.multiSkipped", { count: skipped })}</span>}
       </Actions>
     </>
   );
@@ -1251,7 +1287,8 @@ function BatchHint({ batch, closing, onClose }: { batch: BatchArgs | null; closi
 }
 
 /** Opening a batch: an optional label (a customer order number, say). */
-function BatchForm({ onCancel, onOpen }: { onCancel: () => void; onOpen: (batch: BatchArgs) => void }) {
+/** Opens a batch before the erasures: one window, the label only (optional). */
+function BatchDialog({ onCancel, onOpen }: { onCancel: () => void; onOpen: (batch: BatchArgs) => void }) {
   const { t } = useTranslation();
   const [label, setLabel] = useState("");
   const tooLong = [...label].length > MAX_LABEL;
@@ -1260,30 +1297,35 @@ function BatchForm({ onCancel, onOpen }: { onCancel: () => void; onOpen: (batch:
     onOpen({ id: newBatchId(), label: trimmed === "" ? null : trimmed });
   };
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-ctrl p-3 text-sm">
-      <label className="font-semibold" htmlFor="batch-label">
-        {t("batch.new")}
+    <Dialog
+      title={t("batch.new")}
+      width="sm"
+      onCancel={onCancel}
+      footer={
+        <>
+          <Button onClick={onCancel}>{t("actions.cancel")}</Button>
+          <Button variant="primary" disabled={tooLong} onClick={open}>
+            {t("batch.open")}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-ash">{t("confirm.groupInBatchHint")}</p>
+      <label className="block text-sm font-bold">
+        {t("batch.label")}
+        <input
+          className={fieldClass}
+          placeholder={t("batch.labelPlaceholder")}
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !tooLong) open();
+          }}
+          autoFocus
+        />
+        {tooLong && <span className="text-sm font-normal text-sayno">{t("batch.tooLong")}</span>}
       </label>
-      <input
-        id="batch-label"
-        className="min-h-11 rounded border border-ctrl bg-night px-2"
-        placeholder={t("batch.labelPlaceholder")}
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !tooLong) open();
-          if (event.key === "Escape") onCancel();
-        }}
-        autoFocus
-      />
-      {tooLong && <span className="text-sayno">{t("batch.tooLong")}</span>}
-      <div className="flex justify-end gap-2">
-        <Button onClick={onCancel}>{t("actions.cancel")}</Button>
-        <Button variant="primary" disabled={tooLong} onClick={open}>
-          {t("batch.open")}
-        </Button>
-      </div>
-    </div>
+    </Dialog>
   );
 }
 

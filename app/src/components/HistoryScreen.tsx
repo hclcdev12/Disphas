@@ -128,7 +128,7 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
     setPicked(id);
     if (detail && narrow()) {
       setView("detail");
-      window.scrollTo(0, 0);
+      document.querySelector(".split-dbody")?.scrollTo(0, 0);
     }
   };
 

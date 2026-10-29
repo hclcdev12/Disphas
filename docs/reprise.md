@@ -126,6 +126,10 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     2026-10-29) ; « responsive » veut dire tout écran de PC et toute résolution. D5 (B1 par mise en veille) codé le 2026-10-29,
     **à vérifier sur le banc** (certains BIOS regèlent au réveil) ; motifs de forçage en un clic codés le 2026-10-29 (texte prérempli, `cadre_projet.md` §5) ; P2 (opérateur changé en un clic depuis l'en-tête,
     les 8 derniers retenus dans `settings.json`) codé le 2026-10-29 ;
+    **Revue complète du 2026-10-29** (19 écrans) : A1 à A7 corrigés le jour même (sélection en cours d'effacement,
+    groupe « En cours », lot en fenêtre, défilement séparé de la liste et du détail, barre « terminés » en bas,
+    textes) ; restent B1 (même structure pour tous les verdicts, sans fond teinté), B2 (réserves en un bloc),
+    B3 (pastille pleine réservée au statut d'un certificat ?), C1 (aides de l'en-tête de liste), C2 (recherche) ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;
   - la charte écrit la commande `disphas verify`, le binaire s'appelle `disphas-verify` ;

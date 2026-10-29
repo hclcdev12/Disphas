@@ -42,7 +42,8 @@
       "blocked": "À débloquer · {{count}}",
       "refus": "Refusés · {{count}}",
       "protected": "Protégés · {{count}}",
-      "pending": "Sans décision · {{count}}"
+      "pending": "Sans décision · {{count}}",
+      "running": "En cours · {{count}}"
     },
     "row": {
       "running": "Effacement en cours"
@@ -68,7 +69,12 @@
     "unselect": "Retirer {{model}} de la sélection",
     "multiSkipped_one": "{{count}} disque sélectionné n'est pas prêt : il ne sera pas effacé.",
     "multiSkipped_other": "{{count}} disques sélectionnés ne sont pas prêts : ils ne seront pas effacés.",
-    "thenZeros": "+ passe de zéros"
+    "thenZeros": "+ passe de zéros",
+    "multiRunning": "{{running}} en cours · {{ready}} à lancer",
+    "followJobs": "Suivre les effacements",
+    "multiBeingErased_one": "{{count}} disque sélectionné est en cours d'effacement.",
+    "multiBeingErased_other": "{{count}} disques sélectionnés sont en cours d'effacement.",
+    "selectionRunning": "Disques sélectionnés"
   },
   "kind": {
     "Nvme": "NVMe",
@@ -148,7 +154,7 @@
     "zeroPass": "Terminer par une passe de zéros",
     "zeroPassHint": "Le disque paraîtra vierge. Double la durée ; les deux passes sont validées et le certificat l'indique.",
     "justificationPrivacy": "Ce texte est signé tel quel dans le certificat, qui ne peut plus être modifié : n'y mettez pas de données personnelles (nom d'un salarié, contenu du disque…).",
-    "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (modifiable dans Paramètres)",
+    "signedAs": "Signé au nom de : opérateur {{operator}} · organisation {{organization}} (opérateur : en haut à droite ; organisation : Paramètres)",
     "notSet": "non renseigné",
     "scan": "N° de série du disque",
     "scanPlaceholder": "Scannez l’étiquette, ou tapez les 4 derniers caractères",
@@ -302,7 +308,7 @@
     "inProgress": "Effacement en cours",
     "view": "Voir l'effacement",
     "lastErasure": "Dernier effacement de cette session",
-    "lastErasureHint": "La décision ci-dessous vient d'une nouvelle inspection, faite après cet effacement.",
+    "lastErasureHint": "La décision ci-dessus vient d'une nouvelle inspection, faite après cet effacement.",
     "count_one": "Effacements · {{count}}",
     "count_other": "Effacements · {{count}}",
     "meta": "{{running}} en cours · {{done}} terminés",
@@ -471,7 +477,8 @@
     "closedEmpty": "Lot {{batch}} clos, sans effacement : aucun certificat de lot.",
     "pdfFailed": "Le certificat du lot {{batch}} n'a pas pu être produit ; le lot reste ouvert.",
     "empty": "Aucun certificat vérifié dans ce lot.",
-    "alreadyOpen": "Un lot est déjà ouvert"
+    "alreadyOpen": "Un lot est déjà ouvert",
+    "label": "Libellé du lot"
   },
   "settings": {
     "title": "Paramètres",
