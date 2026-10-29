@@ -29,7 +29,7 @@ type Day = { key: string; title: string; entries: HistoryEntry[] };
 /** What happened to a certificate or a batch the operator asked to open. */
 type Opening = { kind: "busy" } | { kind: "failed"; error: HelperError } | { kind: "empty" };
 
-/** Phone width: one view at a time (same breakpoint as index.css). */
+/** Narrow window: one view at a time (same breakpoint as index.css). */
 const narrow = () => window.matchMedia("(max-width: 760px)").matches;
 
 /**

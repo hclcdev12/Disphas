@@ -171,7 +171,7 @@ export function DrivesScreen(props: {
   const [view, setView] = useState<"list" | "detail">("list");
   const [editingBatch, setEditingBatch] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  // Bumped when the drive title must take the focus: on a phone.
+  // Bumped when the drive title must take the focus: in a narrow window.
   const [focusTick, setFocusTick] = useState(0);
 
   const serialOf = (drive: DeviceSummary) => drive.device.identity.serial;
@@ -249,7 +249,7 @@ export function DrivesScreen(props: {
   const selectAll = () => {
     setSelection(allSelected ? erasableSerials.slice(0, 1) : erasableSerials);
     setAnchor(erasableSerials[0] ?? null);
-    // On a phone the list and the detail are two views: show the selection.
+    // In a narrow window the list and the detail are two views: show the selection.
     if (narrow()) open(true);
   };
   const unselect = (serial: string) => setSelection(selectedDrives.map(serialOf).filter((other) => other !== serial));
@@ -286,6 +286,7 @@ export function DrivesScreen(props: {
         event.preventDefault();
         setSelection(erasableSerials);
         setAnchor(erasableSerials[0]);
+        if (narrow()) open(true);
       } else if (event.key === "Escape" && many) {
         const keep = selectedDrives.map(serialOf).find((serial) => serial === cursor) ?? serialOf(selectedDrives[0]);
         setSelection([keep]);
@@ -910,7 +911,8 @@ function SelectionDetail({
           const group = groupOf(inspection);
           return (
             <div key={serial} className="flex min-h-16 items-center gap-3 rounded-md px-3 py-1">
-              <div className="flex min-w-0 flex-1 flex-col">
+              {/* At most 24 rem: on a wide screen the method stays next to its drive. */}
+              <div className="flex min-w-0 max-w-[24rem] flex-1 flex-col">
                 <span className="truncate font-bold">{model}</span>
                 <span className="truncate font-mono text-sm text-ash">s/n {serial}</span>
               </div>

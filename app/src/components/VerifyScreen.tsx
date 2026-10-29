@@ -36,7 +36,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
   const [report, setReport] = useState<VerificationReport | { error: string } | null>(null);
   const [view, setView] = useState<"list" | "detail">("list");
 
-  // On a phone the result replaces the drop zone, with a way back.
+  // In a narrow window the result replaces the drop zone, with a way back.
   const show = (next: VerificationReport | { error: string }) => {
     setReport(next);
     if (window.matchMedia("(max-width: 760px)").matches) {

@@ -268,6 +268,11 @@ Détails de la fenêtre étroite (≤ 760 px) :
 - Revenir à la liste remet le focus sur la ligne du disque.
 - Aucun défilement horizontal de page à aucune largeur.
 
+Passe multi-résolutions du 2026-10-29 (les quatre onglets, plusieurs disques, un lot en cours, Paramètres) : 1280 × 720,
+1366 × 768, 1920 × 1080 à 125 %, 2560 × 1440 à 150 %, 1920 × 1080, 2560 × 1440, et les moitiés d'écrans 1920 et 1366.
+Sur grand écran, deux limites gardent les éléments groupés : le nom d'un disque prend 24 rem au plus dans la liste
+« Méthode de chaque disque » (la méthode reste à côté de son disque), et les étapes d'un effacement 64 rem au plus.
+
 ---
 
 ## 5. Accessibilité (obligatoire)

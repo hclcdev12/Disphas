@@ -234,7 +234,7 @@ label:hover > .ctl-check {
   border-color: var(--color-ash);
 }
 
-/* Seven steps do not fit side by side on a phone: one per line there. */
+/* Seven steps do not fit side by side in a narrow window: one per line there. */
 @media (max-width: 760px) {
   .job-steps {
     display: flex;

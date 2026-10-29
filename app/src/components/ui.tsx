@@ -98,7 +98,7 @@ export function IconButton({
   );
 }
 
-/** Phone width: goes back from the detail to the list (hidden above 760 px). */
+/** Narrow window: goes back from the detail to the list (hidden above 760 px). */
 export function BackButton({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
   return (
     <button

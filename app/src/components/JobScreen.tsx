@@ -69,7 +69,7 @@ export function JobDetail({
       <div className="flex min-w-0 flex-col gap-0.5">
         <h3 className="mb-1.5 flex items-center gap-2 px-2 text-[15px] font-bold text-ash">{t("job.steps")}</h3>
         <ol
-          className="job-steps grid min-h-16 items-center gap-2 text-center text-sm"
+          className="job-steps grid min-h-16 max-w-[64rem] items-center gap-2 text-center text-sm"
           style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}
         >
           {phases.map((phase, index) => {
