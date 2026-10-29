@@ -107,8 +107,7 @@
     "forcible": "Forçage possible : réécriture limitée à Clear, certificat NON CONFORME.",
     "reservesLine": "Réserves : {{list}}",
     "recommendedShort": "recommandée",
-    "destroyNote": "Effacement certifiable, mais destruction physique recommandée : {{reason}}.",
-    "reserveNote": "Réserve inscrite au certificat : {{reason}}."
+    "reservesTitle": "Réserves inscrites au certificat"
   },
   "protect": {
     "P1": "Disque système (/, /boot ou EFI)",

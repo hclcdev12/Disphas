@@ -730,14 +730,15 @@ function Detail({
       )}
 
       {!running && inspection === undefined && (
-        <Panel message={t("drives.inspecting")} items={[]} />
+        <Decision tone="neutral" message={t("drives.inspecting")} reasons={[]} />
       )}
 
       {!running && inspection && !inspection.ok && (
         <>
-          <Panel
+          <Decision
+            tone="neutral"
             message={t(`errors.${inspection.error.code}`)}
-            items={inspection.error.detail ? [inspection.error.detail] : []}
+            reasons={inspection.error.detail ? [{ title: inspection.error.detail }] : []}
           />
           <Actions>
             <Button onClick={() => onReinspect(identity.serial)}>{t("drives.reinspect")}</Button>
@@ -825,12 +826,7 @@ function Verdict({
               />
             </div>
           </div>
-          {destroy.map((code) => (
-            <Note key={code} code={code} text={t("verdict.destroyNote", { reason: name(code) })} />
-          ))}
-          {choice.reserves.map((code) => (
-            <Note key={code} code={code} text={t("verdict.reserveNote", { reason: name(code) })} />
-          ))}
+          <Reserves destroy={destroy} reserves={choice.reserves} name={name} />
           <Actions>
             <button
               type="button"
@@ -863,10 +859,14 @@ function Verdict({
       const frozen = verdict.reasons.includes("B1") && sleep.possible;
       return (
         <>
-          <Panel
+          <Decision
+            tone="blocked"
             message={t("verdict.blockedHint")}
-            items={verdict.reasons.map((code) => `${t(`block.${code}`)} — ${t(`guidance.${code}`)}`)}
-            codes={verdict.reasons}
+            reasons={verdict.reasons.map((code) => ({
+              title: t(`block.${code}`),
+              detail: t(`guidance.${code}`),
+              code,
+            }))}
           />
           <Actions>
             {unlock ? (
@@ -903,10 +903,10 @@ function Verdict({
       const items = reasons(verdict.reasons);
       return (
         <>
-          <Panel
+          <Decision
+            tone="sayno"
             message={t("verdict.sayNoHint")}
-            items={items.map((item) => item.text)}
-            codes={items.map((item) => item.code)}
+            reasons={items.map((item) => ({ title: item.text, code: item.code }))}
             footer={forcible ? t("verdict.forcible") : undefined}
           />
           {forcible && (
@@ -921,10 +921,10 @@ function Verdict({
     }
     case "PROTECTED":
       return (
-        <Panel
+        <Decision
+          tone="protected"
           message={t("verdict.protectedHint")}
-          items={verdict.reasons.map((code) => t(`protect.${code}`))}
-          codes={verdict.reasons}
+          reasons={verdict.reasons.map((code) => ({ title: t(`protect.${code}`), code }))}
         />
       );
   }
@@ -1216,42 +1216,90 @@ function PdfButton({ pdf, onOpenPdf }: { pdf: PdfState | undefined; onOpenPdf: (
   );
 }
 
-function Panel({
+type Reason = { title: string; detail?: string; code?: string };
+
+const decisionText = {
+  blocked: "text-blocked",
+  sayno: "text-sayno",
+  protected: "text-ash",
+  neutral: "text-soft",
+};
+
+/**
+ * Every decision reads the same way as a ready drive: the heading, the state
+ * in its colour, the reasons, then the action row. No tinted panel: the
+ * colour of the words carries the state (UX review B1).
+ */
+function Decision({
+  tone,
   message,
-  items,
-  codes,
+  reasons,
   footer,
 }: {
+  tone: keyof typeof decisionText;
   message: string;
-  items: string[];
-  codes?: string[];
+  reasons: Reason[];
   footer?: string;
 }) {
+  const { t } = useTranslation();
   return (
-    <div className="drives-panel flex flex-col gap-2.5 rounded-lg border border-ctrl bg-card p-6">
-      <p className="drives-message text-[21px]">{message}</p>
-      {items.length > 0 && (
-        <ul className="list-disc pl-5 text-ash">
-          {items.map((item, position) => (
-            <li key={item}>
-              {item}
-              {codes?.[position] && <span className="font-mono text-[13px]"> ({codes[position]})</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-      {footer && <p className="text-ash">{footer}</p>}
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <h3 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("verdict.recommendation")}</h3>
+      <div className="flex flex-col gap-3 px-2">
+        <p className={`drives-message text-[21px] font-bold ${decisionText[tone]}`}>{message}</p>
+        {reasons.length > 0 && (
+          <ul className="flex flex-col gap-2.5">
+            {reasons.map((reason) => (
+              <li key={reason.code ?? reason.title}>
+                <ReasonLine reason={reason} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {footer && <p className="text-ash">{footer}</p>}
+      </div>
     </div>
   );
 }
 
-function Note({ code, text }: { code: string; text: string }) {
+function ReasonLine({ reason }: { reason: Reason }) {
+  return (
+    <>
+      <div>
+        {reason.title}
+        {reason.code && <span className="font-mono text-sm text-ash"> ({reason.code})</span>}
+      </div>
+      {reason.detail && <div className="text-sm text-ash">{reason.detail}</div>}
+    </>
+  );
+}
+
+/**
+ * What a ready drive's certificate will carry besides CONFORME, in one block
+ * (UX review B2): the destruction advice, then the reserves of the chosen method.
+ */
+function Reserves({ destroy, reserves, name }: { destroy: string[]; reserves: string[]; name: (code: string) => string }) {
+  const { t } = useTranslation();
+  if (destroy.length === 0 && reserves.length === 0) return null;
+  const part = (title: string, codes: string[]) =>
+    codes.length > 0 && (
+      <div className="flex flex-col gap-1">
+        <p className="font-bold">{title}</p>
+        <ul className="flex flex-col gap-1">
+          {codes.map((code) => (
+            <li key={code}>
+              <ReasonLine reason={{ title: name(code), code }} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   return (
     <div className="flex items-start gap-3 rounded-md border border-ctrl px-4 py-3.5">
       <TriangleAlert size={18} className="mt-1 shrink-0" aria-hidden="true" />
-      <div>
-        <div>{text}</div>
-        <div className="font-mono text-sm text-ash">{code}</div>
+      <div className="flex min-w-0 flex-col gap-3">
+        {part(t("verdict.destroyRecommended"), destroy)}
+        {part(t("verdict.reservesTitle"), reserves)}
       </div>
     </div>
   );

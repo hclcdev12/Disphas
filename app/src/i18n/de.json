@@ -107,8 +107,7 @@
     "forcible": "Erzwingen möglich: Überschreiben durch den Rechner, auf Clear begrenzt, Zertifikat NON CONFORME.",
     "reservesLine": "Vorbehalte: {{list}}",
     "recommendedShort": "empfohlen",
-    "destroyNote": "Zertifizierbare Löschung, aber physische Vernichtung empfohlen: {{reason}}.",
-    "reserveNote": "Vorbehalt im Zertifikat: {{reason}}."
+    "reservesTitle": "Vorbehalte im Zertifikat"
   },
   "protect": {
     "P1": "Systemlaufwerk (/, /boot oder EFI)",

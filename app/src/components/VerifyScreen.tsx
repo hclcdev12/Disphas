@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BadgeCheck, FileUp, ShieldX, TriangleAlert } from "lucide-react";
 import { api, type VerificationReport } from "../lib/api";
 import { capacity } from "../lib/format";
-import { BackButton, Badge, Fact, Mono } from "./ui";
+import { BackButton, Badge, Category, Fact, Mono } from "./ui";
 
 /** Largest file read (the helper side refuses more anyway). */
 const MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -295,7 +295,7 @@ function Result({
         <summary className="cursor-pointer text-sm font-bold text-ash hover:text-soft">{t("verify.details")}</summary>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ash">
           {name} · {t(`verify.source.${report.source}`)}
-          {d.category !== "None" && <Badge tone={d.category === "Purge" ? "ready" : "neutral"}>{d.category}</Badge>}
+          {d.category !== "None" && <Category category={d.category} />}
         </div>
         {report.journal === "Absent" && <p className="mt-2 text-xs text-ash">{t("verify.journalAbsent")}</p>}
         {report.journal === "Matches" && <p className="mt-2 text-xs text-ash">{t("verify.journalMatches")}</p>}
@@ -421,7 +421,7 @@ function BatchResult({
               {drive.status && (
                 <Badge tone={drive.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${drive.status}`)}</Badge>
               )}
-              {drive.category && drive.category !== "None" && <Badge tone="neutral">{drive.category}</Badge>}
+              {drive.category && drive.category !== "None" && <Category category={drive.category} />}
             </span>
             {drive.reason && (
               <span className="w-full text-xs text-sayno">{t(`verify.reason.${drive.reason}`, { defaultValue: drive.reason })}</span>

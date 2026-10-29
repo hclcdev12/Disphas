@@ -56,7 +56,9 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 
 **Règle de couleur.**
 - Les **boutons** ne sont jamais remplis de couleur : ils ont un contour de 2 px et une icône ou un texte de la couleur de l'état.
-- Les **pastilles** d'état (onglet Effacements, statut d'un certificat) sont **remplies**. Le détail d'un disque n'en a pas : la liste montre déjà l'état, et une pastille colorée au-dessus des méthodes ressemblait à un bouton (retirée le 2026-10-28).
+- Seul le **statut d'un certificat** (CONFORME, NON CONFORME) est une **pastille remplie**, comme le bandeau du
+  PDF ; partout ailleurs l'état est du texte coloré ou un contour (revue UX B3, 2026-10-29). Les catégories
+  Purge/Clear gardent leur étiquette. Le détail d'un disque n'en a pas : la liste montre déjà l'état, et une pastille colorée au-dessus des méthodes ressemblait à un bouton (retirée le 2026-10-28).
 - Aucune information ne repose sur la couleur seule : il y a toujours une icône ou un libellé.
 
 ### Typographie
@@ -179,15 +181,20 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
    et une flèche ▾ ; sans contour au repos, encadré au survol et menu ouvert. Le menu s'ouvre dessous, à la même
    largeur : ✓ devant la méthode retenue, étiquette, nom, « recommandée » pour la première, identifiant technique
    dessous ; la réécriture hôte y figure deux fois, seule et « + passe de zéros ».
-3. **Avertissements**, s'il y en a : un cadre par note, contour 1 px `--ctrl`, icône triangle, le texte, puis le code (D4, R6…) en mono `--fg-2`. Ils restent neutres pour l'instant, sans couleur.
+3. **Avertissements**, s'il y en a : **un seul cadre** (revue UX B2, 2026-10-29), contour 1 px `--ctrl`, icône
+   triangle. Dedans, en deux parties titrées en gras : « L'effacement sera certifié, mais la destruction physique
+   est recommandée » (codes D), puis « Réserves inscrites au certificat » (codes R de la méthode retenue) ; chaque
+   motif suivi de son code mono `--fg-2` entre parenthèses. Neutres, sans couleur.
 4. **Ligne d'action** :
    - le bouton **« ▶ Effacer »** : seulement le mot « Effacer », sans la catégorie ; contour 2 px et texte `--ready`, fond transparent, 52 px de haut, 18 px / 700 ;
    - à sa droite, en 15 px `--fg-2` : « {nom de la méthode} · certificat avec réserves | sans réserve ». C'est « avec réserves » dès qu'il y a au moins un avertissement.
 
 **Disque bloqué, refusé ou protégé**
-1. **Cadre d'explication** : même style que le cadre de décision (fond `--surface`, contour `--ctrl`, sans liseré ni fond teinté).
-   - Le message principal est en 21 px.
-   - Les motifs suivent en liste à puces `--fg-2`, chacun suivi de son code mono entre parenthèses.
+1. **Bloc « Décision de Disphas »**, même structure que pour un disque prêt (revue UX B1, 2026-10-29) : le même
+   titre, **sans cadre ni fond**, puis :
+   - le message principal en 21 px gras, dans la couleur de l'état (ambre bloqué, rouge refus, `--fg-2` protégé) ;
+   - les motifs, un par ligne, chacun suivi de son code mono `--fg-2` entre parenthèses ; pour un disque bloqué,
+     la consigne à suivre dessous en 14 px `--fg-2` ;
    - Pour un forçage possible, ajouter : « Forçage possible : réécriture limitée à Clear, certificat NON CONFORME. »
 2. **Bouton d'action**, s'il y en a un : contour 2 px et texte dans la couleur de l'état.
    - Ambre : « Inspecter à nouveau », « Déverrouiller… ».
@@ -356,7 +363,7 @@ interface Drive {
 - Pas de Klaudia ailleurs que sur le mot « Disphas ».
 - Pas de boutons remplis de couleur : les boutons sont en contour, seules les pastilles sont remplies.
 - Pas de liseré coloré en haut des cadres, et pas de barre colorée à gauche de la ligne sélectionnée.
-- Pas de fond teinté (rouge ou ambre) dans les cadres d'explication.
+- Pas de fond teinté (rouge ou ambre) dans les cadres d'explication, ni de cadre autour d'une décision.
 - Pas de contour autour des boutons-icônes Actualiser, Nouveau lot et Paramètres.
 - Pas de chemin `/dev/...` pour identifier un disque.
 - Pas de petites capitales espacées pour les libellés : écrire en minuscules normales.

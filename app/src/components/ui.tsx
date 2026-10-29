@@ -3,7 +3,11 @@ import { ChevronLeft, TriangleAlert } from "lucide-react";
 
 type Tone = "ready" | "sayno" | "blocked" | "protected" | "brand" | "neutral";
 
-/** Status chips are filled; every other control is outlined (docs/maquettes/disphas-ecran-disques.md §2). */
+/**
+ * Filled chips are kept for the status of a certificate (CONFORME, NON
+ * CONFORME), as the band of the PDF; every other mark is coloured text or an
+ * outline (docs/maquettes/disphas-ecran-disques.md §2, UX review B3).
+ */
 const toneClasses: Record<Tone, string> = {
   ready: "border-ready-fill bg-ready-fill text-white",
   sayno: "border-sayno-fill bg-sayno-fill text-white",

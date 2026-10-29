@@ -107,8 +107,7 @@
     "forcible": "Forcing is possible: host overwrite capped at Clear, NON CONFORME certificate.",
     "reservesLine": "Reserves: {{list}}",
     "recommendedShort": "recommended",
-    "destroyNote": "Certifiable erasure, but physical destruction is recommended: {{reason}}.",
-    "reserveNote": "Reservation written on the certificate: {{reason}}."
+    "reservesTitle": "Reservations written on the certificate"
   },
   "protect": {
     "P1": "System drive (/, /boot or EFI)",
