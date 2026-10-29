@@ -121,7 +121,7 @@
     "B7": "ATA security enabled by someone else"
   },
   "guidance": {
-    "B1": "Suspend the computer and wake it up, then inspect again.",
+    "B1": "Suspend the computer and wake it up, or unplug and plug back the drive's power if the machine allows it, then inspect again.",
     "B2": "Enter the user or master password.",
     "B3": "Power-cycle the drive.",
     "B4": "Wait: the operation resumes automatically.",
@@ -566,5 +566,22 @@
     "otherPlaceholder": "Name or identifier, then Enter",
     "forget": "Remove {{name}} from the list",
     "tooLong": "64 characters at most."
+  },
+  "sleep": {
+    "action": "Sleep to unblock",
+    "hint": "A sleep thaws the drive; disphas inspects it again on wake-up.",
+    "waitJobs_one": "Wait for the running erasure to end.",
+    "waitJobs_other": "Wait for the {{count}} running erasures to end.",
+    "title": "Put the computer to sleep",
+    "explain_one": "The frozen drive thaws during the sleep: its power is cut, then restored.",
+    "explain_other": "The {{count}} frozen drives thaw during the sleep: their power is cut, then restored.",
+    "step1": "The computer goes to sleep.",
+    "step2": "Wake it up: a key or the power button.",
+    "step3": "disphas inspects the drives again by itself.",
+    "save": "Save your work in other applications before the sleep.",
+    "confirm": "Sleep",
+    "jobsRunning": "An erasure is running: a sleep would cut it. Wait for it to end.",
+    "failed": "The system refused to sleep.",
+    "frozenGroup": "{{count}} frozen drives: one sleep thaws them all."
   }
 }

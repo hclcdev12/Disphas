@@ -121,7 +121,7 @@
     "B7": "Sécurité ATA activée par un tiers"
   },
   "guidance": {
-    "B1": "Mettez l'ordinateur en veille puis réveillez-le, et relancez l'inspection.",
+    "B1": "Mettez l'ordinateur en veille puis réveillez-le, ou débranchez puis rebranchez l'alimentation du disque si la machine le permet, puis relancez l'inspection.",
     "B2": "Saisissez le mot de passe utilisateur ou maître.",
     "B3": "Effectuez un cycle d'alimentation du disque.",
     "B4": "Patientez : l'opération reprend automatiquement.",
@@ -566,5 +566,22 @@
     "otherPlaceholder": "Nom ou identifiant, puis Entrée",
     "forget": "Retirer {{name}} de la liste",
     "tooLong": "64 caractères au plus."
+  },
+  "sleep": {
+    "action": "Mettre en veille pour débloquer",
+    "hint": "Une mise en veille dégèle le disque ; disphas le réinspecte au réveil.",
+    "waitJobs_one": "Attendez la fin de l'effacement en cours.",
+    "waitJobs_other": "Attendez la fin des {{count}} effacements en cours.",
+    "title": "Mettre l'ordinateur en veille",
+    "explain_one": "Le disque gelé se dégèle pendant la veille : son alimentation est coupée, puis rétablie.",
+    "explain_other": "Les {{count}} disques gelés se dégèlent pendant la veille : leur alimentation est coupée, puis rétablie.",
+    "step1": "L'ordinateur se met en veille.",
+    "step2": "Réveillez-le : une touche ou le bouton d'alimentation.",
+    "step3": "disphas réinspecte les disques tout seul.",
+    "save": "Enregistrez votre travail dans les autres applications avant la mise en veille.",
+    "confirm": "Mettre en veille",
+    "jobsRunning": "Un effacement est en cours : la mise en veille le couperait. Attendez sa fin.",
+    "failed": "Le système a refusé la mise en veille.",
+    "frozenGroup": "{{count}} disques gelés : une mise en veille les dégèle tous."
   }
 }

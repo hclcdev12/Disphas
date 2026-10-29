@@ -10,6 +10,7 @@ import { LicenseDialog } from "./components/LicenseDialog";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { UnlockDialog } from "./components/UnlockDialog";
+import { SleepDialog } from "./components/SleepDialog";
 import { applyEvent, seedJobs, type JobView } from "./lib/jobs";
 import { DrivesScreen, type BatchNotice, type EraseRequest } from "./components/DrivesScreen";
 import { FinishedBar } from "./components/FinishedBar";
@@ -74,6 +75,9 @@ export default function App() {
   }, [jobInfo]);
   const [interrupted, setInterrupted] = useState<JobSummary[]>([]);
   const [unlocking, setUnlocking] = useState<InspectResult | null>(null);
+  // Sleep to thaw frozen drives (B1, UX review D5).
+  const [canSleep, setCanSleep] = useState(false);
+  const [sleepOpen, setSleepOpen] = useState(false);
   const [view, setView] = useState<View>("drives");
   const [batch, setBatch] = useState<BatchArgs | null>(loadBatch);
   const [batchNotice, setBatchNotice] = useState<BatchNotice | null>(null);
@@ -184,6 +188,9 @@ export default function App() {
     const unsubscribe = api.onDrivesChanged(() => void follow());
     return () => void unsubscribe.then((stop) => stop());
   }, [hello, follow]);
+  useEffect(() => {
+    void api.canSuspend().then(setCanSleep);
+  }, []);
 
   const refresh = useCallback(async () => {
     setInspections({});
@@ -195,6 +202,12 @@ export default function App() {
       setInspections((current) => ({ ...current, [summary.device.identity.serial]: inspection }));
     }
   }, []);
+  // After a sleep the drives come back thawed: list and inspect them again.
+  useEffect(() => {
+    if (!(hello?.ok ?? false)) return;
+    const unsubscribe = api.onResumed(() => void refresh());
+    return () => void unsubscribe.then((stop) => stop());
+  }, [hello, refresh]);
 
   useEffect(() => {
     void (async () => {
@@ -338,6 +351,9 @@ export default function App() {
 
   /** Erasures running now, resumed ones included (the helper counts the same, offres.md §4.4). */
   const runningCount = Object.values(jobs).filter((job) => job.status === null && job.phase !== "Interrupted").length;
+  const frozenCount = Object.values(inspections).filter(
+    (inspection) => inspection.ok && inspection.value.verdict.state === "BLOCKED" && inspection.value.verdict.reasons.includes("B1"),
+  ).length;
 
   // When the last running erasure ends, one desktop notification sums them up
   // (if turned on in the settings); never one per drive.
@@ -400,6 +416,7 @@ export default function App() {
           onEraseMany={launchMany}
           pdfOf={(id) => pdfs[id]}
           onUnlock={setUnlocking}
+          sleep={{ possible: canSleep, running: runningCount, onSleep: () => setSleepOpen(true) }}
           onOpenJob={(id) => {
             setView("jobs");
             setOpenJob(id);
@@ -447,6 +464,13 @@ export default function App() {
       )}
       {settingsOpen && (
         <SettingsDialog settings={settings} logoAllowed={license?.entitlements?.customer_logo ?? false} onClose={() => setSettingsOpen(false)} onChanged={setSettings} />
+      )}
+      {sleepOpen && (
+        <SleepDialog
+          frozen={frozenCount}
+          onCancel={() => setSleepOpen(false)}
+          onAsleep={() => setSleepOpen(false)}
+        />
       )}
       {unlocking && (
         <UnlockDialog

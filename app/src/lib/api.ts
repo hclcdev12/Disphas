@@ -156,6 +156,12 @@ export interface DisphasApi {
   setOperator(operator: string): Promise<Outcome<Settings>>;
   /** Removes an operator from the quick switch. */
   forgetOperator(operator: string): Promise<Outcome<Settings>>;
+  /** The machine can be put to sleep from the app, to thaw frozen drives (B1). */
+  canSuspend(): Promise<boolean>;
+  /** Puts the machine to sleep; refused (`JOBS_RUNNING`) while an erasure runs. */
+  suspend(): Promise<Outcome<null>>;
+  /** Called when the machine wakes up; returns the unsubscribe function. */
+  onResumed(handler: () => void): Promise<() => void>;
   /** Desktop notification, shown only when the window is in the background. The caller checks the setting. */
   notify(title: string, body: string): Promise<void>;
   /** Called when a drive is plugged in or out; returns the unsubscribe function. */
@@ -246,6 +252,17 @@ const tauriApi: DisphasApi = {
   setOnboarded: () => settingsCall("set_onboarded", {}),
   setOperator: (operator) => settingsCall("set_operator", { operator }),
   forgetOperator: (operator) => settingsCall("forget_operator", { operator }),
+  canSuspend: () => invoke<boolean>("can_suspend").catch(() => false),
+  suspend: async () => {
+    try {
+      await invoke<void>("suspend");
+      return { ok: true, value: null };
+    } catch (error) {
+      const text = String(error);
+      return { ok: false, error: text === "JOBS_RUNNING" ? { code: "JOBS_RUNNING", detail: null } : { code: "INTERNAL", detail: text } };
+    }
+  },
+  onResumed: (handler) => listen("disphas://resumed", () => handler()),
   notify: (title, body) => invoke<void>("notify", { title, body }).catch(() => {}),
   onDrivesChanged: (handler) => listen("disphas://drives-changed", () => handler()),
   deleteReports: (ids) => call<{ deleted: number }>({ cmd: "DeleteReports", args: { ids } }),
@@ -301,6 +318,9 @@ const previewApi: DisphasApi = {
   setOnboarded: async () => unavailable,
   setOperator: async () => unavailable,
   forgetOperator: async () => unavailable,
+  canSuspend: async () => false,
+  suspend: async () => unavailable,
+  onResumed: async () => () => {},
   notify: async () => {},
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: shows a fictional verified report, for layout only.

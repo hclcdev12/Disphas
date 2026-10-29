@@ -49,6 +49,11 @@ utilisateur / fichiers reçus ──► application (compte utilisateur) ──p
   passe par le service de notifications du bureau (D-Bus de session sous Linux), jamais par le réseau. Elle ne
   contient que des nombres et des statuts, aucun n° de série. Seule l'interface, sans droits root, l'envoie ; le
   helper n'y touche pas.
+- **Application → système, mise en veille** (2026-10-29, revue UX D5) : pour dégeler un disque B1, l'interface
+  demande la mise en veille à systemd-logind (D-Bus système, `CanSuspend`, `Suspend`, signal `PrepareForSleep`),
+  comme le menu du bureau ; polkit décide du droit, sans root pour l'utilisateur actif. Refusée tant qu'un
+  effacement tourne (liste des tâches du helper relue par l'application juste avant). Le helper n'y touche pas.
+  Les versions de développement ne mettent jamais la machine en veille : elles simulent un réveil.
 - **Serveur de licences → application** (décidé le 2026-10-11, non implémenté) : réponse bornée, une seule URL
   HTTPS, code réseau sans droits root ; la licence reçue n'est crue qu'après vérification de sa signature par le
   helper. Un faux serveur peut bloquer une activation, pas forger une licence

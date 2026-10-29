@@ -121,7 +121,7 @@
     "B7": "ATA-Sicherheit von Dritten aktiviert"
   },
   "guidance": {
-    "B1": "Computer in den Ruhezustand versetzen und aufwecken, dann erneut prüfen.",
+    "B1": "Computer in den Ruhezustand versetzen und aufwecken oder, falls möglich, die Stromversorgung des Datenträgers trennen und wieder anschließen, dann erneut prüfen.",
     "B2": "Benutzer- oder Master-Passwort eingeben.",
     "B3": "Laufwerk aus- und wieder einschalten.",
     "B4": "Warten: Der Vorgang wird automatisch fortgesetzt.",
@@ -566,5 +566,22 @@
     "otherPlaceholder": "Name oder Kennung, dann Eingabe",
     "forget": "{{name}} aus der Liste entfernen",
     "tooLong": "Höchstens 64 Zeichen."
+  },
+  "sleep": {
+    "action": "Zum Entsperren in den Ruhezustand",
+    "hint": "Der Ruhezustand hebt das Einfrieren auf; disphas prüft den Datenträger beim Aufwachen erneut.",
+    "waitJobs_one": "Warten Sie das Ende der laufenden Löschung ab.",
+    "waitJobs_other": "Warten Sie das Ende der {{count}} laufenden Löschungen ab.",
+    "title": "Computer in den Ruhezustand versetzen",
+    "explain_one": "Der eingefrorene Datenträger wird im Ruhezustand freigegeben: Seine Stromversorgung wird unterbrochen und wiederhergestellt.",
+    "explain_other": "Die {{count}} eingefrorenen Datenträger werden im Ruhezustand freigegeben: Ihre Stromversorgung wird unterbrochen und wiederhergestellt.",
+    "step1": "Der Computer wechselt in den Ruhezustand.",
+    "step2": "Wecken Sie ihn: eine Taste oder der Netzschalter.",
+    "step3": "disphas prüft die Datenträger selbstständig erneut.",
+    "save": "Speichern Sie Ihre Arbeit in anderen Anwendungen vor dem Ruhezustand.",
+    "confirm": "Ruhezustand",
+    "jobsRunning": "Eine Löschung läuft: Der Ruhezustand würde sie unterbrechen. Warten Sie ihr Ende ab.",
+    "failed": "Das System hat den Ruhezustand verweigert.",
+    "frozenGroup": "{{count}} eingefrorene Datenträger: ein Ruhezustand gibt alle frei."
   }
 }

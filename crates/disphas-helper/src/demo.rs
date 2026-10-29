@@ -29,7 +29,18 @@ pub struct DemoDevices {
     images: Option<PathBuf>,
     /// Failed `Unlock` attempts on the locked demo drive.
     failed_unlocks: u32,
+    /// First drive listing: the frozen demo drive thaws at a listing made
+    /// [`THAW_AFTER`] later, as a real drive does after a sleep (B1, UX review
+    /// D5). Listings made right away (the app starting) keep it frozen.
+    first_listing: Option<std::time::Instant>,
+    thaw_after: std::time::Duration,
 }
+
+/// Delay before a new listing finds the frozen demo drive thawed.
+const THAW_AFTER: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// The demo drive whose ATA security is frozen at start (B1).
+const FROZEN: &str = "DEMO-SSD-F0Z3";
 
 /// Size of a demo image: 256 MiB of 512-byte blocks, created sparse.
 const IMAGE_BLOCKS: u64 = 256 * 1024 * 2;
@@ -286,6 +297,8 @@ impl Default for DemoDevices {
             devices: vec![system, ready, worn, frozen, read_only, mute, locked],
             images: None,
             failed_unlocks: 0,
+            first_listing: None,
+            thaw_after: THAW_AFTER,
         }
     }
 }
@@ -325,6 +338,22 @@ impl DeviceBackend for DemoDevices {
     }
 
     fn list(&mut self) -> Vec<Device> {
+        let thaw = match self.first_listing {
+            Some(first) => first.elapsed() >= self.thaw_after,
+            None => {
+                self.first_listing = Some(std::time::Instant::now());
+                false
+            }
+        };
+        if thaw {
+            for device in &mut self.devices {
+                if device.profile.identity.serial == FROZEN
+                    && let Inspection::Ata(ata) = &mut device.profile.inspection
+                {
+                    ata.security.frozen = false;
+                }
+            }
+        }
         self.devices.clone()
     }
 
@@ -396,6 +425,24 @@ mod tests {
                 "blocked"
             ]
         );
+    }
+
+    #[test]
+    fn the_frozen_drive_thaws_at_a_later_listing() {
+        let mut demo = DemoDevices::default();
+        let frozen = |devices: Vec<Device>| {
+            devices.iter().any(|device| {
+                device.profile.identity.serial == FROZEN
+                    && matches!(&device.profile.inspection, Inspection::Ata(ata) if ata.security.frozen)
+            })
+        };
+        assert!(frozen(demo.list()), "frozen at first");
+        assert!(
+            frozen(demo.list()),
+            "still frozen right after: the app starting"
+        );
+        demo.thaw_after = std::time::Duration::ZERO;
+        assert!(!frozen(demo.list()), "thawed later, as after a sleep");
     }
 
     fn locked() -> WireIdentity {

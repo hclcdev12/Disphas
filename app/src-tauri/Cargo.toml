@@ -31,6 +31,8 @@ zeroize = "1.9.0"
 # Desktop notifications through the freedesktop D-Bus service (GNOME, KDE...).
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust = "~4.17.0"
+# Already used by notify-rust: asks systemd-logind for a sleep (power.rs).
+zbus = "~5.13.2"
 
 [lints]
 workspace = true

@@ -7,6 +7,7 @@ mod drives;
 mod helper;
 mod history;
 mod notifications;
+mod power;
 mod settings;
 mod trust;
 mod verification;
@@ -273,6 +274,38 @@ fn forget_operator(operator: String, app: tauri::AppHandle) -> Result<settings::
     settings::forget_operator(&config_dir(&app)?, &operator)
 }
 
+/// Whether the machine can be put to sleep to thaw a frozen drive (B1).
+#[tauri::command]
+async fn can_suspend() -> bool {
+    tauri::async_runtime::spawn_blocking(power::can_suspend)
+        .await
+        .unwrap_or(false)
+}
+
+/// Puts the machine to sleep to thaw frozen drives (B1, UX review D5).
+/// Refused while an erasure runs: a sleep would cut the drive in the middle
+/// of it. The interface checks too; the helper's list of jobs decides here.
+#[tauri::command]
+async fn suspend(state: State<'_, HelperState>, app: tauri::AppHandle) -> Result<(), String> {
+    let helper = state.0.as_ref().map_err(Clone::clone)?;
+    let listed = helper
+        .request(Command::ListJobs)
+        .await
+        .map_err(|error| format!("{error:?}"))?
+        .outcome
+        .map_err(|error| format!("{error:?}"))?;
+    let jobs: disphas_protocol::response::ListJobsResult =
+        serde_json::from_value(listed).map_err(|error| error.to_string())?;
+    if jobs.jobs.iter().any(|job| {
+        job.status.is_none() && job.phase != disphas_protocol::response::JobPhase::Interrupted
+    }) {
+        return Err("JOBS_RUNNING".to_owned());
+    }
+    tauri::async_runtime::spawn_blocking(move || power::suspend(&app))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 /// Stores the customer's logo (PNG or SVG, base64).
 #[tauri::command]
 fn set_logo(data: String, app: tauri::AppHandle) -> Result<settings::Settings, String> {
@@ -412,6 +445,7 @@ pub fn run() {
             drives::watch(move || {
                 let _ = handle.emit("disphas://drives-changed", ());
             });
+            power::watch(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -433,6 +467,8 @@ pub fn run() {
             set_onboarded,
             set_operator,
             forget_operator,
+            can_suspend,
+            suspend,
             notify
         ])
         .run(tauri::generate_context!());

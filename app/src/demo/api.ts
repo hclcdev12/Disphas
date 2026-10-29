@@ -112,9 +112,11 @@ type Job = {
 
 const state = {
   listings: 0,
+  firstListing: null as number | null,
   verdicts: 0,
   jobs: 0,
   unfrozen: false,
+  resumeHandlers: [] as (() => void)[],
   unlocked: false,
   failedUnlocks: 0,
   running: new Set<string>(),
@@ -331,9 +333,11 @@ export const demoApi: DisphasApi = {
   hello: async () =>
     ok({ ...(recording.hello as HelloResult), binary_sha256: "0".repeat(64), license: LICENSE }),
   listDevices: async () => {
-    // Refreshing is how the operator reports having handled a frozen drive (B1).
+    // A refresh made a while after the start finds the frozen drive thawed (B1),
+    // as after a sleep; listings made right away (the app starting) do not.
     state.listings += 1;
-    if (state.listings > 1) state.unfrozen = true;
+    if (state.firstListing === null) state.firstListing = Date.now();
+    else if (Date.now() - state.firstListing >= 2000) state.unfrozen = true;
     return ok({ devices: devices() });
   },
   inspect: async (device) => {
@@ -402,6 +406,23 @@ export const demoApi: DisphasApi = {
   forgetOperator: async (operator) => {
     state.settings = { ...state.settings, recent_operators: state.settings.recent_operators.filter((other) => other !== operator) };
     return ok(state.settings);
+  },
+  // The demo never puts the machine to sleep: a few seconds "asleep", then the
+  // wake-up, after which the frozen drive is thawed, as a real one would be.
+  canSuspend: async () => true,
+  suspend: async () => {
+    if (state.running.size > 0) return fail("JOBS_RUNNING");
+    window.setTimeout(() => {
+      state.unfrozen = true;
+      for (const handler of state.resumeHandlers) handler();
+    }, 3000);
+    return ok(null);
+  },
+  onResumed: async (handler) => {
+    state.resumeHandlers.push(handler);
+    return () => {
+      state.resumeHandlers = state.resumeHandlers.filter((other) => other !== handler);
+    };
   },
   setLogo: async () => fail("UNAVAILABLE", "demo"),
   clearLogo: async () => fail("UNAVAILABLE", "demo"),

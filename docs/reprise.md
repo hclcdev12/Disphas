@@ -123,8 +123,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     Vérifier sur la même grille liste/détail (Historique groupé par jour, le lot et son certificat dans le détail, un
     double clic ouvre le PDF ; Vérifier avec le dépôt à gauche et le résultat à droite) ; une recette unique pour
     toutes les fenêtres (`Dialog`, maquette §3.6). Pas de version téléphone : hors périmètre (propriétaire,
-    2026-10-29) ; « responsive » veut dire tout écran de PC et toute résolution. Restent de la revue : D5 (B1 par
-    mise en veille) ; motifs de forçage en un clic codés le 2026-10-29 (texte prérempli, `cadre_projet.md` §5) ; P2 (opérateur changé en un clic depuis l'en-tête,
+    2026-10-29) ; « responsive » veut dire tout écran de PC et toute résolution. D5 (B1 par mise en veille) codé le 2026-10-29,
+    **à vérifier sur le banc** (certains BIOS regèlent au réveil) ; motifs de forçage en un clic codés le 2026-10-29 (texte prérempli, `cadre_projet.md` §5) ; P2 (opérateur changé en un clic depuis l'en-tête,
     les 8 derniers retenus dans `settings.json`) codé le 2026-10-29 ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;

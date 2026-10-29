@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   KeyRound,
+  Moon,
   LoaderCircle,
   Play,
   Plus,
@@ -32,6 +33,15 @@ import { JobProgress } from "./JobsScreen";
 import { Badge, Button, Category, IconButton, Mono } from "./ui";
 
 /** An erasure the operator asked for, before the confirmation dialog. */
+/** Sleeping to thaw frozen drives (B1, UX review D5). */
+export type Sleep = {
+  /** The system accepts a sleep requested by the app. */
+  possible: boolean;
+  /** Erasures running: no sleep until they end. */
+  running: number;
+  onSleep: () => void;
+};
+
 export type EraseRequest = {
   inspection: InspectResult;
   choice: MethodChoice;
@@ -153,6 +163,8 @@ export function DrivesScreen(props: {
   /** Certificate of a finished job, rendered automatically. */
   pdfOf: (jobId: string) => PdfState | undefined;
   onUnlock: (inspection: InspectResult) => void;
+  /** Sleep to thaw frozen drives (B1). */
+  sleep: Sleep;
   onOpenJob: (id: string) => void;
   onLicense: () => void;
 }) {
@@ -274,6 +286,11 @@ export function DrivesScreen(props: {
     }
     props.onEraseMany(requests);
   };
+
+  const frozenCount = drives.filter((drive) => {
+    const inspection = inspections[serialOf(drive)];
+    return inspection?.ok && inspection.value.verdict.state === "BLOCKED" && inspection.value.verdict.reasons.includes("B1");
+  }).length;
 
   // Ctrl + A: every ready drive. Escape: back to one drive. Not while typing or in a dialog.
   const shortcuts = useRef<(event: KeyboardEvent) => void>(() => {});
@@ -487,6 +504,20 @@ export function DrivesScreen(props: {
                 </button>
               )}
             </h2>
+            {/* Several frozen drives: one sleep thaws them all (UX review D5). */}
+            {group === "blocked" && props.sleep.possible && frozenCount > 1 && (
+              <p className="-mt-1 mb-1 flex flex-wrap items-center gap-x-2 px-2 text-sm text-ash">
+                {t("sleep.frozenGroup", { count: frozenCount })}
+                <button
+                  type="button"
+                  disabled={props.sleep.running > 0}
+                  onClick={props.sleep.onSleep}
+                  className="min-h-9 rounded px-1 text-blocked hover:underline disabled:opacity-40"
+                >
+                  {t("sleep.confirm")}
+                </button>
+              </p>
+            )}
             {members.map((drive) => {
               const serial = serialOf(drive);
               const isSelected = many
@@ -570,6 +601,7 @@ export function DrivesScreen(props: {
             reasonText={reasonText}
             onErase={props.onErase}
             onUnlock={props.onUnlock}
+            sleep={props.sleep}
             onReinspect={props.onReinspect}
             onOpenJob={props.onOpenJob}
             pdfOf={props.pdfOf}
@@ -631,6 +663,7 @@ function Detail({
   reasonText,
   onErase,
   onUnlock,
+  sleep,
   onReinspect,
   onOpenJob,
   pdfOf,
@@ -649,6 +682,7 @@ function Detail({
   reasonText: (inspection: InspectResult, code: string) => string;
   onErase: (request: EraseRequest) => void;
   onUnlock: (inspection: InspectResult) => void;
+  sleep: Sleep;
   onReinspect: (serial: string) => void;
   onOpenJob: (id: string) => void;
   pdfOf: (jobId: string) => PdfState | undefined;
@@ -710,6 +744,7 @@ function Detail({
           reasonText={reasonText}
           onErase={onErase}
           onUnlock={onUnlock}
+          sleep={sleep}
           onReinspect={() => onReinspect(identity.serial)}
         />
       )}
@@ -728,6 +763,7 @@ function Verdict({
   reasonText,
   onErase,
   onUnlock,
+  sleep,
   onReinspect,
   zeroPass,
   onZeroPass,
@@ -742,6 +778,7 @@ function Verdict({
   reasonText: (inspection: InspectResult, code: string) => string;
   onErase: (request: EraseRequest) => void;
   onUnlock: (inspection: InspectResult) => void;
+  sleep: Sleep;
   onReinspect: () => void;
 }) {
   const { t } = useTranslation();
@@ -809,6 +846,8 @@ function Verdict({
     }
     case "BLOCKED": {
       const unlock = verdict.reasons.includes("B2") && !verdict.reasons.includes("B6");
+      // Frozen (B1): a sleep thaws it, when this machine can sleep (UX review D5).
+      const frozen = verdict.reasons.includes("B1") && sleep.possible;
       return (
         <>
           <Panel
@@ -822,6 +861,21 @@ function Verdict({
                 <KeyRound size={16} aria-hidden="true" />
                 {t("actions.unlock")}
               </Button>
+            ) : frozen ? (
+              <>
+                <Button
+                  variant="blocked"
+                  className="flex items-center gap-2"
+                  disabled={sleep.running > 0}
+                  onClick={sleep.onSleep}
+                >
+                  <Moon size={16} aria-hidden="true" />
+                  {t("sleep.action")}
+                </Button>
+                <span className="text-sm text-ash">
+                  {sleep.running > 0 ? t("sleep.waitJobs", { count: sleep.running }) : t("sleep.hint")}
+                </span>
+              </>
             ) : (
               <Button variant="blocked" onClick={onReinspect}>
                 {t("drives.reinspect")}

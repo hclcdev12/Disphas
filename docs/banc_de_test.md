@@ -67,6 +67,9 @@ HTS723232A7A364 320 Go (sdb), HDD Toshiba MK1655GSX 160 Go (sdc). NVMe à venir 
 - Reprise d'un Sanitize après une **coupure de courant** (NVMe et ATA) : le disque doit reprendre seul,
   l'inspection (IDENTIFY) doit répondre pendant le Sanitize, et la tâche doit finir CONFORME au redémarrage.
 - Disque *Frozen* (B1) : vérifier qu'une mise en veille / réveil du poste le dégèle, pour le guide.
+  Depuis le 2026-10-29, l'application propose « Mettre en veille pour débloquer » (revue UX D5) : vérifier aussi que
+  le bouton apparaît (`CanSuspend` du poste), que la veille part, et qu'au réveil la réinspection trouve le disque
+  dégelé (sinon le BIOS regèle au réveil : le noter, la consigne de débrancher l'alimentation reste).
 - ~~Paquet `.deb` : installation → `/var/lib/disphas` root seul (0700), certificats d'une version antérieure passés en
   0600 ; historique et PDF de lot lus par le helper, sans groupe~~ → **validé le 2026-10-07** (paquet de `472cec3`,
   mise à jour depuis une version à groupe `oblivio`, groupe ensuite supprimé) : dossiers 0700 et 5 certificats passés

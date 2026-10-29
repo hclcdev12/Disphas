@@ -253,6 +253,19 @@ des certificats :
   (langue, notification). **Licence** : l'état, puis « Activer ce poste » en deux étapes numérotées, « Demande
   d'activation » et « Licence reçue ».
 
+### 3.7 Disque gelé, B1 (revue UX D5, 2026-10-29)
+
+Quand la machine accepte une mise en veille demandée par l'application (`CanSuspend` = `yes` ou `challenge`), le
+détail d'un disque B1 propose **« Mettre en veille pour débloquer »** (bouton ambre, icône lune) à la place de
+« Réinspecter », avec « Une mise en veille dégèle le disque ; disphas le réinspecte au réveil. ». Grisé pendant un
+effacement : « Attendez la fin des N effacements en cours. ». Une fenêtre confirme : ce qui va se passer en trois
+étapes (veille, réveil par une touche ou le bouton d'alimentation, réinspection automatique) et « Enregistrez votre
+travail dans les autres applications ». Au réveil, la liste et les inspections sont refaites seules. À partir de
+deux disques gelés, le groupe « À débloquer » ajoute « N disques gelés : une mise en veille les dégèle tous. » et
+un lien « Mettre en veille ». Sans veille possible, la consigne seule : veille manuelle, ou débrancher puis
+rebrancher l'alimentation du disque, puis réinspecter. Réveil manuel (choix du propriétaire) : pas de réveil
+programmé, qui demanderait root.
+
 ## 4. Responsive
 
 disphas est une application de **poste de travail** : pas de version téléphone (hors périmètre, décidé le 2026-10-29).
