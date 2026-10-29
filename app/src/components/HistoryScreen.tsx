@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, FileText, LoaderCircle, Search, ShieldAlert, Trash2, TriangleAlert, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, LoaderCircle, Search, ShieldAlert, Trash2, XCircle } from "lucide-react";
 import { api, type HelperError, type HistoryEntry } from "../lib/api";
 import { capacity } from "../lib/format";
 import type { Language } from "../i18n";
-import { BackButton, Badge, Button, Fact, IconButton, Mono } from "./ui";
+import { BackButton, Badge, Button, Callout, Dialog, Fact, fieldClass, IconButton, Mono } from "./ui";
 
 /**
  * Sort key of the history, newest first by the date shown: the end of the
@@ -527,15 +527,8 @@ function DeleteDialog({
   onDeleted: (result: { count: number } | { error: HelperError }) => void;
 }) {
   const { t } = useTranslation();
-  const dialog = useRef<HTMLDialogElement>(null);
   const [before, setBefore] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    return () => element?.close();
-  }, []);
 
   // "Before" is a calendar day: certificates issued before that day, UTC.
   const limit = before === "" ? null : Date.parse(`${before}T00:00:00Z`) / 1000;
@@ -550,33 +543,25 @@ function DeleteDialog({
   };
 
   return (
-    <dialog
-      ref={dialog}
+    <Dialog
+      title={t("history.deleteTitle")}
       onCancel={onCancel}
-      className="m-auto w-[34rem] max-w-[92vw] rounded-lg border border-ctrl bg-card p-6 text-soft backdrop:bg-black/70"
+      footer={
+        <>
+          <Button onClick={onCancel}>{t("actions.cancel")}</Button>
+          <Button variant="danger" disabled={busy || targets.length === 0} onClick={() => void remove()}>
+            {targets.length === 0 ? t("history.deleteNone") : t("history.deleteNow", { count: targets.length })}
+          </Button>
+        </>
+      }
     >
-      <h2 className="text-xl font-bold">{t("history.deleteTitle")}</h2>
-      <p className="mt-2 text-sm text-ash">{t(searching ? "history.deleteScopeSearch" : "history.deleteScopeAll")}</p>
-      <label className="mt-4 block text-sm font-bold">
+      <p className="text-sm text-ash">{t(searching ? "history.deleteScopeSearch" : "history.deleteScopeAll")}</p>
+      <label className="block text-sm font-bold">
         {t("history.before")}
-        <input
-          type="date"
-          className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-normal"
-          value={before}
-          onChange={(event) => setBefore(event.target.value)}
-        />
+        <input type="date" className={fieldClass} value={before} onChange={(event) => setBefore(event.target.value)} />
         <span className="text-xs font-normal text-ash">{t("history.beforeHint")}</span>
       </label>
-      <p className="mt-4 flex items-start gap-2.5 rounded-md border border-sayno px-3 py-2.5 text-sm">
-        <TriangleAlert size={18} className="mt-0.5 shrink-0 text-sayno" aria-hidden="true" />
-        {t("history.deleteWarning")}
-      </p>
-      <div className="mt-6 flex justify-end gap-2">
-        <Button onClick={onCancel}>{t("actions.cancel")}</Button>
-        <Button variant="danger" disabled={busy || targets.length === 0} onClick={() => void remove()}>
-          {targets.length === 0 ? t("history.deleteNone") : t("history.deleteNow", { count: targets.length })}
-        </Button>
-      </div>
-    </dialog>
+      <Callout tone="sayno">{t("history.deleteWarning")}</Callout>
+    </Dialog>
   );
 }

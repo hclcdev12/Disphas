@@ -68,7 +68,7 @@ Toutes ces paires dépassent 4.5:1, et les variantes claires dépassent 7:1 sur 
 | Données techniques : s/n, WWN, EUI, ID de méthode, codes, compteurs | JetBrains Mono | 12 à 14 px |
 
 - Klaudia **ne sert qu'au mot « Disphas »**, jamais ailleurs dans l'interface.
-- Titres : H1 de la liste 25 px / 700, nom du disque dans le détail 40 px / 700 (32 px en tablette, 28 px en mobile).
+- Titres : H1 de la liste 25 px / 700, nom du disque dans le détail 40 px / 700 (32 px sous 1100 px de large, 28 px sous 760 px).
 - Titres de groupe : 15 px / 700, en minuscules normales (pas de capitales espacées).
 
 ### Divers
@@ -222,18 +222,43 @@ la liste face au premier titre du détail.
   les disques du lot, chacun cliquable.
 - **Vérifier** : « Vérifier un certificat », puis « Hors ligne · contrôles de disphas-verify » en mono. À gauche,
   « Certificat à vérifier » et la zone de dépôt (fichier ou texte du QR). À droite, « Résultat » : en-tête « {fichier}
-  · {source} », le modèle (40 px), « s/n {sn} », puis la phrase de résultat et les détails repliés. Sur téléphone, le
+  · {source} », le modèle (40 px), « s/n {sn} », puis la phrase de résultat et les détails repliés. En fenêtre étroite, le
   résultat remplace la zone de dépôt, avec « ‹ Vérifier » pour revenir.
+
+### 3.6 Fenêtres (2026-10-29)
+
+Une seule recette (composant `Dialog`) pour Paramètres, Licence, Déverrouiller, Confirmer l'effacement et Supprimer
+des certificats :
+- **Cadre** : fond `--card`, bordure `--ctrl`, rayon 8 px, fond d'écran assombri à 80 %. Trois largeurs : 30, 36 ou
+  42 rem, 92 % de la fenêtre au plus.
+- **Haut** : une ligne mono facultative sur ce que concerne la fenêtre (« {modèle} · s/n {sn} »), puis le titre en
+  24 px / 700.
+- **Contenu** : il défile seul quand l'écran est court (90 % de la hauteur au plus), les boutons restent visibles.
+  Parties titrées comme les groupes des listes (15 px / 700, `--fg-2`).
+- **Bas** : séparé par un filet `--line`, boutons à droite, le principal en dernier ; un message d'état (« Paramètres
+  enregistrés. ») se place à gauche des boutons.
+- **Avertissements** : un cadre bordé de leur couleur, **jamais de fond teinté**.
+- **États** : en texte mono dans leur couleur (« Sous licence » en vert), jamais en pastille pleine qui ressemble à un
+  bouton. Purge / Clear gardent l'étiquette du bouton méthode.
+- **Champs** : 44 px de haut, bordure `--ctrl`, fond `--bg`.
+- **Paramètres** : trois parties, Certificats (organisation, opérateur, logo), Effacement (mode strict), Application
+  (langue, notification). **Licence** : l'état, puis « Activer ce poste » en deux étapes numérotées, « Demande
+  d'activation » et « Licence reçue ».
 
 ## 4. Responsive
 
-| Largeur | Comportement |
+disphas est une application de **poste de travail** : pas de version téléphone (hors périmètre, décidé le 2026-10-29).
+« Responsive » veut dire : correcte sur tout écran de PC, du portable 1280 × 720 au grand écran 2560 × 1440, à toute
+mise à l'échelle de l'affichage, et dans une fenêtre réduite (moitié d'écran par exemple).
+
+| Largeur de fenêtre | Comportement |
+|---|---| | Comportement |
 |---|---|
 | > 1100 px | Grille à deux colonnes : liste de `minmax(340px, 420px)` et détail de `1fr`. Le détail a un padding de 40 × 48 px et une largeur maximale de 960 px. |
 | 761 à 1100 px | Liste de `minmax(300px, 360px)`, détail avec 32 px de padding, nom du disque en 32 px. L'état du poste peut passer à la ligne sous les onglets. |
-| ≤ 760 px | **Une seule vue à la fois.** La liste occupe tout l'écran ; toucher un disque ouvre le détail. Un bouton « ‹ Disques » ramène à la liste. |
+| ≤ 760 px | Fenêtre étroite (moitié d'un écran 1366 px, par exemple). **Une seule vue à la fois.** La liste occupe toute la fenêtre ; choisir un disque ouvre le détail. Un bouton « ‹ Disques » ramène à la liste. |
 
-Détails du mobile (≤ 760 px) :
+Détails de la fenêtre étroite (≤ 760 px) :
 - **En-tête** sur deux rangées :
   - « Disphas » à gauche et la roue Paramètres à droite ;
   - puis les onglets sur toute la largeur, avec un défilement horizontal sans barre visible.
@@ -241,7 +266,7 @@ Détails du mobile (≤ 760 px) :
 - Dans le détail, les boutons d'action prennent toute la largeur.
 - Changer de vue renvoie en haut de page et met le focus sur le titre du disque.
 - Revenir à la liste remet le focus sur la ligne du disque.
-- Aucun défilement horizontal de page à aucune largeur (vérifié à 1440, 900 et 390 px).
+- Aucun défilement horizontal de page à aucune largeur.
 
 ---
 

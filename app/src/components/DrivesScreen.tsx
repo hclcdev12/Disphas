@@ -29,7 +29,7 @@ import type { JobView } from "../lib/jobs";
 import type { PdfState } from "../lib/pdf";
 import { Station } from "./Header";
 import { JobProgress } from "./JobsScreen";
-import { Badge, Button, IconButton, Mono } from "./ui";
+import { Badge, Button, Category, IconButton, Mono } from "./ui";
 
 /** An erasure the operator asked for, before the confirmation dialog. */
 export type EraseRequest = {
@@ -955,18 +955,6 @@ function SelectionDetail({
 }
 
 /** Purge filled, Clear outlined: the category of a method. */
-function Category({ category }: { category: string }) {
-  return (
-    <span
-      className={`w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${
-        category === "Purge" ? "bg-soft text-night" : "border border-ctrl"
-      }`}
-    >
-      {category}
-    </span>
-  );
-}
-
 /**
  * The method of one drive among several: a quiet button showing the method
  * chosen (the recommended one at first), which opens a menu of the methods.

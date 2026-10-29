@@ -1,5 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { ChevronLeft } from "lucide-react";
+import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { ChevronLeft, TriangleAlert } from "lucide-react";
 
 type Tone = "ready" | "sayno" | "blocked" | "protected" | "brand" | "neutral";
 
@@ -120,5 +120,97 @@ export function Fact({ label, children }: { label: string; children: ReactNode }
       <dt className="text-ash">{label}</dt>
       <dd className="min-w-0 break-words">{children}</dd>
     </div>
+  );
+}
+
+/** Text fields: one look in every window. */
+export const fieldClass = "mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-normal";
+
+const DIALOG_WIDTH = { sm: "w-[30rem]", md: "w-[36rem]", lg: "w-[42rem]" } as const;
+
+/**
+ * Every window of the app, one recipe: a mono context line and the title on
+ * top, the content scrolling in between when the screen is short, the
+ * buttons at the bottom right, the main one last. Escape cancels.
+ */
+export function Dialog({
+  title,
+  context,
+  width = "md",
+  onCancel,
+  footer,
+  children,
+}: {
+  title: ReactNode;
+  /** Above the title, in mono: what the window is about (a drive, a file). */
+  context?: ReactNode;
+  width?: keyof typeof DIALOG_WIDTH;
+  onCancel: () => void;
+  footer: ReactNode;
+  children: ReactNode;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const element = dialog.current;
+    element?.showModal();
+    return () => element?.close();
+  }, []);
+  return (
+    <dialog
+      ref={dialog}
+      onCancel={(event) => {
+        event.preventDefault();
+        onCancel();
+      }}
+      aria-labelledby={titleId}
+      className={`m-auto ${DIALOG_WIDTH[width]} max-h-[90vh] max-w-[92vw] overflow-hidden rounded-lg border border-ctrl bg-card p-0 text-soft backdrop:bg-black/80`}
+    >
+      <div className="flex max-h-[90vh] flex-col">
+        <header className="px-7 pt-6">
+          {context && <p className="font-mono text-sm break-words text-ash">{context}</p>}
+          <h2 id={titleId} className="mt-0.5 text-2xl leading-tight font-bold">
+            {title}
+          </h2>
+        </header>
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-7 pt-4 pb-6">{children}</div>
+        <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-edge px-7 py-4">{footer}</footer>
+      </div>
+    </dialog>
+  );
+}
+
+/** A titled part of a window, titled like a group of the lists. */
+export function Section({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-[15px] font-bold text-ash">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/** A warning: outlined in its colour, never on a tinted background. */
+export function Callout({ tone, children }: { tone: "blocked" | "sayno"; children: ReactNode }) {
+  const color = tone === "sayno" ? "border-sayno" : "border-blocked";
+  const icon = tone === "sayno" ? "text-sayno" : "text-blocked";
+  return (
+    <p className={`flex items-start gap-2.5 rounded-md border px-3.5 py-3 text-sm ${color}`}>
+      <TriangleAlert size={16} className={`mt-0.5 shrink-0 ${icon}`} aria-hidden="true" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** Purge or Clear, as on the method button: Purge filled bone, Clear outlined. */
+export function Category({ category }: { category: string }) {
+  return (
+    <span
+      className={`inline-block w-[52px] shrink-0 rounded-[3px] py-0.5 text-center font-mono text-[13px] ${
+        category === "Purge" ? "bg-soft text-night" : "border border-ctrl"
+      }`}
+    >
+      {category}
+    </span>
   );
 }

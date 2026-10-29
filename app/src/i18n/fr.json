@@ -204,14 +204,16 @@
     "yes": "Oui",
     "no": "Non",
     "until": "Valable jusqu'au",
-    "activate": "1. Créer la demande d'activation",
-    "requestHint": "Envoyez ce texte à disphas. Il ne contient que la clé publique de ce poste.",
+    "activate": "Créer la demande",
+    "requestHint": "Envoyez-la à disphas : elle ne contient que la clé publique de ce poste.",
     "copy": "Copier",
     "copied": "Copié",
-    "install": "2. Coller la licence reçue",
     "installButton": "Installer la licence",
     "installed": "Licence installée.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "activateTitle": "Activer ce poste",
+    "stepRequest": "Demande d'activation",
+    "stepLicense": "Licence reçue"
   },
   "job": {
     "title": "Effacement en cours",
@@ -483,7 +485,10 @@
     "strict": "Mode strict : n° de série avant chaque effacement",
     "strictHint": "Par défaut, chaque effacement demande une confirmation d’un clic. En mode strict, il demande aussi le n° de série lu sur le disque : douchette code-barres, ou les 4 derniers caractères tapés.",
     "notifications": "Notification de fin d'effacement",
-    "notificationsHint": "Quand l'app est en arrière-plan, le bureau affiche une notification lorsque les effacements en cours sont tous terminés. Elle ne contient aucun numéro de série."
+    "notificationsHint": "Quand l'app est en arrière-plan, le bureau affiche une notification lorsque les effacements en cours sont tous terminés. Elle ne contient aucun numéro de série.",
+    "sectionCertificates": "Certificats",
+    "sectionErasure": "Effacement",
+    "sectionApp": "Application"
   },
   "station": {
     "offline": "hors ligne",

@@ -204,14 +204,16 @@
     "yes": "Ja",
     "no": "Nein",
     "until": "Gültig bis",
-    "activate": "1. Aktivierungsanfrage erstellen",
-    "requestHint": "Senden Sie diesen Text an disphas. Er enthält nur den öffentlichen Schlüssel dieses Arbeitsplatzes.",
+    "activate": "Anfrage erstellen",
+    "requestHint": "Senden Sie sie an disphas: Sie enthält nur den öffentlichen Schlüssel dieses Arbeitsplatzes.",
     "copy": "Kopieren",
     "copied": "Kopiert",
-    "install": "2. Erhaltene Lizenz einfügen",
     "installButton": "Lizenz installieren",
     "installed": "Lizenz installiert.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "activateTitle": "Diesen Arbeitsplatz aktivieren",
+    "stepRequest": "Aktivierungsanfrage",
+    "stepLicense": "Erhaltene Lizenz"
   },
   "job": {
     "title": "Löschung läuft",
@@ -483,7 +485,10 @@
     "strict": "Strenger Modus: Seriennummer vor jeder Löschung",
     "strictHint": "Standardmäßig verlangt jede Löschung eine Bestätigung mit einem Klick. Im strengen Modus zusätzlich die am Laufwerk abgelesene Seriennummer: Barcode-Scanner oder die letzten 4 Zeichen.",
     "notifications": "Benachrichtigung am Ende der Löschung",
-    "notificationsHint": "Wenn die App im Hintergrund ist, zeigt der Desktop eine Benachrichtigung, sobald alle laufenden Löschungen beendet sind. Sie enthält keine Seriennummer."
+    "notificationsHint": "Wenn die App im Hintergrund ist, zeigt der Desktop eine Benachrichtigung, sobald alle laufenden Löschungen beendet sind. Sie enthält keine Seriennummer.",
+    "sectionCertificates": "Bescheinigungen",
+    "sectionErasure": "Löschung",
+    "sectionApp": "Anwendung"
   },
   "station": {
     "offline": "offline",

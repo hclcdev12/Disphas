@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LicenseStatusResult } from "../bindings/LicenseStatusResult";
 import { api, type HelperError } from "../lib/api";
-import { Badge, Button, Mono } from "./ui";
+import { Button, Dialog, Fact, Mono, Section } from "./ui";
 
 /**
  * Offline activation (certificat.md §4): the workstation creates a request
@@ -19,18 +19,11 @@ export function LicenseDialog({
   onChanged: (status: LicenseStatusResult) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const dialog = useRef<HTMLDialogElement>(null);
   const [request, setRequest] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [license, setLicense] = useState("");
   const [answer, setAnswer] = useState<HelperError | "installed" | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    return () => element?.close();
-  }, []);
 
   const createRequest = async () => {
     setBusy(true);
@@ -63,101 +56,105 @@ export function LicenseDialog({
       ? null
       : new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(status.valid_until * 1000));
 
+  const entitlements = status.entitlements;
   return (
-    <dialog
-      ref={dialog}
+    <Dialog
+      title={t("license.title")}
       onCancel={onClose}
-      className="m-auto w-[36rem] max-w-[92vw] rounded-lg border border-edge bg-card p-6 text-soft backdrop:bg-black/70"
+      footer={<Button onClick={onClose}>{t("license.close")}</Button>}
     >
-      <h2 className="text-lg font-bold">{t("license.title")}</h2>
-      <dl className="mt-3 grid grid-cols-[9rem_1fr] gap-y-1.5 text-sm">
-        <dt className="text-ash">{t("license.state")}</dt>
-        <dd>
-          <Badge tone={status.state === "Valid" ? "ready" : "neutral"}>{t(`header.license.${status.state}`)}</Badge>
-        </dd>
+      <dl>
+        <Fact label={t("license.state")}>
+          {/* The state in its colour, as in the lists: no filled chip that looks like a button. */}
+          <span className={`font-mono ${status.state === "Valid" ? "text-ready" : "text-blocked"}`}>
+            {t(`header.license.${status.state}`)}
+          </span>
+        </Fact>
         {status.license_id && (
+          <Fact label={t("license.id")}>
+            <Mono>{status.license_id}</Mono>
+          </Fact>
+        )}
+        {status.offer && <Fact label={t("license.offer")}>{status.offer}</Fact>}
+        {entitlements && (
           <>
-            <dt className="text-ash">{t("license.id")}</dt>
-            <dd>
-              <Mono>{status.license_id}</Mono>
-            </dd>
+            <Fact label={t("license.parallel")}>{entitlements.max_parallel ?? t("license.parallelUnlimited")}</Fact>
+            <Fact label={t("license.customerLogo")}>
+              {entitlements.customer_logo ? t("license.yes") : t("license.no")}
+            </Fact>
           </>
         )}
-        {status.offer && (
-          <>
-            <dt className="text-ash">{t("license.offer")}</dt>
-            <dd>{status.offer}</dd>
-          </>
-        )}
-        {status.entitlements && (
-          <>
-            <dt className="text-ash">{t("license.parallel")}</dt>
-            <dd>{status.entitlements.max_parallel ?? t("license.parallelUnlimited")}</dd>
-            <dt className="text-ash">{t("license.customerLogo")}</dt>
-            <dd>{status.entitlements.customer_logo ? t("license.yes") : t("license.no")}</dd>
-          </>
-        )}
-        {until && (
-          <>
-            <dt className="text-ash">{t("license.until")}</dt>
-            <dd>{until}</dd>
-          </>
-        )}
+        {until && <Fact label={t("license.until")}>{until}</Fact>}
       </dl>
 
-      <section className="mt-5 border-t border-edge pt-4">
-        <h3 className="text-sm font-bold">{t("license.activate")}</h3>
-        {request ? (
-          <>
-            <p className="mt-1 text-xs text-ash">{t("license.requestHint")}</p>
+      <Section title={t("license.activateTitle")}>
+        <ol className="flex flex-col gap-5">
+          <Step number={1} title={t("license.stepRequest")}>
+            <p className="text-sm text-ash">{t("license.requestHint")}</p>
+            {request ? (
+              <>
+                <textarea
+                  readOnly
+                  className="block h-20 w-full resize-none rounded border border-ctrl bg-night p-2.5 font-mono text-xs break-all"
+                  value={request}
+                />
+                <Button className="self-start" onClick={() => void copy()}>
+                  {copied ? t("license.copied") : t("license.copy")}
+                </Button>
+              </>
+            ) : (
+              <Button className="self-start" disabled={busy} onClick={() => void createRequest()}>
+                {t("license.activate")}
+              </Button>
+            )}
+          </Step>
+          <Step number={2} title={t("license.stepLicense")}>
             <textarea
-              readOnly
-              className="mt-2 block h-20 w-full resize-none rounded-md border border-edge bg-night p-2 font-mono text-xs break-all"
-              value={request}
+              aria-label={t("license.stepLicense")}
+              className="block h-20 w-full resize-none rounded border border-ctrl bg-night p-2.5 font-mono text-xs break-all"
+              spellCheck={false}
+              placeholder="DSL1:…"
+              value={license}
+              onChange={(event) => setLicense(event.target.value)}
             />
-            <Button className="mt-2" onClick={() => void copy()}>
-              {copied ? t("license.copied") : t("license.copy")}
+            <Button
+              variant="primary"
+              className="self-start"
+              disabled={busy || !license.trim().startsWith("DSL1:")}
+              onClick={() => void install()}
+            >
+              {t("license.installButton")}
             </Button>
-          </>
-        ) : (
-          <Button className="mt-2" disabled={busy} onClick={() => void createRequest()}>
-            {t("license.activate")}
-          </Button>
-        )}
-      </section>
+          </Step>
+        </ol>
+      </Section>
 
-      <section className="mt-5 border-t border-edge pt-4">
-        <label className="block text-sm font-bold">
-          {t("license.install")}
-          <textarea
-            className="mt-2 block h-20 w-full resize-none rounded-md border border-edge bg-night p-2 font-mono text-xs font-normal break-all"
-            spellCheck={false}
-            placeholder="DSL1:…"
-            value={license}
-            onChange={(event) => setLicense(event.target.value)}
-          />
-        </label>
-        <Button
-          variant="primary"
-          className="mt-2"
-          disabled={busy || !license.trim().startsWith("DSL1:")}
-          onClick={() => void install()}
-        >
-          {t("license.installButton")}
-        </Button>
-      </section>
-
-      {answer === "installed" && <p className="mt-4 text-sm text-ready">{t("license.installed")}</p>}
+      {answer === "installed" && (
+        <p role="status" className="text-sm text-ready">
+          {t("license.installed")}
+        </p>
+      )}
       {answer && answer !== "installed" && (
-        <p className="mt-4 text-sm text-sayno">
+        <p role="alert" className="text-sm text-sayno">
           {t(`errors.${answer.code}`, { defaultValue: answer.code })}
           {answer.detail && <span className="block font-mono text-xs text-ash">{answer.detail}</span>}
         </p>
       )}
+    </Dialog>
+  );
+}
 
-      <div className="mt-6 flex justify-end">
-        <Button onClick={onClose}>{t("license.close")}</Button>
+/** One step of the activation, numbered as in the first-launch assistant. */
+function Step({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3.5">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-ctrl font-mono text-sm">
+        {number}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
+        <span className="font-bold">{title}</span>
+        {children}
       </div>
-    </dialog>
+    </li>
   );
 }

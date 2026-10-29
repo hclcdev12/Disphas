@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, TriangleAlert } from "lucide-react";
 import type { BatchArgs } from "../bindings/BatchArgs";
@@ -7,7 +7,7 @@ import { requiredAcknowledgements } from "../lib/acknowledgements";
 import type { HelperError } from "../lib/api";
 import { newBatchId } from "../lib/batch";
 import type { EraseRequest } from "./DrivesScreen";
-import { Badge, Button } from "./ui";
+import { Button, Category, Dialog } from "./ui";
 
 const REUSE: Disposition = { kind: "Reuse" };
 
@@ -55,7 +55,6 @@ export function ConfirmDialog({
   }) => Promise<Record<string, HelperError>>;
 }) {
   const { t } = useTranslation();
-  const dialog = useRef<HTMLDialogElement>(null);
   const [scan, setScan] = useState("");
   const [scanned, setScanned] = useState<Record<string, string>>({});
   const [scanMiss, setScanMiss] = useState(false);
@@ -82,12 +81,6 @@ export function ConfirmDialog({
     !sent;
   const name = (code: string) =>
     code === "NS_ALL" ? t("scope.NS_ALL") : labels[code] ? `${labels[code]} (${code})` : code;
-
-  useEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    return () => element?.close();
-  }, []);
 
   /** A scanner types the whole serial number then Enter; by hand, the last four characters do. */
   const take = () => {
@@ -125,174 +118,178 @@ export function ConfirmDialog({
   const over = freeSlots !== null && requests.length > freeSlots;
 
   return (
-    <dialog
-      ref={dialog}
-      onCancel={onCancel}
-      className="m-auto w-[40rem] max-w-[92vw] rounded-lg border border-ctrl bg-card p-6 text-soft backdrop:bg-black/70"
-    >
-      <h2 className="text-xl font-bold">
-        {forced
+    <Dialog
+      title={
+        forced
           ? t("confirm.forceTitle")
           : many
             ? t("confirm.titleMany", { count: requests.length })
-            : t("confirm.titleDrive", { model: requests[0].inspection.device.identity.model })}
-      </h2>
-      <p className="mt-4 flex items-start gap-2.5 rounded-md border border-sayno px-3 py-2.5">
-        <TriangleAlert size={18} className="mt-0.5 shrink-0 text-sayno" aria-hidden="true" />
-        {t("confirm.irreversible", { count: requests.length })}
-      </p>
-
-      <ul className="mt-4 flex max-h-[45vh] flex-col gap-2 overflow-y-auto">
-        {requests.map(({ inspection, choice, zeroPass }) => {
-          const serial = inspection.device.identity.serial;
-          const verdict = inspection.verdict;
-          const disposition = verdict.state === "READY" ? verdict.disposition : REUSE;
-          const warnings = requiredAcknowledgements(choice, disposition);
-          const error = refused[serial];
-          return (
-            <li key={serial} className="rounded-md border border-ctrl px-3 py-2.5">
-              <div className="flex items-start gap-2.5">
-                {strict && !sent && (
-                  <span className="mt-1 shrink-0" aria-hidden="true">
-                    {(many ? scanned[serial] !== undefined : oneOk) ? (
-                      <CheckCircle2 size={16} className="text-ready" />
-                    ) : (
-                      <Circle size={16} className="text-ash" />
-                    )}
-                  </span>
-                )}
-                {sent && (
-                  <span className="mt-1 shrink-0" aria-hidden="true">
-                    {error ? (
-                      <TriangleAlert size={16} className="text-sayno" />
-                    ) : (
-                      <CheckCircle2 size={16} className="text-ready" />
-                    )}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p>
-                    <span className="font-bold">{inspection.device.identity.model}</span>{" "}
-                    <span className="font-mono text-sm text-ash">s/n {serial}</span>
-                  </p>
-                  <p className="mt-1 text-sm">
-                    <Badge tone={choice.category === "Purge" ? "ready" : "neutral"}>{choice.category}</Badge>{" "}
-                    {labels[choice.method] ?? choice.method}
-                    {zeroPass && choice.method === "HostOverwrite" && <> {t("drives.thenZeros")}</>}
-                  </p>
-                  {warnings.length > 0 && <p className="mt-1 text-sm text-ash">{warnings.map(name).join(" · ")}</p>}
-                  {error && (
-                    <p className="mt-1 text-sm text-sayno">
-                      {t("confirm.refused")} {t(`errors.${error.code}`, { defaultValue: error.code })}
-                      {error.detail && <span className="block font-mono text-xs text-ash">{error.detail}</span>}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      <p className="mt-3 text-sm text-ash">
-        {t("confirm.signedAs", {
-          operator: signer.operator ?? t("confirm.notSet"),
-          organization: signer.organization ?? t("confirm.notSet"),
-        })}
-      </p>
-      {over && !sent && (
-        <p className="mt-2 text-sm text-blocked">{t("confirm.overLimit", { count: freeSlots ?? 0 })}</p>
-      )}
-
-      {many && batch === null && !sent && (
-        <div className="mt-4">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              className="ctl-check mt-0.5"
-              checked={grouped}
-              onChange={(event) => setGrouped(event.target.checked)}
-            />
-            <span>
-              <span className="font-bold">{t("confirm.groupInBatch")}</span>
-              <span className="block text-sm text-ash">{t("confirm.groupInBatchHint")}</span>
-            </span>
-          </label>
-          {grouped && (
-            <input
-              className="mt-2 block min-h-11 w-full rounded border border-ctrl bg-night px-3"
-              placeholder={t("batch.labelPlaceholder")}
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-            />
-          )}
-          {grouped && labelTooLong && <span className="text-sm text-sayno">{t("batch.tooLong")}</span>}
-        </div>
-      )}
-      {many && batch !== null && !sent && (
-        <p className="mt-2 text-sm text-ash">{t("confirm.inBatch", { batch: batch.label ?? batch.id })}</p>
-      )}
-
-      {forced && (
-        <label className="mt-4 block font-bold">
-          {t("confirm.justification")}
-          <textarea
-            className="mt-1.5 block h-24 w-full rounded border border-ctrl bg-night p-2 font-normal"
-            maxLength={500}
-            value={justification}
-            onChange={(event) => setJustification(event.target.value)}
-            autoFocus={!strict}
-          />
-          <span className="text-sm font-normal text-ash">
-            {t("confirm.justificationCount", { count: justification.trim().length })}
-          </span>
-          <span className="block text-sm font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
-        </label>
-      )}
-
-      {strict && !sent && (
-        <label className="mt-4 block font-bold">
-          {many ? t("confirm.scanEach") : t("confirm.scan")}
-          <input
-            className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-mono font-normal"
-            autoComplete="off"
-            spellCheck={false}
-            autoFocus
-            placeholder={t("confirm.scanPlaceholder")}
-            value={scan}
-            onChange={(event) => {
-              setScan(event.target.value);
-              setScanMiss(false);
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              if (allScanned) void submit();
-              else if (many) take();
-              else setScanMiss(true);
-            }}
-          />
-          {(scanMiss || (!many && typedOne.length >= 4 && !oneOk && !serials[0].startsWith(typedOne))) && <span className="text-sm font-normal text-sayno">{t("confirm.scanMismatch")}</span>}
-        </label>
-      )}
-
-      <div className="mt-6 flex justify-end gap-2">
-        {sent ? (
-          <Button variant="primary" onClick={onCancel}>
-            {t("actions.close")}
-          </Button>
-        ) : (
-          <>
-            <Button onClick={onCancel}>{t("actions.cancel")}</Button>
-            <Button variant="danger" disabled={!ready} onClick={() => void submit()}>
-              {forced
-                ? t("confirm.submitForce")
-                : many
-                  ? t("confirm.submitMany", { count: requests.length })
-                  : t("confirm.submit")}
+            : t("confirm.titleDrive", { model: requests[0].inspection.device.identity.model })
+      }
+      width="lg"
+      onCancel={onCancel}
+      footer={
+        <>
+          {sent ? (
+            <Button variant="primary" onClick={onCancel}>
+              {t("actions.close")}
             </Button>
-          </>
+          ) : (
+            <>
+              <Button onClick={onCancel}>{t("actions.cancel")}</Button>
+              <Button variant="danger" disabled={!ready} onClick={() => void submit()}>
+                {forced
+                  ? t("confirm.submitForce")
+                  : many
+                    ? t("confirm.submitMany", { count: requests.length })
+                    : t("confirm.submit")}
+              </Button>
+            </>
+          )}
+        </>
+      }
+    >
+      {/* One block: the spacing below is the dialog's own, tuned for the scan and the list. */}
+      <div>
+        <p className="flex items-start gap-2.5 rounded-md border border-sayno px-3 py-2.5">
+          <TriangleAlert size={18} className="mt-0.5 shrink-0 text-sayno" aria-hidden="true" />
+          {t("confirm.irreversible", { count: requests.length })}
+        </p>
+
+        <ul className="mt-4 flex max-h-[45vh] flex-col gap-2 overflow-y-auto">
+          {requests.map(({ inspection, choice, zeroPass }) => {
+            const serial = inspection.device.identity.serial;
+            const verdict = inspection.verdict;
+            const disposition = verdict.state === "READY" ? verdict.disposition : REUSE;
+            const warnings = requiredAcknowledgements(choice, disposition);
+            const error = refused[serial];
+            return (
+              <li key={serial} className="rounded-md border border-ctrl px-3 py-2.5">
+                <div className="flex items-start gap-2.5">
+                  {strict && !sent && (
+                    <span className="mt-1 shrink-0" aria-hidden="true">
+                      {(many ? scanned[serial] !== undefined : oneOk) ? (
+                        <CheckCircle2 size={16} className="text-ready" />
+                      ) : (
+                        <Circle size={16} className="text-ash" />
+                      )}
+                    </span>
+                  )}
+                  {sent && (
+                    <span className="mt-1 shrink-0" aria-hidden="true">
+                      {error ? (
+                        <TriangleAlert size={16} className="text-sayno" />
+                      ) : (
+                        <CheckCircle2 size={16} className="text-ready" />
+                      )}
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p>
+                      <span className="font-bold">{inspection.device.identity.model}</span>{" "}
+                      <span className="font-mono text-sm text-ash">s/n {serial}</span>
+                    </p>
+                    <p className="mt-1 text-sm">
+                      <Category category={choice.category} />{" "}
+                      {labels[choice.method] ?? choice.method}
+                      {zeroPass && choice.method === "HostOverwrite" && <> {t("drives.thenZeros")}</>}
+                    </p>
+                    {warnings.length > 0 && <p className="mt-1 text-sm text-ash">{warnings.map(name).join(" · ")}</p>}
+                    {error && (
+                      <p className="mt-1 text-sm text-sayno">
+                        {t("confirm.refused")} {t(`errors.${error.code}`, { defaultValue: error.code })}
+                        {error.detail && <span className="block font-mono text-xs text-ash">{error.detail}</span>}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-3 text-sm text-ash">
+          {t("confirm.signedAs", {
+            operator: signer.operator ?? t("confirm.notSet"),
+            organization: signer.organization ?? t("confirm.notSet"),
+          })}
+        </p>
+        {over && !sent && (
+          <p className="mt-2 text-sm text-blocked">{t("confirm.overLimit", { count: freeSlots ?? 0 })}</p>
         )}
+
+        {many && batch === null && !sent && (
+          <div className="mt-4">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                className="ctl-check mt-0.5"
+                checked={grouped}
+                onChange={(event) => setGrouped(event.target.checked)}
+              />
+              <span>
+                <span className="font-bold">{t("confirm.groupInBatch")}</span>
+                <span className="block text-sm text-ash">{t("confirm.groupInBatchHint")}</span>
+              </span>
+            </label>
+            {grouped && (
+              <input
+                className="mt-2 block min-h-11 w-full rounded border border-ctrl bg-night px-3"
+                placeholder={t("batch.labelPlaceholder")}
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+              />
+            )}
+            {grouped && labelTooLong && <span className="text-sm text-sayno">{t("batch.tooLong")}</span>}
+          </div>
+        )}
+        {many && batch !== null && !sent && (
+          <p className="mt-2 text-sm text-ash">{t("confirm.inBatch", { batch: batch.label ?? batch.id })}</p>
+        )}
+
+        {forced && (
+          <label className="mt-4 block font-bold">
+            {t("confirm.justification")}
+            <textarea
+              className="mt-1.5 block h-24 w-full rounded border border-ctrl bg-night p-2 font-normal"
+              maxLength={500}
+              value={justification}
+              onChange={(event) => setJustification(event.target.value)}
+              autoFocus={!strict}
+            />
+            <span className="text-sm font-normal text-ash">
+              {t("confirm.justificationCount", { count: justification.trim().length })}
+            </span>
+            <span className="block text-sm font-normal text-blocked">{t("confirm.justificationPrivacy")}</span>
+          </label>
+        )}
+
+        {strict && !sent && (
+          <label className="mt-4 block font-bold">
+            {many ? t("confirm.scanEach") : t("confirm.scan")}
+            <input
+              className="mt-1.5 block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-mono font-normal"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus
+              placeholder={t("confirm.scanPlaceholder")}
+              value={scan}
+              onChange={(event) => {
+                setScan(event.target.value);
+                setScanMiss(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                if (allScanned) void submit();
+                else if (many) take();
+                else setScanMiss(true);
+              }}
+            />
+            {(scanMiss || (!many && typedOne.length >= 4 && !oneOk && !serials[0].startsWith(typedOne))) && <span className="text-sm font-normal text-sayno">{t("confirm.scanMismatch")}</span>}
+          </label>
+        )}
+
       </div>
-    </dialog>
+    </Dialog>
   );
 }

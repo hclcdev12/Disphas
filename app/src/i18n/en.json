@@ -204,14 +204,16 @@
     "yes": "Yes",
     "no": "No",
     "until": "Valid until",
-    "activate": "1. Create the activation request",
-    "requestHint": "Send this text to disphas. It contains only the public key of this workstation.",
+    "activate": "Create the request",
+    "requestHint": "Send it to disphas: it contains only the public key of this workstation.",
     "copy": "Copy",
     "copied": "Copied",
-    "install": "2. Paste the license received",
     "installButton": "Install the license",
     "installed": "License installed.",
-    "close": "Close"
+    "close": "Close",
+    "activateTitle": "Activate this workstation",
+    "stepRequest": "Activation request",
+    "stepLicense": "License received"
   },
   "job": {
     "title": "Erasure in progress",
@@ -483,7 +485,10 @@
     "strict": "Strict mode: serial number before each erasure",
     "strictHint": "By default, each erasure asks for a one-click confirmation. In strict mode, it also asks for the serial number read on the drive: barcode scanner, or the last 4 characters typed.",
     "notifications": "Notify when erasures finish",
-    "notificationsHint": "When the app is in the background, the desktop shows a notification once all running erasures have finished. It contains no serial number."
+    "notificationsHint": "When the app is in the background, the desktop shows a notification once all running erasures have finished. It contains no serial number.",
+    "sectionCertificates": "Certificates",
+    "sectionErasure": "Erasure",
+    "sectionApp": "Application"
   },
   "station": {
     "offline": "offline",
