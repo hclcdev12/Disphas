@@ -58,6 +58,10 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
 - Paquet de test installé sur le banc le 2026-10-20 : `0.1.0+local.dbe49cf` (lot 2), construit en local dans
   un conteneur `ubuntu:22.04` (podman) avec les étapes du workflow *Package*, la CI étant bloquée par la
   facturation GitHub. La règle polkit du banc vise encore `org.oblivio.helper` : relancer le `setup.sh` à jour.
+  **2026-10-29** : `tools/bench/package.sh <dossier>` refait ce build (copie propre du dernier commit, version
+  `0.1.0+local.<commit>`) ; paquets du protocole 3 construits (`e8d06c6`), pas encore installés (banc en panne).
+  Le propriétaire envisageait de passer le banc sous Rocky : impossible pour l'application (Rocky 9 sans
+  WebKitGTK 4.1, Rocky 10 réservé aux processeurs AVX2, que le T3500 n'a probablement pas ; `packaging/README.md`).
 - La démo du site (`site/public/demo/app/`) est une copie compilée de l'application d'avant le lot 2 :
   à régénérer avec `tools/site-demo/build.sh` (et son audit) quand le propriétaire le décidera.
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`

@@ -36,6 +36,11 @@ manual or on a `v*` tag) on **Ubuntu 22.04**, so the binaries need **glibc 2.35*
 | `.deb` | Ubuntu 22.04+, Debian 12+, Linux Mint 21+, Pop!_OS 22.04+ | Ubuntu 22.04, 24.04, Debian 12, 13 |
 | `.rpm` | Fedora, openSUSE (and RHEL-like with glibc 2.35+ and WebKitGTK 4.1) | Fedora (latest), openSUSE Tumbleweed |
 
+Not supported (checked on 2026-10-29 by installing the `.rpm` in containers): **Rocky Linux 9 / RHEL 9**
+ships WebKitGTK 4.0 only (`webkit2gtk3`, even with EPEL and CRB) and glibc 2.34, while Tauri v2 needs
+WebKitGTK 4.1. **Rocky Linux 10 / RHEL 10** require an x86-64-v3 processor (AVX2): its glibc stops on older
+ones before anything runs.
+
 Each run checks, per system: installation from a clean image, every library of both
 programs resolved (`ldd`), polkit policy and notices in place, `/var/lib/disphas` and its
 sub-folders owned by root in `0700`, the `disphas` system group of an earlier version
