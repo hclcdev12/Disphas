@@ -29,7 +29,7 @@ import type { JobView } from "../lib/jobs";
 import type { PdfState } from "../lib/pdf";
 import { Station } from "./Header";
 import { JobProgress } from "./JobsScreen";
-import { Badge, Button, Mono } from "./ui";
+import { Badge, Button, IconButton, Mono } from "./ui";
 
 /** An erasure the operator asked for, before the confirmation dialog. */
 export type EraseRequest = {
@@ -1182,31 +1182,6 @@ function Actions({ children }: { children: ReactNode }) {
     <div className="drives-actions flex flex-wrap items-center gap-4 [&>button]:min-h-12 [&>button]:px-5.5 [&>button]:text-[17px]">
       {children}
     </div>
-  );
-}
-
-function IconButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="inline-flex size-11 shrink-0 items-center justify-center rounded text-soft hover:bg-card disabled:opacity-40"
-    >
-      {children}
-    </button>
   );
 }
 

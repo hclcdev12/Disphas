@@ -340,7 +340,20 @@
     "deleteWarning": "Suppression définitive de l'historique, consignée dans le journal des suppressions. Les PDF déjà enregistrés ne sont pas touchés.",
     "deleteNow_one": "Supprimer {{count}} certificat",
     "deleteNow_other": "Supprimer {{count}} certificats",
-    "deleteNone": "Aucun certificat à supprimer"
+    "deleteNone": "Aucun certificat à supprimer",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "meta_one": "{{count}} certificat signé",
+    "meta_other": "{{count}} certificats signés",
+    "hidden": "Certificat non affiché",
+    "hiddenHint": "Ce rapport ne se vérifie pas : son contenu n'est pas affiché. Il reste dans le dossier des rapports du helper pour un audit.",
+    "backLabel": "Revenir à la liste des certificats",
+    "emptyHint": "Chaque effacement terminé ajoute ici son certificat signé.",
+    "issuedOn": "Émis le {{date}}",
+    "certificate": "Certificat",
+    "openHint": "Ou double-cliquez sur le certificat dans la liste.",
+    "hiddenCount_one": "{{count}} non affiché",
+    "hiddenCount_other": "{{count}} non affichés"
   },
   "verify": {
     "title": "Vérifier un certificat",
@@ -421,7 +434,12 @@
     "qrPlaceholder": "DSV1:… collez ou scannez, puis Entrée",
     "issued": "émis le {{date}}",
     "issuedBy": "émis le {{date}} par {{who}}",
-    "details": "Tous les détails"
+    "details": "Tous les détails",
+    "meta": "Hors ligne · contrôles de disphas-verify",
+    "backLabel": "Revenir au dépôt du certificat",
+    "input": "Certificat à vérifier",
+    "result": "Résultat",
+    "emptyHint": "Le résultat de la vérification s'affiche ici."
   },
   "batch": {
     "current": "Lot en cours :",

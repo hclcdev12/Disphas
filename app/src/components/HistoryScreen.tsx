@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FileText, LoaderCircle, Search, ShieldAlert, Trash2, TriangleAlert } from "lucide-react";
+import { CheckCircle2, FileText, LoaderCircle, Search, ShieldAlert, Trash2, TriangleAlert, XCircle } from "lucide-react";
 import { api, type HelperError, type HistoryEntry } from "../lib/api";
 import { capacity } from "../lib/format";
 import type { Language } from "../i18n";
-import { Badge, Button } from "./ui";
+import { BackButton, Badge, Button, Fact, IconButton, Mono } from "./ui";
 
 /**
  * Sort key of the history, newest first by the date shown: the end of the
@@ -23,30 +23,37 @@ function without<T>(record: Record<string, T>, key: string): Record<string, T> {
   return next;
 }
 
-/** A batch with its certificates, or a certificate erased alone. */
-type Item =
-  | { kind: "batch"; id: string; label: string | null; entries: HistoryEntry[] }
-  | { kind: "single"; entry: HistoryEntry };
+/** Certificates issued the same day, under one heading. */
+type Day = { key: string; title: string; entries: HistoryEntry[] };
 
 /** What happened to a certificate or a batch the operator asked to open. */
 type Opening = { kind: "busy" } | { kind: "failed"; error: HelperError } | { kind: "empty" };
 
+/** Phone width: one view at a time (same breakpoint as index.css). */
+const narrow = () => window.matchMedia("(max-width: 760px)").matches;
+
 /**
- * History of signed certificates, read from the helper's `reports/` folder.
- * One search over everything, certificates grouped by batch, one click on a
- * line opens its PDF (rendered on the fly). Reports that do not verify are
- * listed by identifier only: their content is never shown
- * (docs/protocole_ipc.md §10).
+ * History of signed certificates, read from the helper's `reports/` folder,
+ * laid out like the Disques tab: the certificates on the left, newest first
+ * and grouped by day, the chosen one on the right with its PDF and its
+ * batch. One search over everything; a double click opens the PDF at once.
+ * Reports that do not verify are listed by identifier only: their content is
+ * never shown (docs/protocole_ipc.md §10).
  */
 export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   const { t, i18n } = useTranslation();
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [picked, setPicked] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "detail">("list");
   const [paths, setPaths] = useState<Record<string, string>>({});
   const [opening, setOpening] = useState<Record<string, Opening>>({});
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleted, setDeleted] = useState<{ count: number } | { error: HelperError } | null>(null);
+  const list = useRef<HTMLElement>(null);
+  // "Today" in the day headings: the day the tab was opened.
+  const [today] = useState(() => new Date());
 
   const receive = (result: HistoryEntry[] | { error: string }) => {
     if (Array.isArray(result)) {
@@ -62,7 +69,6 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
     void api.listReports().then(receive);
   }, []);
 
-  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
   const label = (code: string) => labels[code] ?? code;
 
   // One search: model, serial number, batch, customer, operator, status, method, date.
@@ -91,27 +97,51 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
     });
   }, [entries, query, t, i18n.language, labels]);
 
-  // A batch sits at the place of its newest certificate; the others stay one by one.
-  const items = useMemo(() => {
-    const result: Item[] = [];
-    const batches = new Map<string, Extract<Item, { kind: "batch" }>>();
+  // Newest first, one heading per day: today, yesterday, then the date.
+  const days = useMemo(() => {
+    const long = new Intl.DateTimeFormat(i18n.language, { dateStyle: "full" });
+    const keyOf = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    const result: Day[] = [];
     for (const entry of shown) {
-      const id = entry.summary?.batch_id;
-      if (!id) {
-        result.push({ kind: "single", entry });
-        continue;
+      const date = new Date(issuedAt(entry) * 1000);
+      const key = keyOf(date);
+      let day = result.at(-1);
+      if (day?.key !== key) {
+        const title =
+          key === keyOf(today)
+            ? t("history.today")
+            : key === keyOf(yesterday)
+              ? t("history.yesterday")
+              : long.format(date);
+        day = { key, title, entries: [] };
+        result.push(day);
       }
-      let batch = batches.get(id);
-      if (!batch) {
-        batch = { kind: "batch", id, label: null, entries: [] };
-        batches.set(id, batch);
-        result.push(batch);
-      }
-      batch.label ??= entry.summary?.batch_label ?? null;
-      batch.entries.push(entry);
+      day.entries.push(entry);
     }
     return result;
-  }, [shown]);
+  }, [shown, t, i18n.language, today]);
+
+  const selected = shown.find((entry) => entry.id === picked) ?? shown[0] ?? null;
+
+  const pick = (id: string, detail: boolean) => {
+    setPicked(id);
+    if (detail && narrow()) {
+      setView("detail");
+      window.scrollTo(0, 0);
+    }
+  };
+
+  // Up and Down move through the list, as in the Disques tab.
+  const arrow = (id: string, event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const index = shown.findIndex((entry) => entry.id === id);
+    const next = shown[index + (event.key === "ArrowDown" ? 1 : -1)];
+    if (!next) return;
+    pick(next.id, false);
+    list.current?.querySelector<HTMLButtonElement>(`[data-report="${next.id}"]`)?.focus();
+  };
 
   const openReport = async (id: string) => {
     if (paths[id]) {
@@ -150,98 +180,142 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
   };
 
   const total = entries?.length ?? 0;
+  const hidden = (entries ?? []).filter((entry) => entry.check !== "Valid" || !entry.summary).length;
+  const time = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" });
+
+  const row = (entry: HistoryEntry) => {
+    const summary = entry.check === "Valid" ? entry.summary : null;
+    const isSelected = entry.id === selected?.id;
+    return (
+      <button
+        key={entry.id}
+        type="button"
+        data-report={entry.id}
+        aria-pressed={isSelected}
+        tabIndex={isSelected ? 0 : -1}
+        title={summary ? t("history.open") : undefined}
+        onClick={() => pick(entry.id, true)}
+        onDoubleClick={() => summary && void openReport(entry.id)}
+        onKeyDown={(event) => arrow(entry.id, event)}
+        className={`flex min-h-16 min-w-0 flex-col justify-center rounded-md border px-3 py-2 text-left ${
+          isSelected ? "border-ctrl bg-card" : "border-transparent hover:bg-card/50"
+        }`}
+      >
+        {summary ? (
+          <>
+            <span className="flex justify-between gap-2">
+              <span className={`truncate text-base ${isSelected ? "font-bold" : ""}`}>{summary.model}</span>
+              <span
+                className={`font-mono text-sm whitespace-nowrap ${summary.status === "CONFORME" ? "text-ready" : "text-sayno"}`}
+              >
+                {t(`job.status.${summary.status}`)}
+              </span>
+            </span>
+            <span className="truncate text-sm text-ash">
+              {time.format(new Date(summary.issued_at * 1000))} · <span className="font-mono">s/n {summary.serial}</span>
+              {summary.batch_id && <> · {t("jobs.inBatch", { name: summary.batch_label ?? summary.batch_id })}</>}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-2 text-sayno">
+              <ShieldAlert size={14} className="shrink-0" aria-hidden="true" />
+              <span className={`truncate ${isSelected ? "font-bold" : ""}`}>{t("history.hidden")}</span>
+            </span>
+            <span className="truncate font-mono text-xs text-ash">{entry.id}</span>
+          </>
+        )}
+      </button>
+    );
+  };
 
   return (
-    <section>
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <h1 className="text-[25px] leading-tight font-bold">{t("history.count", { count: total })}</h1>
+    <div className="split-screen grid min-h-0 flex-1" data-view={view}>
+      <div className="split-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
+        <div className="flex items-start justify-between gap-2 px-2">
+          <div>
+            <h1 className="text-[25px] leading-tight font-bold">{t("history.count", { count: total })}</h1>
+            {total > 0 && (
+              <p className="mt-0.5 font-mono text-sm text-ash">
+                {t("history.meta", { count: total - hidden })}
+                {hidden > 0 && <> · {t("history.hiddenCount", { count: hidden })}</>}
+              </p>
+            )}
+          </div>
+          {total > 0 && (
+            <IconButton label={t("history.delete")} onClick={() => setDeleteOpen(true)}>
+              <Trash2 size={18} aria-hidden="true" />
+            </IconButton>
+          )}
+        </div>
+
         {total > 0 && (
-          <Button className="ml-auto flex items-center gap-2" onClick={() => setDeleteOpen(true)}>
-            <Trash2 size={14} aria-hidden="true" />
-            {t("history.delete")}
-          </Button>
-        )}
-      </div>
-
-      {total > 0 && (
-        <label className="mb-5 flex min-h-11 items-center gap-2.5 rounded border border-ctrl bg-night px-3">
-          <Search size={16} className="shrink-0 text-ash" aria-hidden="true" />
-          <input
-            type="search"
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ash"
-            aria-label={t("history.searchLabel")}
-            placeholder={t("history.search")}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-      )}
-
-      {deleted && "count" in deleted && (
-        <p role="status" className="mb-4 text-sm text-ash">
-          {t("history.deletedCount", { count: deleted.count })}
-        </p>
-      )}
-      {deleted && "error" in deleted && (
-        <p role="alert" className="mb-4 text-sm text-sayno">
-          {t(`errors.${deleted.error.code}`, { defaultValue: deleted.error.code })}
-        </p>
-      )}
-      {entries === null && <p className="text-ash">{t("history.loading")}</p>}
-      {listError !== null && <p className="text-sayno">{listError}</p>}
-      {listError === null && entries?.length === 0 && <p className="text-ash">{t("history.empty")}</p>}
-      {total > 0 && shown.length === 0 && <p className="text-ash">{t("history.noMatch")}</p>}
-
-      <div className="flex flex-col gap-5">
-        {items.map((item) =>
-          item.kind === "single" ? (
-            <Line
-              key={item.entry.id}
-              entry={item.entry}
-              opening={opening[item.entry.id]}
-              date={date}
-              label={label}
-              onOpen={() => void openReport(item.entry.id)}
+          <label className="flex min-h-11 items-center gap-2.5 rounded border border-ctrl bg-night px-3">
+            <Search size={16} className="shrink-0 text-ash" aria-hidden="true" />
+            <input
+              type="search"
+              className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-ash"
+              aria-label={t("history.searchLabel")}
+              placeholder={t("history.search")}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
             />
-          ) : (
-            <section
-              key={`batch:${item.id}`}
-              aria-label={t("history.batch", { name: item.label ?? item.id, count: item.entries.length })}
-              className="-mx-px flex flex-col gap-0.5 rounded-lg border border-edge py-2"
-            >
-              <div className="mb-1 flex flex-wrap items-center gap-3 px-3">
-                <h2 className="text-[15px] font-bold text-ash">
-                  {t("history.batch", { name: item.label ?? item.id, count: item.entries.length })}
-                  {item.label && <span className="ml-2 font-mono text-xs font-normal">{item.id}</span>}
-                </h2>
-                <Button
-                  className="ml-auto flex items-center gap-2"
-                  disabled={opening[`batch:${item.id}`]?.kind === "busy"}
-                  onClick={() => void openBatch(item.id)}
-                >
-                  {opening[`batch:${item.id}`]?.kind === "busy" ? (
-                    <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
-                  ) : (
-                    <FileText size={14} aria-hidden="true" />
-                  )}
-                  {t("history.batchPdf")}
-                </Button>
-                <Problem opening={opening[`batch:${item.id}`]} />
-              </div>
-              {item.entries.map((entry) => (
-                <Line
-                  key={entry.id}
-                  entry={entry}
-                  opening={opening[entry.id]}
-                  date={date}
-                  label={label}
-                  onOpen={() => void openReport(entry.id)}
-                />
-              ))}
-            </section>
-          ),
+          </label>
+        )}
+
+        {deleted && "count" in deleted && (
+          <p role="status" className="px-2 text-sm text-ash">
+            {t("history.deletedCount", { count: deleted.count })}
+          </p>
+        )}
+        {deleted && "error" in deleted && (
+          <p role="alert" className="px-2 text-sm text-sayno">
+            {t(`errors.${deleted.error.code}`, { defaultValue: deleted.error.code })}
+          </p>
         )}
       </div>
+
+      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+        <BackButton label={t("history.backLabel")} onClick={() => setView("list")}>
+          {t("nav.history")}
+        </BackButton>
+        {selected && <Head entry={selected} label={label} />}
+      </div>
+
+      {/* Same row as the detail below: the first day faces the certificate. */}
+      <aside
+        ref={list}
+        className="split-lbody flex flex-col gap-5 border-r border-edge px-4 pb-6"
+        aria-label={t("nav.history")}
+      >
+        {entries === null && <p className="px-2 text-ash">{t("history.loading")}</p>}
+        {listError !== null && <p className="px-2 text-sayno">{listError}</p>}
+        {listError === null && entries?.length === 0 && <p className="px-2 text-ash">{t("history.empty")}</p>}
+        {total > 0 && shown.length === 0 && <p className="px-2 text-ash">{t("history.noMatch")}</p>}
+        {days.map((day) => (
+          <section key={day.key} aria-labelledby={`day-${day.key}`} className="flex flex-col gap-0.5">
+            <h2 id={`day-${day.key}`} className="mb-1.5 px-2 text-[15px] font-bold text-ash first-letter:uppercase">
+              {day.title}
+            </h2>
+            {day.entries.map(row)}
+          </section>
+        ))}
+      </aside>
+
+      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-7 px-12 pb-10">
+        {selected === null && entries !== null && <p className="pt-1 text-ash">{t("history.emptyHint")}</p>}
+        {selected && (
+          <Detail
+            entry={selected}
+            all={entries ?? []}
+            label={label}
+            opening={opening}
+            onOpen={(id) => void openReport(id)}
+            onOpenBatch={(id) => void openBatch(id)}
+            onPick={(id) => pick(id, false)}
+          />
+        )}
+      </main>
 
       {deleteOpen && (
         <DeleteDialog
@@ -255,78 +329,181 @@ export function HistoryScreen({ labels }: { labels: Record<string, string> }) {
           }}
         />
       )}
-    </section>
+    </div>
   );
 }
 
-/** One certificate: the whole line opens its PDF. */
-function Line({
-  entry,
-  opening,
-  date,
-  label,
-  onOpen,
-}: {
-  entry: HistoryEntry;
-  opening: Opening | undefined;
-  date: Intl.DateTimeFormat;
-  label: (code: string) => string;
-  onOpen: () => void;
-}) {
+/** Top of the detail, as for a drive: when, the model, the serial number. */
+function Head({ entry, label }: { entry: HistoryEntry; label: (code: string) => string }) {
   const { t, i18n } = useTranslation();
-  const summary = entry.summary;
-  if (entry.check !== "Valid" || !summary) {
+  const summary = entry.check === "Valid" ? entry.summary : null;
+  if (!summary) {
     return (
-      <div className="flex min-h-16 items-center gap-3.5 rounded-md border border-transparent px-3 py-2">
-        <ShieldAlert size={18} className="shrink-0 text-sayno" aria-hidden="true" />
-        <div className="min-w-0 text-sm">
-          <p className="font-bold text-sayno">{t(`history.check.${entry.check}`)}</p>
-          <p className="font-mono text-xs break-all text-ash">{entry.id}</p>
-        </div>
+      <div className="min-w-0">
+        <div className="font-mono text-sm text-sayno">{t(`history.check.${entry.check}`)}</div>
+        <h2 className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words">
+          {t("history.hidden")}
+        </h2>
+        <div className="font-mono text-sm break-all text-ash">{entry.id}</div>
       </div>
     );
   }
-  const busy = opening?.kind === "busy";
-  const who = [summary.operator, summary.organization].filter(Boolean).join(", ");
+  const date = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long", timeStyle: "short" });
   return (
-    <div>
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={busy}
-        title={t("history.open")}
-        className="flex min-h-16 w-full items-center gap-3.5 rounded-md border border-transparent px-3 py-2 text-left hover:border-ctrl hover:bg-card disabled:cursor-wait"
-      >
-        <span className="w-32 shrink-0">
-          <Badge tone={summary.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${summary.status}`)}</Badge>
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span>
-            <span className="font-bold">{summary.model}</span>
-            <span className="ml-2 text-sm text-ash">{capacity(summary.capacity_bytes, i18n.language, "")}</span>
-          </span>
-          <span className="text-sm break-words text-ash">
-            <span className="font-mono">s/n {summary.serial}</span>
-            {summary.method && <> · {label(summary.method)}</>}
-            {who && <> · {who}</>}
-          </span>
-        </span>
-        <span className="w-40 shrink-0 text-right text-sm text-ash">{date.format(new Date(summary.issued_at * 1000))}</span>
-        <span className="flex size-5 shrink-0 items-center justify-center text-ash" aria-hidden="true">
-          {busy ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />}
-        </span>
-      </button>
-      <Problem opening={opening} />
+    <div className="min-w-0">
+      <div className="font-mono text-sm break-words text-ash">
+        {t("history.issuedOn", { date: date.format(new Date(summary.issued_at * 1000)) })}
+        {summary.method && <> · {label(summary.method)}</>}
+      </div>
+      <h2 className="split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words">{summary.model}</h2>
+      <div className="font-mono text-sm break-all text-ash">
+        s/n {summary.serial} · {capacity(summary.capacity_bytes, i18n.language, "")}
+      </div>
     </div>
+  );
+}
+
+/**
+ * The chosen certificate: its status and its PDF, who signed it, and the
+ * batch it belongs to with the batch certificate.
+ */
+function Detail({
+  entry,
+  all,
+  label,
+  opening,
+  onOpen,
+  onOpenBatch,
+  onPick,
+}: {
+  entry: HistoryEntry;
+  all: HistoryEntry[];
+  label: (code: string) => string;
+  opening: Record<string, Opening>;
+  onOpen: (id: string) => void;
+  onOpenBatch: (id: string) => void;
+  onPick: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const summary = entry.check === "Valid" ? entry.summary : null;
+  if (!summary) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <h3 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("history.certificate")}</h3>
+        <p className="flex items-start gap-3 rounded-md border border-sayno px-4 py-3.5">
+          <ShieldAlert size={18} className="mt-1 shrink-0 text-sayno" aria-hidden="true" />
+          {t("history.hiddenHint")}
+        </p>
+      </div>
+    );
+  }
+  const busy = opening[entry.id]?.kind === "busy";
+  const who = [summary.operator, summary.organization].filter(Boolean).join(", ");
+  const batchId = summary.batch_id;
+  const members = batchId
+    ? [...all].filter((other) => other.summary?.batch_id === batchId).sort((a, b) => issuedAt(a) - issuedAt(b))
+    : [];
+  const batchKey = `batch:${batchId}`;
+  return (
+    <>
+      {/* Same rhythm as the list: a title like a day's, level with the first certificate. */}
+      <div className="flex flex-col gap-0.5">
+        <h3 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("history.certificate")}</h3>
+        <div className="flex flex-col gap-4 rounded-lg border border-ctrl p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            {summary.status === "CONFORME" ? (
+              <CheckCircle2 className="text-ready" aria-hidden="true" />
+            ) : (
+              <XCircle className="text-sayno" aria-hidden="true" />
+            )}
+            <Badge tone={summary.status === "CONFORME" ? "ready" : "sayno"}>{t(`job.status.${summary.status}`)}</Badge>
+            <span className="text-[17px]">{t(`job.statusHint.${summary.status}`)}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              variant="primary"
+              disabled={busy}
+              className="flex min-h-12 items-center gap-2 px-5.5 text-[17px] disabled:cursor-wait"
+              onClick={() => onOpen(entry.id)}
+            >
+              {busy ? (
+                <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <FileText size={16} aria-hidden="true" />
+              )}
+              {t("job.openCertificate")}
+            </Button>
+            <span className="text-sm text-ash max-[760px]:hidden">{t("history.openHint")}</span>
+          </div>
+          <Problem opening={opening[entry.id]} />
+        </div>
+      </div>
+
+      <dl>
+        <Fact label={t("verify.field.method")}>
+          {summary.method ? `${summary.category} · ${label(summary.method)}` : "—"}
+        </Fact>
+        <Fact label={t("verify.field.operator")}>{who || "—"}</Fact>
+        <Fact label={t("verify.field.id")}>
+          <Mono>{entry.id}</Mono>
+        </Fact>
+      </dl>
+
+      {batchId && (
+        <section className="flex flex-col gap-0.5">
+          <div className="mb-1.5 flex flex-wrap items-center gap-3 px-2">
+            <h3 className="text-[15px] font-bold text-ash">
+              {t("history.batch", { name: summary.batch_label ?? batchId, count: members.length })}
+            </h3>
+            <Button
+              className="ml-auto flex items-center gap-2"
+              disabled={opening[batchKey]?.kind === "busy"}
+              onClick={() => onOpenBatch(batchId)}
+            >
+              {opening[batchKey]?.kind === "busy" ? (
+                <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <FileText size={14} aria-hidden="true" />
+              )}
+              {t("history.batchPdf")}
+            </Button>
+          </div>
+          <Problem opening={opening[batchKey]} />
+          {members.map((member) => (
+            <button
+              key={member.id}
+              type="button"
+              onClick={() => onPick(member.id)}
+              aria-current={member.id === entry.id ? "true" : undefined}
+              className={`flex min-h-11 items-center justify-between gap-3 rounded-md px-2 text-left text-sm hover:bg-card/50 ${
+                member.id === entry.id ? "font-bold" : ""
+              }`}
+            >
+              <span className="min-w-0 truncate">
+                {member.summary?.model}{" "}
+                <span className="font-mono font-normal text-ash">s/n {member.summary?.serial}</span>
+              </span>
+              {member.summary && (
+                <span
+                  className={`font-mono whitespace-nowrap ${member.summary.status === "CONFORME" ? "text-ready" : "text-sayno"}`}
+                >
+                  {t(`job.status.${member.summary.status}`)}
+                </span>
+              )}
+            </button>
+          ))}
+        </section>
+      )}
+    </>
   );
 }
 
 function Problem({ opening }: { opening: Opening | undefined }) {
   const { t } = useTranslation();
-  if (opening?.kind === "empty") return <p className="w-full px-3 text-sm text-ash">{t("batch.empty")}</p>;
+  if (opening?.kind === "empty") return <p className="w-full px-2 text-sm text-ash">{t("batch.empty")}</p>;
   if (opening?.kind !== "failed") return null;
   return (
-    <p role="alert" className="w-full px-3 pb-2 text-sm text-sayno">
+    <p role="alert" className="w-full px-2 text-sm text-sayno">
       {t(`errors.${opening.error.code}`, { defaultValue: opening.error.code })}
       {opening.error.detail && <span className="block font-mono text-xs text-ash">{opening.error.detail}</span>}
     </p>

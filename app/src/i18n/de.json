@@ -340,7 +340,20 @@
     "deleteWarning": "Endgültige Löschung aus dem Verlauf, im Löschprotokoll vermerkt. Bereits gespeicherte PDFs bleiben unberührt.",
     "deleteNow_one": "{{count}} Bescheinigung löschen",
     "deleteNow_other": "{{count}} Bescheinigungen löschen",
-    "deleteNone": "Keine Bescheinigung zu löschen"
+    "deleteNone": "Keine Bescheinigung zu löschen",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "meta_one": "{{count}} signierte Bescheinigung",
+    "meta_other": "{{count}} signierte Bescheinigungen",
+    "hidden": "Bescheinigung nicht angezeigt",
+    "hiddenHint": "Dieser Bericht lässt sich nicht verifizieren: Sein Inhalt wird nicht angezeigt. Er bleibt für ein Audit im Berichtsordner des Helpers.",
+    "backLabel": "Zurück zur Liste der Bescheinigungen",
+    "emptyHint": "Jede abgeschlossene Löschung legt hier ihre signierte Bescheinigung ab.",
+    "issuedOn": "Ausgestellt am {{date}}",
+    "certificate": "Bescheinigung",
+    "openHint": "Oder doppelklicken Sie in der Liste auf die Bescheinigung.",
+    "hiddenCount_one": "{{count}} nicht angezeigt",
+    "hiddenCount_other": "{{count}} nicht angezeigt"
   },
   "verify": {
     "title": "Bescheinigung prüfen",
@@ -421,7 +434,12 @@
     "qrPlaceholder": "DSV1:… einfügen oder scannen, dann Enter",
     "issued": "ausgestellt am {{date}}",
     "issuedBy": "ausgestellt am {{date}} von {{who}}",
-    "details": "Alle Details"
+    "details": "Alle Details",
+    "meta": "Offline · Prüfungen wie disphas-verify",
+    "backLabel": "Zurück zur Ablage der Bescheinigung",
+    "input": "Zu prüfende Bescheinigung",
+    "result": "Ergebnis",
+    "emptyHint": "Das Ergebnis der Prüfung erscheint hier."
   },
   "batch": {
     "current": "Aktuelles Los:",

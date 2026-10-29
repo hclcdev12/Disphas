@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { BadgeCheck, FileUp, ShieldX, TriangleAlert } from "lucide-react";
 import { api, type VerificationReport } from "../lib/api";
 import { capacity } from "../lib/format";
-import { Badge, Mono } from "./ui";
+import { BackButton, Badge, Fact, Mono } from "./ui";
 
 /** Largest file read (the helper side refuses more anyway). */
 const MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -34,12 +34,22 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState<string | null>(null);
   const [report, setReport] = useState<VerificationReport | { error: string } | null>(null);
+  const [view, setView] = useState<"list" | "detail">("list");
+
+  // On a phone the result replaces the drop zone, with a way back.
+  const show = (next: VerificationReport | { error: string }) => {
+    setReport(next);
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setView("detail");
+      window.scrollTo(0, 0);
+    }
+  };
 
   const run = async (bytes: Uint8Array, label: string) => {
     setBusy(true);
     setName(label);
     setReport(null);
-    setReport(await api.verifyCertificate(toBase64(bytes)));
+    show(await api.verifyCertificate(toBase64(bytes)));
     setBusy(false);
   };
 
@@ -47,7 +57,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
     if (!file) return;
     if (file.size > MAX_FILE_BYTES) {
       setName(file.name);
-      setReport({ error: t("verify.reason.TooLarge") });
+      show({ error: t("verify.reason.TooLarge") });
       return;
     }
     await run(new Uint8Array(await file.arrayBuffer()), file.name);
@@ -57,7 +67,7 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
     const trimmed = text.trim();
     if (!trimmed.startsWith(QR_PREFIX)) {
       setName(t("verify.qrSource"));
-      setReport({ error: t("verify.reason.NotDisphas") });
+      show({ error: t("verify.reason.NotDisphas") });
       return;
     }
     setQr("");
@@ -86,88 +96,122 @@ export function VerifyScreen({ labels }: { labels: Record<string, string> }) {
   }, []);
 
   return (
-    <section>
-      <h1 className="mb-5 text-[25px] leading-tight font-bold">{t("verify.title")}</h1>
-      <div
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          void fromFile(event.dataTransfer.files[0]);
-        }}
-        className={`flex flex-col gap-4 rounded-lg border-2 border-dashed p-6 ${
-          dragging ? "border-soft bg-card" : "border-ctrl"
-        }`}
-      >
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => input.current?.click()}
-          className="flex flex-col items-center gap-2 rounded-md px-4 py-6 text-center hover:bg-card disabled:cursor-wait"
-        >
-          <FileUp size={28} className="text-ash" aria-hidden="true" />
-          <span className="text-lg font-bold">{t("verify.drop")}</span>
-          <span className="text-sm text-ash">{t("verify.dropHint")}</span>
-        </button>
-        <input
-          ref={input}
-          type="file"
-          accept=".pdf,.cose,.txt,application/pdf"
-          className="hidden"
-          onChange={(event) => {
-            void fromFile(event.target.files?.[0]);
-            event.target.value = "";
-          }}
-        />
-        <label className="flex flex-col gap-1.5 text-sm font-bold">
-          {t("verify.qr")}
-          <input
-            className="block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-mono text-sm font-normal"
-            placeholder={t("verify.qrPlaceholder")}
-            spellCheck={false}
-            autoComplete="off"
-            value={qr}
-            disabled={busy}
-            onChange={(event) => setQr(event.target.value)}
-            onPaste={(event) => {
-              const text = event.clipboardData.getData("text");
-              if (!text.trim().startsWith(QR_PREFIX)) return;
-              event.preventDefault();
-              void fromText(text);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && qr.trim() !== "") void fromText(qr);
-            }}
-          />
-        </label>
+    <div className="split-screen grid min-h-0 flex-1" data-view={view}>
+      <div className="split-lhead flex flex-col gap-4 border-r border-edge px-4 pt-6 pb-5">
+        <div className="px-2">
+          <h1 className="text-[25px] leading-tight font-bold">{t("verify.title")}</h1>
+          <p className="mt-0.5 font-mono text-sm text-ash">{t("verify.meta")}</p>
+        </div>
       </div>
 
-      <div aria-live="polite">
-        {busy && <p className="mt-6 text-ash">{t("verify.busy")}</p>}
+      <div className="split-dhead flex min-w-0 max-w-[960px] flex-col gap-4 px-12 pt-10 pb-5">
+        <BackButton label={t("verify.backLabel")} onClick={() => setView("list")}>
+          {t("nav.verify")}
+        </BackButton>
+        {report && <ResultHead report={report} name={name} />}
+      </div>
+
+      {/* Same row as the detail below: the drop zone faces the result. */}
+      <aside className="split-lbody flex flex-col gap-0.5 border-r border-edge px-4 pb-6" aria-label={t("verify.input")}>
+        <h2 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("verify.input")}</h2>
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void fromFile(event.dataTransfer.files[0]);
+          }}
+          className={`flex flex-col gap-4 rounded-lg border-2 border-dashed p-4 ${
+            dragging ? "border-soft bg-card" : "border-ctrl"
+          }`}
+        >
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+            className="flex flex-col items-center gap-2 rounded-md px-3 py-6 text-center hover:bg-card disabled:cursor-wait"
+          >
+            <FileUp size={28} className="text-ash" aria-hidden="true" />
+            <span className="text-lg font-bold">{t("verify.drop")}</span>
+            <span className="text-sm text-ash">{t("verify.dropHint")}</span>
+          </button>
+          <input
+            ref={input}
+            type="file"
+            accept=".pdf,.cose,.txt,application/pdf"
+            className="hidden"
+            onChange={(event) => {
+              void fromFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          <label className="flex flex-col gap-1.5 text-sm font-bold">
+            {t("verify.qr")}
+            <input
+              className="block min-h-11 w-full rounded border border-ctrl bg-night px-3 font-mono text-sm font-normal"
+              placeholder={t("verify.qrPlaceholder")}
+              spellCheck={false}
+              autoComplete="off"
+              value={qr}
+              disabled={busy}
+              onChange={(event) => setQr(event.target.value)}
+              onPaste={(event) => {
+                const text = event.clipboardData.getData("text");
+                if (!text.trim().startsWith(QR_PREFIX)) return;
+                event.preventDefault();
+                void fromText(text);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && qr.trim() !== "") void fromText(qr);
+              }}
+            />
+          </label>
+        </div>
+      </aside>
+
+      <main className="split-dbody flex min-w-0 max-w-[960px] flex-col gap-0.5 px-12 pb-10" aria-live="polite">
+        <h3 className="mb-1.5 px-2 text-[15px] font-bold text-ash">{t("verify.result")}</h3>
+        {!busy && !report && <p className="px-2 text-ash">{t("verify.emptyHint")}</p>}
+        {busy && <p className="px-2 text-ash">{t("verify.busy")}</p>}
         {report && "error" in report && (
-          <div className="mt-6 flex items-start gap-3 rounded-lg border border-sayno p-5">
+          <div className="flex items-start gap-3 rounded-lg border border-sayno p-5">
             <ShieldX className="shrink-0 text-sayno" aria-hidden="true" />
-            <div>
-              <p className="font-bold text-sayno">{report.error}</p>
-              {name && <p className="mt-1 text-sm text-ash">{name}</p>}
-            </div>
+            <p className="font-bold text-sayno">{report.error}</p>
           </div>
         )}
         {report && !("error" in report) && <Result report={report} name={name} labels={labels} lang={i18n.language} />}
-      </div>
-    </section>
+      </main>
+    </div>
   );
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+/** Top of the result, as for a drive: where it came from, the model, the serial number. */
+function ResultHead({ report, name }: { report: VerificationReport | { error: string }; name: string | null }) {
+  const { t } = useTranslation();
+  const source = "error" in report ? name : [name, t(`verify.source.${report.source}`)].filter(Boolean).join(" · ");
+  let title: string;
+  let line: string | null = null;
+  let tone = "";
+  if ("error" in report || (!report.batch && (!report.authentic || !report.details))) {
+    title = t("verify.rejected");
+    tone = "text-sayno";
+  } else if (report.batch) {
+    title = report.batch.label ?? report.batch.id ?? t("verify.batchAuthentic");
+    line = t("verify.batchDrives", { count: report.batch.drives.length });
+  } else {
+    const details = report.details;
+    title = details?.model ?? "";
+    line = details ? `s/n ${details.serial}` : null;
+  }
   return (
-    <div className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-3 border-b border-edge py-1.5 text-sm last:border-0">
-      <dt className="text-ash">{label}</dt>
-      <dd className="min-w-0 break-words">{children}</dd>
+    <div className="min-w-0">
+      {source && <div className="font-mono text-sm break-words text-ash">{source}</div>}
+      <h2 className={`split-title mt-0.5 mb-1 text-[40px] leading-tight font-bold break-words ${tone}`}>{title}</h2>
+      {line && <div className="font-mono text-sm break-all text-ash">{line}</div>}
     </div>
   );
 }
@@ -189,18 +233,17 @@ function Result({
   const yesNo = (value: boolean | null) => (value === null ? "—" : value ? t("verify.yes") : t("verify.no"));
 
   if (report.batch) {
-    return <BatchResult report={report} batch={report.batch} name={name} />;
+    return <BatchResult report={report} batch={report.batch} />;
   }
 
   if (!report.authentic || !report.details) {
     return (
-      <div className="mt-6 flex items-start gap-3 rounded-lg border border-sayno p-5">
+      <div className="flex items-start gap-3 rounded-lg border border-sayno p-5">
         <ShieldX className="shrink-0 text-sayno" aria-hidden="true" />
         <div>
           <h2 className="text-lg font-bold text-sayno">
             {t("verify.rejected")} : {t(`verify.reason.${report.reason ?? "Unknown"}`)}
           </h2>
-          {name && <p className="mt-1 text-sm text-ash">{name}</p>}
         </div>
       </div>
     );
@@ -214,7 +257,7 @@ function Result({
   // never a green header.
   const journalOk = report.journal !== "Mismatch";
   return (
-    <div className={`mt-6 rounded-lg border p-5 ${journalOk ? "border-ctrl" : "border-sayno"}`}>
+    <div className={`rounded-lg border p-5 ${journalOk ? "border-ctrl" : "border-sayno"}`}>
       {/* The answer in one sentence: authentic, status, when and by whom. */}
       <div className="flex items-start gap-3">
         {journalOk ? (
@@ -234,10 +277,13 @@ function Result({
               ? t("verify.issuedBy", { date: day.format(new Date(d.issued_at * 1000)), who })
               : t("verify.issued", { date: day.format(new Date(d.issued_at * 1000)) })}
           </h2>
-          <p className="mt-1 text-ash">
-            {d.model} · <span className="font-mono text-[0.9em]">s/n {d.serial}</span>
-            {d.method && <> · {labels[d.method] ?? d.method}</>}
-          </p>
+          {/* The model and serial number are in the title above. */}
+          {d.method && (
+            <p className="mt-1 text-ash">
+              {d.category !== "None" && <>{d.category} · </>}
+              {labels[d.method] ?? d.method}
+            </p>
+          )}
           <p className="mt-1 text-sm">{t(`job.statusHint.${d.status}`)}</p>
         </div>
       </div>
@@ -254,11 +300,11 @@ function Result({
         {report.journal === "Absent" && <p className="mt-2 text-xs text-ash">{t("verify.journalAbsent")}</p>}
         {report.journal === "Matches" && <p className="mt-2 text-xs text-ash">{t("verify.journalMatches")}</p>}
         <dl className="mt-3">
-          <Row label={t("verify.field.date")}>{date.format(new Date(d.issued_at * 1000))} UTC</Row>
-          <Row label={t("verify.field.drive")}>
+          <Fact label={t("verify.field.date")}>{date.format(new Date(d.issued_at * 1000))} UTC</Fact>
+          <Fact label={t("verify.field.drive")}>
             {d.model} · {capacity(d.capacity_bytes, lang, "")} · {d.drive_type}
-          </Row>
-          <Row label="S/N">
+          </Fact>
+          <Fact label="S/N">
             <Mono>{d.serial}</Mono>
             {d.hardware_id && (
               <>
@@ -268,14 +314,14 @@ function Result({
             )}
             {" · "}
             {t("verify.field.firmware")} <Mono>{d.firmware}</Mono>
-          </Row>
-          <Row label={t("verify.field.method")}>
+          </Fact>
+          <Fact label={t("verify.field.method")}>
             {d.method ? label(d.method) : "—"}
             {d.zero_finish && <span className="block text-xs text-ash">{t("verify.zeroFinish")}</span>}
             {d.all_namespaces && <span className="block text-xs text-ash">{t("verify.allNamespaces")}</span>}
-          </Row>
-          <Row label={t("verify.field.verified")}>{yesNo(d.verified)}</Row>
-          <Row label={t("verify.field.validation")}>
+          </Fact>
+          <Fact label={t("verify.field.verified")}>{yesNo(d.verified)}</Fact>
+          <Fact label={t("verify.field.validation")}>
             {d.validation
               ? t("verify.validation", {
                   method: t(`verify.validationMethod.${d.validation.method}`, { defaultValue: d.validation.method }),
@@ -283,35 +329,35 @@ function Result({
                   result: yesNo(d.validation.passed),
                 })
               : "—"}
-          </Row>
+          </Fact>
           {d.disposition && (
-            <Row label={t("verify.field.disposition")}>
+            <Fact label={t("verify.field.disposition")}>
               {t(`verify.disposition.${d.disposition}`)}
               {d.disposition_codes.length > 0 && <> — {list(d.disposition_codes)}</>}
-            </Row>
+            </Fact>
           )}
-          <Row label={t("verify.field.reserves")}>{list(d.reserves)}</Row>
-          {d.refusals.length > 0 && <Row label={t("verify.field.refusals")}>{list(d.refusals)}</Row>}
-          {d.justification && <Row label={t("verify.field.justification")}>« {d.justification} »</Row>}
-          <Row label={t("verify.field.operator")}>{who || "—"}</Row>
+          <Fact label={t("verify.field.reserves")}>{list(d.reserves)}</Fact>
+          {d.refusals.length > 0 && <Fact label={t("verify.field.refusals")}>{list(d.refusals)}</Fact>}
+          {d.justification && <Fact label={t("verify.field.justification")}>« {d.justification} »</Fact>}
+          <Fact label={t("verify.field.operator")}>{who || "—"}</Fact>
           {d.batch_id && (
-            <Row label={t("verify.field.batch")}>
+            <Fact label={t("verify.field.batch")}>
               <Mono>{d.batch_id}</Mono>
               {d.batch_label && <> — {d.batch_label}</>}
-            </Row>
+            </Fact>
           )}
-          <Row label={t("verify.field.license")}>
+          <Fact label={t("verify.field.license")}>
             {d.customer} · <Mono>{d.license_id}</Mono>
-          </Row>
-          <Row label={t("verify.field.tool")}>
+          </Fact>
+          <Fact label={t("verify.field.tool")}>
             disphas {d.tool_version} · {t("verify.rules", { version: d.rules_version })}
-          </Row>
-          <Row label={t("verify.field.binary")}>
+          </Fact>
+          <Fact label={t("verify.field.binary")}>
             <Mono>{d.binary_sha256}</Mono>
-          </Row>
-          <Row label={t("verify.field.id")}>
+          </Fact>
+          <Fact label={t("verify.field.id")}>
             <Mono>{d.id}</Mono>
-          </Row>
+          </Fact>
         </dl>
       </details>
     </div>
@@ -321,17 +367,15 @@ function Result({
 function BatchResult({
   report,
   batch,
-  name,
 }: {
   report: VerificationReport;
   batch: NonNullable<VerificationReport["batch"]>;
-  name: string | null;
 }) {
   const { t } = useTranslation();
   const ok = report.authentic;
   const conforme = batch.drives.filter((drive) => drive.status === "CONFORME").length;
   return (
-    <div className={`mt-6 rounded-lg border p-5 ${ok ? "border-ctrl" : "border-sayno"}`}>
+    <div className={`rounded-lg border p-5 ${ok ? "border-ctrl" : "border-sayno"}`}>
       <div className="flex items-start gap-3">
         {ok ? (
           <BadgeCheck className="mt-0.5 shrink-0 text-ready" aria-hidden="true" />
@@ -354,7 +398,6 @@ function BatchResult({
               </>
             )}
           </h2>
-          {name && <p className="mt-1 text-sm text-ash">{name}</p>}
         </div>
       </div>
       {ok && report.root === "Development" && <Notice tone="blocked">{t("verify.developmentRoot")}</Notice>}

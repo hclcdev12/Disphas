@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { ChevronLeft } from "lucide-react";
 
 type Tone = "ready" | "sayno" | "blocked" | "protected" | "brand" | "neutral";
 
@@ -68,5 +69,56 @@ export function Bar({ percent, className = "h-1" }: { percent: number; className
     <span className={`block overflow-hidden rounded-full bg-edge ${className}`} aria-hidden="true">
       <span className="block h-full bg-soft transition-all duration-300" style={{ width: `${percent}%` }} />
     </span>
+  );
+}
+
+/** A square button showing only an icon; `label` is read aloud and shown on hover. */
+export function IconButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex size-11 shrink-0 items-center justify-center rounded text-soft hover:bg-card disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Phone width: goes back from the detail to the list (hidden above 760 px). */
+export function BackButton({ label, children, onClick }: { label: string; children: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="split-back min-h-11 items-center gap-2 self-start rounded pr-3 pl-1"
+    >
+      <ChevronLeft size={18} aria-hidden="true" />
+      {children}
+    </button>
+  );
+}
+
+/** One line of facts: a label, then its value. */
+export function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-3 border-b border-edge py-1.5 text-sm last:border-0">
+      <dt className="text-ash">{label}</dt>
+      <dd className="min-w-0 break-words">{children}</dd>
+    </div>
   );
 }

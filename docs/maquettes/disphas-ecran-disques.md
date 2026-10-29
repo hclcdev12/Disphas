@@ -205,6 +205,26 @@ liste à la hauteur du titre « Étapes ».
 - Sans effacement : « Aucun effacement dans cette session. » à gauche, et à droite une phrase qui renvoie à l'onglet
   Disques.
 
+### 3.5 Onglets Historique et Vérifier (2026-10-29)
+
+Même grille que Disques et Effacements : les quatre onglets ont leur titre au même endroit, et le premier élément de
+la liste face au premier titre du détail.
+- **Historique, en-tête de liste** : « Historique · {n} », puis « {n} certificats signés » en mono, suivi de
+  « · {n} non affichés » s'il y en a ; à droite, une icône corbeille ouvre la fenêtre de suppression ; dessous, la
+  recherche unique.
+- **Historique, liste** : groupée par jour (« Aujourd'hui », « Hier », puis la date complète), les plus récents en
+  premier. Ligne : le modèle et, à droite, le statut en mono dans sa couleur ; ligne 2 : l'heure, « s/n {sn} » et
+  « lot {libellé} ». Un clic choisit, un **double clic ouvre le PDF**, Haut et Bas changent de certificat. Un rapport
+  qui ne se vérifie pas : « Certificat non affiché » en rouge et son identifiant, rien d'autre.
+- **Historique, détail** : « Émis le {date} · {méthode} » en mono, le modèle (40 px), « s/n {sn} · {capacité} » ; titre
+  « Certificat », cadre `--ctrl` avec le statut, sa phrase et « Ouvrir le certificat » ; méthode, opérateur et
+  identifiant ; si le certificat fait partie d'un lot : « Lot {libellé} · {n} certificats », « Certificat du lot » et
+  les disques du lot, chacun cliquable.
+- **Vérifier** : « Vérifier un certificat », puis « Hors ligne · contrôles de disphas-verify » en mono. À gauche,
+  « Certificat à vérifier » et la zone de dépôt (fichier ou texte du QR). À droite, « Résultat » : en-tête « {fichier}
+  · {source} », le modèle (40 px), « s/n {sn} », puis la phrase de résultat et les détails repliés. Sur téléphone, le
+  résultat remplace la zone de dépôt, avec « ‹ Vérifier » pour revenir.
+
 ## 4. Responsive
 
 | Largeur | Comportement |

@@ -107,7 +107,9 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
     opérateur, licence, mode d'emploi en 3 points), sautable, montré une fois (`onboarded` dans `settings.json` ; en
     démo, seulement sous Tauri). Le 2026-10-28 : sélection des disques par surbrillance (Ctrl/Maj + clic, Ctrl + A, Échap,
     flèches), bouton méthode avec menu (la passe de zéros devient une méthode), focus visible au clavier seulement,
-    onglet Effacements en liste et détail avec la progression de chaque lot (E4). Restent de la revue : D5 (B1 par
+    onglet Effacements en liste et détail avec la progression de chaque lot (E4). Le 2026-10-29 : Historique et
+    Vérifier sur la même grille liste/détail (Historique groupé par jour, le lot et son certificat dans le détail, un
+    double clic ouvre le PDF ; Vérifier avec le dépôt à gauche et le résultat à droite). Restent de la revue : D5 (B1 par
     mise en veille), P2 (changement rapide d'opérateur), motifs prêts à choisir pour le forçage ;
   - le certificat cite « IEEE 2883-2022 » dans ses référentiels, alors qu'O8 interdit « conforme IEEE 2883 » dans
     les supports commerciaux avant le lot 7 : à trancher ;

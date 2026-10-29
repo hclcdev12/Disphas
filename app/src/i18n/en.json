@@ -340,7 +340,20 @@
     "deleteWarning": "Permanent deletion from the history, recorded in the deletion log. PDFs already saved are not touched.",
     "deleteNow_one": "Delete {{count}} certificate",
     "deleteNow_other": "Delete {{count}} certificates",
-    "deleteNone": "No certificate to delete"
+    "deleteNone": "No certificate to delete",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "meta_one": "{{count}} signed certificate",
+    "meta_other": "{{count}} signed certificates",
+    "hidden": "Certificate not shown",
+    "hiddenHint": "This report does not verify: its content is not shown. It stays in the helper's reports folder for an audit.",
+    "backLabel": "Back to the list of certificates",
+    "emptyHint": "Every finished erasure adds its signed certificate here.",
+    "issuedOn": "Issued on {{date}}",
+    "certificate": "Certificate",
+    "openHint": "Or double-click the certificate in the list.",
+    "hiddenCount_one": "{{count}} hidden",
+    "hiddenCount_other": "{{count}} hidden"
   },
   "verify": {
     "title": "Verify a certificate",
@@ -421,7 +434,12 @@
     "qrPlaceholder": "DSV1:… paste or scan, then Enter",
     "issued": "issued on {{date}}",
     "issuedBy": "issued on {{date}} by {{who}}",
-    "details": "All the details"
+    "details": "All the details",
+    "meta": "Offline · same checks as disphas-verify",
+    "backLabel": "Back to the certificate drop zone",
+    "input": "Certificate to verify",
+    "result": "Result",
+    "emptyHint": "The result of the verification shows here."
   },
   "batch": {
     "current": "Current batch:",

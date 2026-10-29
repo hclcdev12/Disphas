@@ -413,14 +413,10 @@ export default function App() {
           pdfOf={(id) => pdfs[id]}
           onRetryPdf={(id) => void renderPdf(id)}
         />
+      ) : view === "history" ? (
+        <HistoryScreen labels={labels} />
       ) : (
-        <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
-          {view === "history" ? (
-            <HistoryScreen labels={labels} />
-          ) : (
-            <VerifyScreen labels={labels} />
-          )}
-        </main>
+        <VerifyScreen labels={labels} />
       )}
       {finishedCount.conforme + finishedCount.other > 0 && (
         <FinishedBar
