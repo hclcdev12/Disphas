@@ -60,6 +60,8 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   facturation GitHub. La règle polkit du banc vise encore `org.oblivio.helper` : relancer le `setup.sh` à jour.
   **2026-10-29** : `tools/bench/package.sh <dossier>` refait ce build (copie propre du dernier commit, version
   `0.1.0+local.<commit>`) ; paquets du protocole 3 construits (`e8d06c6`), pas encore installés (banc en panne).
+  **2026-10-30** : `--bench-root` fait un paquet qui accepte aussi la racine de développement (version
+  `0.1.0+benchroot.<commit>`, banc seulement), la phrase secrète de la clé racine officielle étant perdue.
   **Décision du 2026-10-29** : le banc repasse sous **Linux Mint** (base Ubuntu : `.deb`, `setup.sh` et pilotage
   X11 inchangés). Rocky 9 ne peut pas faire tourner l'application (pas de WebKitGTK 4.1 ; AppImage construit sur
   glibc 2.35, Flatpak incompatible avec le helper root sans affaiblir le bac à sable) ; clients : liste actuelle
@@ -243,8 +245,11 @@ propriétaire à chaque démarrage, avant `setup.sh`. Disques déclarés sacrifi
    `--reinstall` n'est plus nécessaire, `dpkg-query -W disphas` dit quel build est installé.
 3. Lancer l'app sur l'écran du banc depuis SSH :
    `DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus setsid nohup /usr/bin/disphas-app > /tmp/disphas-app.log 2>&1 < /dev/null &`
-4. Licence : l'app crée une demande `DSA1:…` (badge « Sans licence »). Le **propriétaire** la signe sur la machine
-   qui détient la clé racine :
+4. Licence : l'app crée une demande `DSA1:…` (badge « Sans licence »). Depuis le 2026-10-30 (phrase secrète de la
+   clé racine officielle perdue), le banc reçoit un paquet `--bench-root` et une licence de la racine de
+   développement, signée sur le poste sans secret :
+   `cargo run -p disphas-license --example issue_dev_license -- 'DSA1:…' 30 Pro`.
+   Avec une nouvelle clé racine officielle, le **propriétaire** signera de nouveau sur sa machine :
    `./target/release/disphas-issuer issue <chemin>/root.key --customer "Banc disphas" --offer Pro --days 30 'DSA1:…'`
    (le registre `issued-licenses.csv` est à côté de `root.key`). La licence `DSL1:…` se colle dans l'app.
 

@@ -7,17 +7,28 @@
 # Runs in a podman container from a clean copy of HEAD (`git archive`): local
 # changes are left out. Nothing here touches a drive.
 #
-#   tools/bench/package.sh <work-dir>
+#   tools/bench/package.sh [--bench-root] <work-dir>
 #
 # The packages land in <work-dir>/out, versioned `<version>+local.<commit>`.
+# --bench-root also trusts the public development root (feature `bench-root`
+# of disphas-license), so the bench can be licensed without the official
+# root key; those packages are versioned `<version>+benchroot.<commit>` and
+# must never leave the bench.
 # Cargo and npm caches stay in <work-dir> to speed up the next build.
 set -eu
 
-work=${1:?usage: tools/bench/package.sh <work-dir>}
+features=""
+tag=local
+if [ "${1:-}" = "--bench-root" ]; then
+  features=disphas-license/bench-root
+  tag=benchroot
+  shift
+fi
+work=${1:?usage: tools/bench/package.sh [--bench-root] <work-dir>}
 root=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 commit=$(git -C "$root" rev-parse --short HEAD)
 base=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$root/Cargo.toml" | head -n 1)
-version="$base+local.$commit"
+version="$base+$tag.$commit"
 
 mkdir -p "$work/cargo" "$work/npm" "$work/out"
 rm -rf "$work/src"
@@ -30,7 +41,7 @@ node_sha=48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75
 
 podman run --rm \
   -v "$work/src:/src:Z" -v "$work/cargo:/root/.cargo:Z" -v "$work/npm:/root/.npm:Z" -v "$work/out:/out:Z" \
-  -e VERSION="$version" -e NODE="$node" -e NODE_SHA="$node_sha" \
+  -e VERSION="$version" -e NODE="$node" -e NODE_SHA="$node_sha" -e FEATURES="$features" \
   docker.io/library/ubuntu:22.04 sh -euc '
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
@@ -43,9 +54,16 @@ podman run --rm \
     [ -x /root/.cargo/bin/rustup ] || curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
     cd /src/app
     npm ci --no-audit --no-fund
-    npm run tauri build -- --bundles deb rpm --config "{\"version\": \"$VERSION\"}"
+    if [ -n "$FEATURES" ]; then
+      # The helper is built by beforeBuildCommand: give it the feature too.
+      build="npm run build && cargo build --release -p disphas-helper --features $FEATURES"
+      npm run tauri build -- --bundles deb rpm --features "$FEATURES" \
+        --config "{\"version\": \"$VERSION\", \"build\": {\"beforeBuildCommand\": \"$build\"}}"
+    else
+      npm run tauri build -- --bundles deb rpm --config "{\"version\": \"$VERSION\"}"
+    fi
     cd /src
     python3 tools/check_package.py target/release/bundle/deb/*.deb --max-glibc 2.35
-    cp target/release/bundle/deb/*.deb target/release/bundle/rpm/*.rpm /out/
+    cp target/release/bundle/deb/*"$VERSION"*.deb target/release/bundle/rpm/*"$VERSION"*.rpm /out/
   '
 ls -l "$work/out"

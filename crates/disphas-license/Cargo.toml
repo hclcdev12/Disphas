@@ -10,6 +10,12 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Test bench packages only (tools/bench/package.sh --bench-root): a release
+# build that also trusts the public development root, so the bench can be
+# licensed without the official root key. Never in a shipped package.
+bench-root = []
+
 [dependencies]
 getrandom = "0.4.3"
 disphas-attestation.workspace = true

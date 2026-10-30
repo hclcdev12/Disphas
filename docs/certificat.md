@@ -174,6 +174,11 @@ L'état est **revérifié à chaque lecture** : un `.lic` altéré, ou une clé 
 - La clé publique officielle n'existe qu'en un seul endroit : `disphas_attestation::trust::OFFICIAL_ROOT_KEY`,
   lue par le helper, l'application et `disphas-verify`.
   **Générée le 2026-10-04** : `90241925111469b68676f8041578355a9f3e0bf14d84afd825f24782c3508a0b`.
+- **Racine de développement** (clé publique, graine publique dans `disphas_license::dev_root`) : acceptée par les
+  builds de développement et, depuis le 2026-10-30, par les paquets du **banc** construits avec la feature
+  `bench-root` (`tools/bench/package.sh --bench-root`, version `+benchroot.<commit>`) ; jamais par un paquet livré.
+  Décidé quand la phrase secrète de la clé racine officielle a été perdue (2026-10-30) : une nouvelle clé racine
+  reste à générer avant toute licence client.
 - ⚠️ Recommandation : générer et conserver `root.key` sur une machine hors ligne ; deux sauvegardes sur supports
   distincts ; la phrase secrète conservée séparément. Perdre l'une ou l'autre interdit toute nouvelle licence.
 

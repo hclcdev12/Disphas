@@ -41,19 +41,21 @@ pub fn trusted_revocations() -> Result<Vec<Revocation>, String> {
 
 /// Root keys licenses and certificates may chain to: the official root key;
 /// in development builds also the public development root, so licenses of
-/// both origins work there. Release builds trust the official key alone.
+/// both origins work there. Release builds trust the official key alone,
+/// except test bench packages built with the `bench-root` feature.
 pub fn trusted_roots() -> Vec<VerifyingKey> {
     #[allow(unused_mut)]
     let mut roots: Vec<VerifyingKey> = disphas_attestation::trust::official_root_key()
         .into_iter()
         .collect();
-    #[cfg(debug_assertions)]
+    #[cfg(any(debug_assertions, feature = "bench-root"))]
     roots.push(dev_root::verifying_key());
     roots
 }
 
-/// Public development root key: debug builds only, never in a release.
-#[cfg(debug_assertions)]
+/// Public development root key: debug builds and test bench packages only,
+/// never in a shipped release.
+#[cfg(any(debug_assertions, feature = "bench-root"))]
 pub mod dev_root;
 
 use std::fs::{self, OpenOptions};
