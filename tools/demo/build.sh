@@ -1,10 +1,11 @@
 #!/bin/sh
-# Builds the website's interactive demo (docs/site.md) into site/public/demo/app/:
-# the application's interface on a simulated helper (app/src/demo/), and the
-# fictional certificates rendered by the real renderer with test keys.
-# Audits the result first: nothing is copied if it fails.
+# Builds the interactive demo (docs/site.md §9) into demo/ at the root of the
+# repository: the application's interface on a simulated helper
+# (app/src/demo/), and the fictional certificates rendered by the real renderer
+# with test keys. A standalone static folder, served from any address (relative
+# paths). Audits the result first: nothing is copied if it fails.
 #
-#   tools/site-demo/build.sh
+#   tools/demo/build.sh
 set -eu
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
@@ -20,10 +21,9 @@ mkdir -p "$work/app/pdf"
 (cd "$root" && cargo run -q -p disphas-report --features fixtures --example demo_certificates -- "$work/app/pdf")
 
 echo "== audit"
-"$root/tools/site-demo/audit.sh" "$work/app"
+"$root/tools/demo/audit.sh" "$work/app"
 
-echo "== copy into site/public/demo/app"
-rm -rf "$root/site/public/demo/app"
-mkdir -p "$root/site/public/demo"
-cp -R "$work/app" "$root/site/public/demo/app"
-echo "done: $(du -sh "$root/site/public/demo/app" | cut -f1)"
+echo "== copy into demo/"
+rm -rf "$root/demo"
+cp -R "$work/app" "$root/demo"
+echo "done: $(du -sh "$root/demo" | cut -f1)"

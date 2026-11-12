@@ -3,7 +3,7 @@
 # interface and fictional data only. Fails on source maps, local paths,
 # calls to the real helper, keys, or files of an unexpected kind.
 #
-#   tools/site-demo/audit.sh <demo-dir>
+#   tools/demo/audit.sh <demo-dir>
 set -eu
 
 dir=${1:?usage: audit.sh <demo-dir>}
@@ -14,7 +14,7 @@ fail() {
 }
 
 # Only what a static demo needs.
-unexpected=$(find "$dir" -type f ! -name '*.html' ! -name '*.js' ! -name '*.css' ! -name '*.ttf' \
+unexpected=$(find "$dir" -type f ! -name '*.html' ! -name '*.js' ! -name '*.css' ! -name '*.woff2' \
   ! -name '*.svg' ! -name '*.pdf')
 [ -z "$unexpected" ] || fail "unexpected files: $unexpected"
 

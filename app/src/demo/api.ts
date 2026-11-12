@@ -1,10 +1,9 @@
-// Interactive demo for the website (docs/site.md): a simulated helper on
+// Interactive web demo (docs/site.md §9): a simulated helper on
 // fictional drives, built with `npm run build:demo`. Nothing here touches a
 // drive, the network or the real helper. Verdicts come from a recording of
 // `disphas-helper --features demo`; erasures are played back in accelerated
 // time, and certificates are PDFs rendered beforehand by the real renderer
 // with public test keys (crates/disphas-report/examples/demo_certificates.rs).
-import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Event as HelperEvent } from "../bindings/Event";
 import type { DeviceSummary } from "../bindings/DeviceSummary";
 import type { FinalStatus } from "../bindings/FinalStatus";
@@ -25,21 +24,6 @@ import verification from "../dev/verification-sample.json";
 
 /** The demo keeps no settings file: the chosen language lives in the browser's storage. */
 const LANGUAGE_KEY = "disphas-demo-language";
-
-/**
- * The first-launch assistant shows in the desktop demo (npm run demo), once;
- * never on the website, where visitors come to see the drives.
- */
-const ONBOARDED_KEY = "disphas-demo-onboarded";
-
-function demoOnboarded(): boolean {
-  if (!isTauri()) return true;
-  try {
-    return localStorage.getItem(ONBOARDED_KEY) === "1";
-  } catch {
-    return true;
-  }
-}
 
 function storedLanguage(): string | null {
   try {
@@ -122,7 +106,8 @@ const state = {
   running: new Set<string>(),
   finished: [] as Job[],
   byId: new Map<string, Job>(),
-  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage(), onboarded: demoOnboarded(), recent_operators: ["OP-042", "OP-017", "M. Kervella"] } as Settings,
+  // No first-launch assistant: visitors come to see the drives.
+  settings: { organization: "Atelier XYZ", operator: "OP-042", logo: null, strict_confirmation: false, notifications: false, language: storedLanguage(), onboarded: true, recent_operators: ["OP-042", "OP-017", "M. Kervella"] } as Settings,
   handlers: new Set<(event: HelperEvent) => void>(),
 };
 
@@ -432,11 +417,6 @@ export const demoApi: DisphasApi = {
   },
   setOnboarded: async () => {
     state.settings = { ...state.settings, onboarded: true };
-    try {
-      localStorage.setItem(ONBOARDED_KEY, "1");
-    } catch {
-      // Storage refused: the assistant shows again at the next launch.
-    }
     return { ok: true, value: state.settings };
   },
   setLanguage: async (language) => {
@@ -452,10 +432,8 @@ export const demoApi: DisphasApi = {
     state.settings = { ...state.settings, notifications: enabled };
     return { ok: true, value: state.settings };
   },
-  // Under Tauri (npm run demo) the desktop shows it, as in the real app; in a browser, nothing.
-  notify: async (title, body) => {
-    if (isTauri()) await invoke<void>("notify", { title, body }).catch(() => {});
-  },
+  // A web page shows no desktop notification.
+  notify: async () => {},
   onDrivesChanged: async () => () => {},
   // The browser cannot verify: a fictional verified report, for layout only.
   verifyCertificate: async () => verification.report as VerificationReport,

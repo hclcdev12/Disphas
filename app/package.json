@@ -11,7 +11,7 @@
     "bindings": "cd .. && cargo test -q -p disphas-protocol --features ts-rs export_bindings",
     "tauri": "tauri",
     "demo": "cargo build -q --manifest-path ../Cargo.toml -p disphas-helper --features demo && tauri dev",
-    "build:demo": "tsc -b && VITE_DISPHAS_DEMO=1 vite build --base /demo/app/ --outDir dist-demo --emptyOutDir"
+    "build:demo": "tsc -b && VITE_DISPHAS_DEMO=1 vite build --base ./ --outDir dist-demo --emptyOutDir"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

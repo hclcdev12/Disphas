@@ -175,12 +175,19 @@ Internet ─► Caddy (HTTPS automatique) ─┬─ oblivio.eu, www ────
    N8 après une nouvelle tentative, disque verrouillé déverrouillé avec `disphas` ou expiré B6, disque muet forcé
    NON CONFORME, NVMe en lecture seule SAY NO, disque système PROTÉGÉ), et **faux PDF** rendus par le vrai moteur
    avec la clé de test publique (`disphas-report`, exemple `demo_certificates` : 60 fichiers, un par disque, méthode
-   et langue). Assemblage : `tools/site-demo/build.sh`, qui **audite** le résultat avant de le copier dans
-   `site/public/demo/app/` (`tools/site-demo/audit.sh` : aucune source map, aucun chemin local, aucun appel au vrai
+   et langue). Assemblage : `tools/demo/build.sh`, qui **audite** le résultat avant de le copier dans
+   `demo/` à la racine du dépôt (`tools/demo/audit.sh` : aucune source map, aucun chemin local, aucun appel au vrai
    helper, aucune clé ni licence encodée, seulement des certificats `DEMO-*`). Le code exposé est celui de
    l'interface, minifié, sans source maps, le même que celui livré dans les paquets ; le helper, le moteur, la
-   signature et les licences n'y sont jamais. 122 Ko de JavaScript compressé ; les PDF (5,5 Mo) ne sont chargés
-   qu'à l'ouverture.
+   signature et les licences n'y sont jamais. Les PDF (5,5 Mo) ne sont chargés qu'à l'ouverture.
+   **Démo autonome (2026-11-12, demande du propriétaire, pour son portfolio)** : la démo ne vit plus dans le site,
+   qui sera refait. `demo/` est un dossier statique aux chemins relatifs, publiable à n'importe quelle adresse ;
+   pour la servir à `/demo/app/`, le site en copie le contenu dans `site/public/demo/app/` (ignoré par git) avant
+   son build. Régénérée le même jour depuis l'application actuelle (version de test : mêmes disques, verdicts et
+   comportements, dont la veille qui dégèle le SSD) ; polices en WOFF2 (`assets/fonts/README.md`). Premier
+   chargement ≈ 210 Ko compressés (JavaScript 143 Ko, CSS 9 Ko, polices 59 Ko). L'audit a écarté un appel au pont
+   Tauri resté dans le helper simulé (notification et assistant de premier lancement, jamais exécutés dans un
+   navigateur) : retiré.
 3. ~~**Comptes** (lien de connexion), téléchargements~~ → **faits le 2026-10-11** : Better Auth 1.7, plugin
    `magicLink` (lien valable 5 minutes, une seule fois ; compte créé à la première connexion), télémétrie désactivée
    explicitement ; base PostgreSQL (`DATABASE_URL`) ou PGlite en développement (`.data/pglite`, 0700) ; migrations SQL

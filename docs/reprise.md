@@ -70,8 +70,9 @@ réémettre les licences (`DSL1:`) ; `setup.sh` relancé au démarrage du banc i
   AVX2, que le Xeon d'un T3500 n'a probablement pas (à vérifier : `grep -c avx2 /proc/cpuinfo`) ; bureau
   Wayland seul, donc `xdotool` et `xwd` (pilotage et captures, `tools/bench/`) sont à remplacer, et xdotool
   n'est pas dans EPEL 10 ; `setup.sh` en version `dnf`.
-- La démo du site (`site/public/demo/app/`) est une copie compilée de l'application d'avant le lot 2 :
-  à régénérer avec `tools/site-demo/build.sh` (et son audit) quand le propriétaire le décidera.
+- La démo web est un dossier autonome, `demo/`, régénéré le 2026-11-12 depuis l'application actuelle par
+  `tools/demo/build.sh` (et son audit) ; à régénérer après chaque changement de l'interface à montrer
+  ([site](site.md) §9). Le site ne la contient plus.
 - Identité disphas livrée par le graphiste : dossier de marque **hors dépôt** `~/Documents/graphism_Disphas/`
   (`README.md`, `DESIGN.md` = jetons de couleur, typographie, composants ; `IDENTITE.md` = nom, ton, certificat).
   Copiés dans le dépôt : logos (`assets/logo/disphas/`) et police Klaudia (`assets/fonts/klaudia/`), pas encore
