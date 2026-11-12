@@ -28,6 +28,7 @@ impl Licensing for NoLicensing {
             offer: None,
             license_id: None,
             valid_until: None,
+            entitlements: None,
         }
     }
     fn activation_request(&self) -> Result<String, ErrorBody> {
@@ -50,6 +51,7 @@ fuzz_target!(|data: &[u8]| {
             reports_dir: std::path::PathBuf::from("/nonexistent/disphas-fuzz"),
             jobs_dir: None,
             licensing: Box::new(NoLicensing),
+            entitlements: disphas_core::EntitlementTable::baseline(),
         },
     );
     let _ = serve(data, std::io::sink(), &mut session);
